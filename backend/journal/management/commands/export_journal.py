@@ -3,7 +3,7 @@ from journal.models import JournalEntry
 from journal.serializers import JournalEntrySerializer
 import json
 
-
+#naredba za izvoz dnevničkih unosa u JSON datoteku
 class Command(BaseCommand):
     help = 'Export journal entries (encrypted by default).'
 

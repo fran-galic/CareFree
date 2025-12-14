@@ -5,7 +5,7 @@ from .models import JournalEntry
 class JournalEntrySerializer(serializers.ModelSerializer):
     content = serializers.CharField(allow_blank=True, allow_null=True, required=False)
 
-    # metapodaci serijalizatora
+    #metapodaci serijalizatora
     class Meta:
         model = JournalEntry
         fields = [
@@ -13,7 +13,7 @@ class JournalEntrySerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'student', 'analysis_summary', 'created_at', 'updated_at']
 
-    # kod kreiranja unosa serializer šalje sadržaj modelu koji ga kriptira
+    #kod kreiranja unosa serializer šalje sadržaj modelu koji ga kriptira
     def create(self, validated_data):
         content = validated_data.pop('content', None)
         from .models import JournalEntry
@@ -23,7 +23,7 @@ class JournalEntrySerializer(serializers.ModelSerializer):
         entry.save()
         return entry
 
-    # kod ažuriranja unosa serializer šalje sadržaj modelu koji ga kriptira
+    #kod ažuriranja unosa serializer šalje sadržaj modelu koji ga kriptira
     def update(self, instance, validated_data):
         content = validated_data.pop('content', None)
         for attr, value in validated_data.items():

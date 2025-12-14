@@ -3,7 +3,7 @@ from django.conf import settings
 
 
 class JournalEntry(models.Model):
-    # povezivanje unosa sa studentom
+    #povezivanje unosa sa studentom
     student = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -12,10 +12,10 @@ class JournalEntry(models.Model):
 
     title = models.CharField(max_length=200, blank=True, null=True)
     
-    # spremanje enkriptiranog sadržaja
+    #spremanje enkriptiranog sadržaja
     content_encrypted = models.BinaryField(blank=True, null=True)
     
-    # getter za content koji dekriptira prije vraćanja
+    #getter za content koji dekriptira prije vraćanja
     @property
     def content(self):
         from cryptography.fernet import Fernet
@@ -29,7 +29,7 @@ class JournalEntry(models.Model):
         except Exception:
             return None
 
-    # setter za content koji enkriptira prije spremanja
+    #setter za content koji enkriptira prije spremanja
     @content.setter
     def content(self, value):
         from cryptography.fernet import Fernet
@@ -40,16 +40,16 @@ class JournalEntry(models.Model):
         self.content_encrypted = f.encrypt(value.encode()) if value is not None else None
     mood = models.CharField(max_length=32, blank=True, null=True)
 
-    # kasnije ako ćemo implementirati AI analizu
+    #kasnije ako ćemo implementirati AI analizu
     analysis_summary = models.TextField(blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    # za sortiranje unosa po datumu kreiranja
+    #za sortiranje unosa po datumu kreiranja
     class Meta:
         ordering = ['-created_at']
 
-    # prikaz unosa u admin panelu ili shellu
+    #prikaz unosa u admin panelu ili shellu
     def __str__(self):
         return f"JournalEntry({self.pk}) by {self.student} @ {self.created_at}"
