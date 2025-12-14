@@ -1,12 +1,12 @@
 from django.contrib.auth import get_user_model, authenticate
 from rest_framework import generics
 from rest_framework.response import Response
+from rest_framework import status
+
+from .models import Caretaker, Student
 from .serializers import (
-    CaretakerRegisterSerializer,
     LoginSerializer,
-    StudentRegisterSerializer,
     UserSerializer,
-    RegisterSerializer,
 )
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken, UntypedToken, BlacklistedToken
@@ -14,11 +14,19 @@ from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.exceptions import TokenError
 
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.views import APIView
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes
 from django.conf import settings
 from django.core.mail import send_mail
+import jwt
+from django.conf import settings
+from django.utils import timezone
+from datetime import timedelta
+from django.contrib.auth import get_user_model
+from .serializers import EmailOnlySerializer, RegistrationConfirmSerializer
+from django.db import transaction
 
 
 User = get_user_model()
@@ -55,54 +63,89 @@ def build_auth_response(user):
 
     return response
 
+COMPLETE_REGISTER_PATH = "/primjer/rute"
 
-class RegisterUserView(generics.CreateAPIView):
-    queryset = User.objects.all()
+
+class RequestRegistrationTokenView(APIView):
+    """Accepts `{ "email": "..." }`. If email is unused, prints a JWT to server console (for now).
+
+    Edit COMPLETE_REGISTER_PATH to be the frontend's path to complete registration.
+    """
     permission_classes = [AllowAny]
-    serializer_class = RegisterSerializer
+    serializer_class = EmailOnlySerializer
 
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+    def post(self, request, format=None):
+        serializer = self.serializer_class(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        email = serializer.validated_data.get("email")
-        if User.objects.filter(email=email).exists():
-            return Response({"error": "Korisnik s ovim email-om već postoji"}, status=400)
+        email = serializer.validated_data['email'].strip()
+        if User.objects.filter(email__iexact=email).exists():
+            return Response({"error": "mail je vec registriran"}, status=status.HTTP_400_BAD_REQUEST)
 
-        user = serializer.save()
-        return Response({"message": "User registration successful", "id": user.id}, status=201)
+        now = timezone.now()
+        expiry_seconds = getattr(settings, 'REGISTRATION_TOKEN_EXP_SECONDS', 900)
+        payload = {
+            'email': email,
+            'iat': int(now.timestamp()),
+            'exp': int((now + timedelta(seconds=expiry_seconds)).timestamp())
+        }
+        token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
+
+        # PRINT U KONZOLU i cijeli link za frontend s tokenom
+        registration_link = f"{settings.FRONTEND_URL.rstrip('/')}{COMPLETE_REGISTER_PATH}/?token={token}/"
+        print(f"[registration link for {email}]: {registration_link}")
+
+        # PROMJENA
+        return Response({"detail": "Registration token generated and printed to server console."})
 
 
-
-class CaretakerRegisterView(generics.CreateAPIView):
-    serializer_class = CaretakerRegisterSerializer
-    queryset = User.objects.all()
+class ConfirmRegistrationView(APIView):
+    """Confirm registration using token and create user + role-specific object."""
     permission_classes = [AllowAny]
+    serializer_class = RegistrationConfirmSerializer
 
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+    def post(self, request, format=None):
+        serializer = self.serializer_class(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        # provjera prebacena u serializer
-        # email = serializer.validated_data.get('user').get('email')
-        # if User.objects.filter(email=email).exists():
-        #     return Response({"error": "Korisnik s ovim email-om već postoji"}, status=400)
+        data = serializer.validated_data
+        token = data['token']
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+        except jwt.ExpiredSignatureError:
+            return Response({"error": "Token je istekao."}, status=status.HTTP_400_BAD_REQUEST)
+        except jwt.InvalidTokenError:
+            return Response({"error": "Neispravan token."}, status=status.HTTP_400_BAD_REQUEST)
 
-        serializer.save()
-        return Response({"message": "Caretaker registration successful. Please log in."}, status=201)
+        email = payload.get('email')
+        if not email:
+            return Response({"error": "Token ne sadrzi email."}, status=status.HTTP_400_BAD_REQUEST)
 
+        User = get_user_model()
+        if User.objects.filter(email__iexact=email).exists():
+            return Response({"error": "mail je vec registriran"}, status=status.HTTP_400_BAD_REQUEST)
 
-class StudentRegisterView(generics.CreateAPIView):
-    serializer_class = StudentRegisterSerializer
-    queryset = User.objects.all()
-    permission_classes = [AllowAny]
+        try:
+            with transaction.atomic():
+                user = User.objects.create_user(
+                    email=email,
+                    password=data['password'],
+                    first_name=data['first_name'],
+                    last_name=data['last_name'],
+                    role=data['role'],
+                )
 
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+                if data['role'] == 'caretaker':
+                    Caretaker.objects.create(user=user)
+                else:
+                    Student.objects.create(user=user)
 
-        serializer.save()
-        return Response({"message": "Student registration successful. Please log in."}, status=201)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({"detail": "Registracija uspješna."}, status=status.HTTP_201_CREATED)
 
 
     
