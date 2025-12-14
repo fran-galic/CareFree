@@ -14,100 +14,31 @@ class UserSerializer(serializers.ModelSerializer):
 
     
 
-class RegisterSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, required=True, min_length=6)
-    email = serializers.EmailField(required=True, validators=[
-        UniqueValidator(queryset=User.objects.all(), message="Korisnik s ovim email-om već postoji")
-    ])
+# class RegisterSerializer(serializers.ModelSerializer):
+#     password = serializers.CharField(write_only=True, required=True, min_length=6)
+#     email = serializers.EmailField(required=True, validators=[
+#         UniqueValidator(queryset=User.objects.all(), message="Korisnik s ovim email-om već postoji")
+#     ])
 
-    def validate_email(self, value):
-        return value.strip().lower()
+#     def validate_email(self, value):
+#         return value.strip().lower()
 
-    class Meta:
-        model=User
-        fields=["id", "first_name", "last_name", "email", "username", "password", "sex", "age", "role"]
-        extra_kwargs = {"password": {"write_only": True}}
+#     class Meta:
+#         model=User
+#         fields=["id", "first_name", "last_name", "email", "username", "password", "sex", "age", "role"]
+#         extra_kwargs = {"password": {"write_only": True}}
 
-    def create(self, validated_data):
-        user = User.objects.create_user(
-            email=validated_data.pop('email'),
-            # username=validated_data.pop('username'), necemo koristit username nepotreban je
-            password=validated_data.pop('password'),
-            sex=validated_data.pop('sex'),
-            age=validated_data.pop('age'),
-            role=validated_data.pop('role'),
-        )
-        return user
+#     def create(self, validated_data):
+#         user = User.objects.create_user(
+#             email=validated_data.pop('email'),
+#             # username=validated_data.pop('username'), necemo koristit username nepotreban je
+#             password=validated_data.pop('password'),
+#             sex=validated_data.pop('sex'),
+#             age=validated_data.pop('age'),
+#             role=validated_data.pop('role'),
+#         )
+#         return user
 
-
-
-class CaretakerRegisterSerializer(serializers.ModelSerializer):
-    user_id = serializers.IntegerField()
-
-    class Meta:
-        model = Caretaker
-        fields = ["user_id", "academic_title", "help_categories", "user_image_url", "specialisation", "about_me", "working_since", "tel_num", "office_address"]
-
-    # def validate(self, data):
-    #     if User.objects.filter(username=data['username'], student__isnull=False).exists():
-    #         raise serializers.ValidationError("This user is already registered as a student.")
-    #     return data
-
-    def create(self, validated_data):
-        user_id = validated_data.pop("user_id")
-        help_categories = validated_data.pop("help_categories", None)
-
-        try:
-            user = User.objects.get(id=user_id)
-        except User.DoesNotExist:
-            raise serializers.ValidationError({"user": "User with given id does not exist."})
-        
-        # # create a new user from nested data
-        # user = RegisterSerializer().create(user_data)
-
-        if hasattr(user, 'student'):
-            raise serializers.ValidationError({"user": "This user is already registered as a student."})
-
-        if hasattr(user, 'caretaker'):
-            raise serializers.ValidationError({"user": "This user is already registered as a caretaker."})
-
-        caretaker = Caretaker.objects.create(user=user, **validated_data)
-
-        if help_categories is not None:
-            caretaker.help_categories.set(help_categories)
-
-        return caretaker
-
-
-
-class StudentRegisterSerializer(serializers.ModelSerializer):
-    user_id = serializers.IntegerField()
-
-    class Meta:
-        model = Student
-        fields = ["user_id", "studying_at", "year_of_study", "is_anonymous"]
-
-    # def validate(self, data):
-    #     if User.objects.filter(username=data['username'], caretaker__isnull=False).exists():
-    #         raise serializers.ValidationError("This user is already registered as a caretaker.")
-    #     return data
-
-    def create(self, validated_data):
-        user_id = validated_data.pop("user_id")
-
-        try:
-            user = User.objects.get(id=user_id)
-        except User.DoesNotExist:
-            raise serializers.ValidationError({"user": "User with given id does not exist."})
-        
-        if hasattr(user, 'student'):
-            raise serializers.ValidationError({"user": "This user is already registered as a student."})
-
-        if hasattr(user, 'caretaker'):
-            raise serializers.ValidationError({"user": "This user is already registered as a caretaker."})
-
-        student = Student.objects.create(user=user, **validated_data)
-        return student
 
     
 
@@ -120,3 +51,14 @@ class LoginSerializer(serializers.ModelSerializer):
         fields=["id", "email", "password"]
         extra_kwargs={"password": {"write_only": True}}
 
+
+class EmailOnlySerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+
+class RegistrationConfirmSerializer(serializers.Serializer):
+    token = serializers.CharField(write_only=True)
+    first_name = serializers.CharField(max_length=150)
+    last_name = serializers.CharField(max_length=150)
+    role = serializers.ChoiceField(choices=(('student', 'student'), ('caretaker', 'caretaker')))
+    password = serializers.CharField(write_only=True, min_length=6)
