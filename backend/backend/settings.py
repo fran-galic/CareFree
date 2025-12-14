@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'accounts',
     'users',
+    'journal',
 ]
 
 MIDDLEWARE = [
@@ -74,8 +75,7 @@ AUTH_USER_MODEL = 'accounts.User'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        #'rest_framework_simplejwt.authentication.JWTAuthentication',
-        #'rest_framework.authentication.SessionAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
         'accounts.authentication.CookieJWTAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
@@ -237,3 +237,20 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3001")
+
+#enkripcija: ključ za enkripciju na strani servera (Fernet base64 ključ)
+#u produkciji će trebati postaviti `ENCRYPTION_KEY` env var na base64 urlsafe kljuc (32 url-safe bajta enkodirana)
+try:
+    from cryptography.fernet import Fernet
+except Exception:
+    Fernet = None
+
+ENCRYPTION_KEY = os.environ.get('ENCRYPTION_KEY')
+if not ENCRYPTION_KEY:
+    #samo za razvoj: generiramo privremeni ključ ako nije postavljen
+    if DEBUG and Fernet is not None:
+        import warnings
+        warnings.warn("ENCRYPTION_KEY not set — generating temporary key for DEBUG mode. Do NOT use in production.")
+        ENCRYPTION_KEY = Fernet.generate_key().decode()
+    else:
+        ENCRYPTION_KEY = None
