@@ -4,7 +4,6 @@ from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.base_user import BaseUserManager
 from django.core.validators import MaxValueValidator
 from django.utils.text import slugify
-# Create your models here.
 
 class CustomUserManager(BaseUserManager):
     use_in_migrations = True
@@ -12,11 +11,6 @@ class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         if not email:
             return ValueError("Korisnik mora imati e-mail adresu!")
-        if not extra_fields.get("sex"):
-            return ValueError("Korisnik mora ispuniti polje spol")
-        if not extra_fields.get("age"):
-            return ValueError("Korisnik mora ispuniti polje godine")
-        
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
@@ -50,8 +44,8 @@ class User(AbstractUser):
         ("O", "OTHER"),
     ]
 
-    sex = models.CharField(max_length=10, choices=SEX_CHOICES, blank=False, null=False)
-    age = models.PositiveIntegerField(validators=[MaxValueValidator(MAX_USER_AGE)])
+    sex = models.CharField(max_length=10, choices=SEX_CHOICES, blank=True, null=True)
+    age = models.PositiveIntegerField(validators=[MaxValueValidator(MAX_USER_AGE)], blank=True, null=True)
 
     datum_registracije = models.DateTimeField(auto_now_add=True)
 
@@ -99,7 +93,7 @@ class Caretaker(models.Model):
     )
 
     about_me = models.TextField(blank=True, max_length=800)
-    specialisation = models.CharField(max_length=50)
+    specialisation = models.CharField(max_length=50, blank=True, null=True)
     working_since = models.PositiveIntegerField(blank=True, null=True, help_text="The year in which the person began working as a psychologist.")
     tel_num = models.CharField(max_length=15, blank=True, null=True)
     office_address = models.TextField(max_length=150, blank=True, null=True)
@@ -116,7 +110,6 @@ class Caretaker(models.Model):
 
 class HelpCategory(models.Model):
     label = models.CharField(max_length=50, unique=True)
-    # machine-friendly slug generated from label (spaces -> '-')
     slug = models.SlugField(max_length=60, unique=True, blank=True)
     description = models.TextField(max_length=200, blank=True, null=True)
     parent = models.ForeignKey(
@@ -135,7 +128,5 @@ class HelpCategory(models.Model):
     def save(self, *args, **kwargs):
         # generate slug from label if not present; ensure uniqueness
         if not self.slug:
-            # slug is derived from the label by replacing spaces and
-            # non-url-friendly chars; `label` is unique so slug will be unique
             self.slug = slugify(self.label)
         super().save(*args, **kwargs)
