@@ -81,7 +81,7 @@ class RequestRegistrationTokenView(APIView):
 
         email = serializer.validated_data['email'].strip()
         if User.objects.filter(email__iexact=email).exists():
-            return Response({"error": "mail je vec registriran"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Mail je vec registriran"}, status=status.HTTP_400_BAD_REQUEST)
 
         now = timezone.now()
         expiry_seconds = getattr(settings, 'REGISTRATION_TOKEN_EXP_SECONDS', 900)
@@ -125,7 +125,7 @@ class ConfirmRegistrationView(APIView):
 
         User = get_user_model()
         if User.objects.filter(email__iexact=email).exists():
-            return Response({"error": "mail je vec registriran"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Mail je vec registriran"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             with transaction.atomic():
