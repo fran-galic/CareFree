@@ -222,3 +222,96 @@
   }
 
 }
+
+@layer utilities {
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in {
+    animation: fade-in 1s ease-out;
+  }
+
+  .hero-section {
+    @apply min-h-screen bg-gradient-to-b from-background via-primary/5 to-background;
+  }
+
+  .container-centered {
+    @apply container mx-auto px-4 py-16 md:py-24;
+  }
+
+  .content-wrapper {
+    @apply flex flex-col items-center text-center space-y-8 max-w-4xl mx-auto;
+  }
+
+  .logo-box {
+    @apply mb-4;
+  }
+
+  .logo-img {
+    @apply rounded-full shadow-lg;
+  }
+
+  .title-section {
+    @apply space-y-4;
+  }
+
+  .main-title {
+    @apply text-5xl md:text-7xl font-bold tracking-tight;
+  }
+
+  .color-shift {
+    @apply transition-colors duration-1000 inline-block;
+  }
+
+  .subtitle {
+    @apply text-xl md:text-2xl text-muted-foreground font-light max-w-2xl mx-auto;
+  }
+
+  .description {
+    @apply text-lg text-muted-foreground max-w-2xl leading-relaxed;
+  }
+
+  .button-group {
+    @apply flex flex-col sm:flex-row gap-4 pt-4;
+  }
+
+  .cta-button {
+    @apply text-lg px-8 py-6 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105;
+  }
+
+  .cta-outline {
+    @apply text-lg px-8 py-6 rounded-full border-2 hover:bg-primary/10 transition-all duration-300;
+  }
+
+  .feature-grid {
+    @apply grid md:grid-cols-3 gap-8 pt-16 w-full;
+  }
+
+  .feature-card {
+    @apply p-6 rounded-2xl bg-card border shadow-sm hover:shadow-md transition-shadow;
+  }
+
+  .card-icon {
+    @apply text-4xl mb-3;
+  }
+
+  .card-title {
+    @apply font-semibold text-lg mb-2;
+  }
+
+  .card-text {
+    @apply text-sm text-muted-foreground;
+  }
+
+  .page-footer {
+    @apply border-t py-8 text-center text-sm text-muted-foreground;
+  }
+}

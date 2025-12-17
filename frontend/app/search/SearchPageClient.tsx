@@ -16,7 +16,7 @@ export default function SearchPageClient() {
 
   const { data, error } = q ? useSWR(q, (q) => searchCaretakers(q)) : useSWR("all", () => searchCaretakers(""))
   
-  const caretakerList = data ?? [];
+  const caretakerList = data?.results ?? [];
 
   return (
     <div>
