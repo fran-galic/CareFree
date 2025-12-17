@@ -144,8 +144,27 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
         // Redirect to dashboard or home
         router.push("/carefree/main");
       } else {
-        // Caretaker - just redirect to login
-        router.push("/accounts/login");
+        // Caretaker - auto-login and redirect to profile edit
+        const loginResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/login/`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            email: email,
+            password: formData.password,
+          }),
+        });
+
+        if (!loginResponse.ok) {
+          setError("Registration successful but auto-login failed. Please login manually.");
+          router.push("/accounts/login");
+          return;
+        }
+
+        // Redirect to profile edit
+        router.push("/carefree/myprofile");
       }
     } catch (err) {
       setError("Network error. Please try again.");
@@ -209,10 +228,35 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
               </div>
             </div>
 
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="first_name">First Name</Label>
+                <Input
+                  id="first_name"
+                  type="text"
+                  value={formData.first_name}
+                  onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                  required
+                  disabled={loading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="last_name">Last Name</Label>
+                <Input
+                  id="last_name"
+                  type="text"
+                  value={formData.last_name}
+                  onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                  required
+                  disabled={loading}
+                />
+              </div>
+            </div>
+
             {formData.role === "student" && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="age">Age *</Label>
+                  <Label htmlFor="age">Age</Label>
                   <Input
                     id="age"
                     type="number"
@@ -238,31 +282,6 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
                 </div>
               </>
             )}
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="first_name">First Name</Label>
-                <Input
-                  id="first_name"
-                  type="text"
-                  value={formData.first_name}
-                  onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                  required
-                  disabled={loading}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="last_name">Last Name</Label>
-                <Input
-                  id="last_name"
-                  type="text"
-                  value={formData.last_name}
-                  onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                  required
-                  disabled={loading}
-                />
-              </div>
-            </div>
 
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
