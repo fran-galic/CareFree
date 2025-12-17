@@ -1,36 +1,52 @@
-"use client"
-
-import SignupCaretakerForm from "@/components/signup-caretaker-form";
-import SignupStudentForm from "@/components/signup-student-form";
-import SignupUserForm from "@/components/signup-user-form";
-import { use, useState } from "react";
-
-
+"use client";
+import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import EmailRequestForm from "@/components/email-request-form";
+import { ConfirmRegistrationForm } from "@/components/confirm-registration-form";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 export default function SignupPage() {
-    const [step, setStep] = useState(1)
-    const [userRole, setUserRole] = useState<string|null>(null)
-    const [userId, setUserId] = useState<string>("")
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token");
+  const [email, setEmail] = useState<string | null>(null);
 
-    const onSignupComplete = (role: string, userId: string) => {
-        setUserRole(role)
-        setStep(2)
-        setUserId(userId)
-    }
+  // If token is present, show confirmation form
+  if (token) {
+    return <ConfirmRegistrationForm token={token} />;
+  }
 
+  if (email) {
     return (
-        <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
-            <div className="w-full max-w-sm">
-                {step === 1 ? (
-                    <SignupUserForm logInPath="./login" onSignupComplete={onSignupComplete} />
-                ) : (
-                    userRole === "student" ? (
-                        <SignupStudentForm userId={userId} />
-                    ) : (
-                        <SignupCaretakerForm userId={userId}/>
-                    )
-                )}
+      <div className="flex min-h-screen items-center justify-center p-6">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-3xl">Check Your Email</CardTitle>
+            <CardDescription className="text-base">
+              We've sent a registration link to your email
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="p-4 bg-muted rounded-lg text-center">
+              <p className="text-sm text-muted-foreground mb-1">Sent to:</p>
+              <p className="font-semibold text-lg">{email}</p>
             </div>
-        </div>
-    )
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-screen items-center justify-center p-6">
+      <div className="w-full max-w-sm">
+        <EmailRequestForm onSuccess={setEmail} />
+      </div>
+    </div>
+  );
 }

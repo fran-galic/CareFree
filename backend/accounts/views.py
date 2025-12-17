@@ -63,7 +63,7 @@ def build_auth_response(user):
 
     return response
 
-COMPLETE_REGISTER_PATH = "/primjer/rute"
+COMPLETE_REGISTER_PATH = "/accounts/signup"
 
 
 class RequestRegistrationTokenView(APIView):
@@ -93,7 +93,7 @@ class RequestRegistrationTokenView(APIView):
         token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
 
         # PRINT U KONZOLU i cijeli link za frontend s tokenom
-        registration_link = f"{settings.FRONTEND_URL.rstrip('/')}{COMPLETE_REGISTER_PATH}/?token={token}/"
+        registration_link = f"{settings.FRONTEND_URL.rstrip('/')}{COMPLETE_REGISTER_PATH}?token={token}"
         print(f"[registration link for {email}]: {registration_link}")
 
         # PROMJENA
