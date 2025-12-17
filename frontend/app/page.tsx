@@ -25,7 +25,7 @@ export default function Home() {
       <main className="container-centered">
         <div className="content-wrapper">
           
-          <div className="logo-box animate-fade-in">
+          <div className="logo-box animate-float">
             <Image
               src="/images/carefree-logo-assistant-new.png"
               alt="CareFree Logo"
@@ -65,7 +65,9 @@ export default function Home() {
 
           <div className="feature-grid">
             <div className="feature-card">
-              <div className="card-icon">💬</div>
+              <div className="card-icon">
+                <i className="fi fi-rr-hands-brain text-4xl"></i>
+              </div>
               <h3 className="card-title">AI Chat & Expert Help</h3>
               <p className="card-text">
                 Talk to our AI assistant anytime, or connect with licensed psychologists for professional support
@@ -73,7 +75,9 @@ export default function Home() {
             </div>
 
             <div className="feature-card">
-              <div className="card-icon">🔒</div>
+              <div className="card-icon">
+                <i className="fi fi-rr-shield-check text-4xl"></i>
+              </div>
               <h3 className="card-title">Stay Anonymous</h3>
               <p className="card-text">
                 Your identity remains private. Share freely without revealing who you are
@@ -81,7 +85,9 @@ export default function Home() {
             </div>
 
             <div className="feature-card">
-              <div className="card-icon">👥</div>
+              <div className="card-icon">
+                <i className="fi fi-rr-users text-4xl"></i>
+              </div>
               <h3 className="card-title">Browse Experts</h3>
               <p className="card-text">
                 View psychologist profiles, schedule appointments, and find the right match for you

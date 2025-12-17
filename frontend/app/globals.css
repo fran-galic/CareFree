@@ -235,8 +235,21 @@
     }
   }
 
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-15px);
+    }
+  }
+
   .animate-fade-in {
     animation: fade-in 1s ease-out;
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
   }
 
   .hero-section {
@@ -292,7 +305,7 @@
   }
 
   .feature-grid {
-    @apply grid md:grid-cols-3 gap-8 pt-16 w-full;
+    @apply grid md:grid-cols-3 gap-8 pt-8 w-full;
   }
 
   .feature-card {
