@@ -31,6 +31,7 @@ urlpatterns = [
     path('api/token/', TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path('api/token/refresh/', TokenRefreshView.as_view(), name="token_refresh"),
     path('users/', include('users.urls')),
+    path('assistant/', include('assistant.urls')),
     path("schema/", SpectacularAPIView.as_view(), name="schema"),
     path("docs/", SpectacularSwaggerView.as_view(url_name="schema")),
     path('api/', include((router.urls, 'journal'), namespace='journal')),
