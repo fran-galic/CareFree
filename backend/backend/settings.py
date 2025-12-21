@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'accounts',
     'users',
     'journal',
+    'assistant',
 ]
 
 MIDDLEWARE = [
