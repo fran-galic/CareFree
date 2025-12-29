@@ -1,1 +1,17 @@
+#ignoriraanje osjetljivih i privremenih datoteka
+.secrets/
+*.json
+
+#python cache i baza podataka
+__pycache__/
+*.py[cod]
 backend/db.sqlite3
+
+#virtualno okruženje
+.pytest_cache/
+.ruff_cache/
+.vscode/
+.DS_Store
+
+#environment variables
+.env

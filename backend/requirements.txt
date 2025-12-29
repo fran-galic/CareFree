@@ -12,3 +12,7 @@ dj-database-url==2.2.0
 python-dotenv==1.0.1
 whitenoise==6.7.0
 psycopg[binary,pool]
+
+# Celery / background worker
+celery>=5.3.0
+redis>=4.5.0

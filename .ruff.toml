@@ -1,0 +1,3 @@
+exclude = ["**/migrations/**", "**/__pycache__/**"]
+
+# Ruff configuration: exclude migrations and __pycache__ directories (common practice)

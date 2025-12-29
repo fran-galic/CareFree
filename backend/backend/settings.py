@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'accounts',
     'users',
     'journal',
+    'calendar_integration',
 ]
 
 MIDDLEWARE = [
@@ -240,6 +241,21 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3001")
+
+#Google service account settings for Calendar API (server-to-server)
+GOOGLE_SERVICE_ACCOUNT_JSON = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON")
+GOOGLE_SERVICE_ACCOUNT_FILE = os.environ.get("GOOGLE_SERVICE_ACCOUNT_FILE")
+if GOOGLE_SERVICE_ACCOUNT_JSON:
+    try:
+        import json, base64
+        GOOGLE_SERVICE_ACCOUNT_INFO = json.loads(base64.b64decode(GOOGLE_SERVICE_ACCOUNT_JSON))
+    except Exception:
+        GOOGLE_SERVICE_ACCOUNT_INFO = None
+else:
+    GOOGLE_SERVICE_ACCOUNT_INFO = None
+
+GOOGLE_CALENDAR_ID = os.environ.get("GOOGLE_CALENDAR_ID", "primary")
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
 
 #enkripcija: ključ za enkripciju na strani servera (Fernet base64 ključ)
 #u produkciji će trebati postaviti `ENCRYPTION_KEY` env var na base64 urlsafe kljuc (32 url-safe bajta enkodirana)

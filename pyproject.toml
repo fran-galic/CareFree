@@ -1,0 +1,4 @@
+[tool.ruff]
+exclude = ["**/migrations/**", "**/__pycache__/**"]
+
+# Keep defaults; we only exclude migrations and __pycache__ from checks.
