@@ -1,0 +1,92 @@
+from django.core.management.base import BaseCommand
+from django.contrib.auth import get_user_model
+from django.db import transaction
+import random
+
+try:
+    from faker import Faker
+except Exception:
+    Faker = None
+
+from accounts.models import Caretaker, HelpCategory
+
+
+class Command(BaseCommand):
+    help = "Generate dummy Caretaker objects (with users and categories)"
+
+    def add_arguments(self, parser):
+        parser.add_argument("--count", type=int, default=45, help="How many caretakers to create")
+
+    @transaction.atomic
+    def handle(self, *args, **options):
+        User = get_user_model()
+        count = options.get("count") or 45
+        fake = Faker() if Faker else None
+
+        # Ensure there are some HelpCategory objects to assign
+        if HelpCategory.objects.count() == 0:
+            sample = [
+                ("general-anxiety", "General Anxiety"),
+                ("depression", "Depression"),
+                ("stress", "Stress"),
+                ("relationships", "Relationships"),
+                ("child-therapy", "Child Therapy"),
+            ]
+            for slug, label in sample:
+                HelpCategory.objects.create(slug=slug, label=label)
+
+        categories = list(HelpCategory.objects.all())
+
+        created = 0
+        skipped = 0
+
+        for i in range(count):
+            if fake:
+                first = fake.first_name()
+                last = fake.last_name()
+            else:
+                first = f"Ime{i}"
+                last = f"Prez{i}"
+
+            username = f"caretaker_{first.lower()}_{last.lower()}_{i}"
+            email = f"{username}@example.local"
+
+            user, was_created = User.objects.get_or_create(
+                username=username,
+                defaults={"first_name": first, "last_name": last, "email": email},
+            )
+
+            if was_created:
+                try:
+                    user.set_password("password123")
+                    user.save()
+                except Exception:
+                    # If setting password fails for custom user model, ignore
+                    user.save()
+
+                caretaker, _ = Caretaker.objects.get_or_create(user=user)
+
+                # Optionally populate some caretaker fields if they exist
+                try:
+                    if fake and hasattr(caretaker, "bio"):
+                        caretaker.bio = fake.text(max_nb_chars=200)
+                    if hasattr(caretaker, "phone"):
+                        caretaker.phone = f"+385{random.randint(900000000, 999999999)}"
+                    caretaker.save()
+                except Exception:
+                    # best-effort: continue if optional fields don't exist
+                    caretaker.save()
+
+                # Assign 1-3 random categories
+                if categories:
+                    chosen = random.sample(categories, k=min(len(categories), random.randint(1, 3)))
+                    try:
+                        caretaker.help_categories.set(chosen)
+                    except Exception as e:
+                        self.stdout.write(self.style.WARNING(f"Warning setting categories: {e}"))
+
+                created += 1
+            else:
+                skipped += 1
+
+        self.stdout.write(self.style.SUCCESS(f"Done. Created {created} caretakers, skipped {skipped} existing users."))

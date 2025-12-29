@@ -59,7 +59,11 @@ INSTALLED_APPS = [
     'accounts',
     'users',
     'journal',
+<<<<<<< HEAD
     'calendar_integration',
+=======
+    'assistant',
+>>>>>>> e5ef30098e6bf09d33081b115fc55798f72a7f18
 ]
 
 MIDDLEWARE = [
