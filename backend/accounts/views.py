@@ -63,7 +63,7 @@ def build_auth_response(user):
 
     return response
 
-COMPLETE_REGISTER_PATH = "/primjer/rute"
+COMPLETE_REGISTER_PATH = "/accounts/signup"
 
 
 class RequestRegistrationTokenView(APIView):
@@ -81,7 +81,7 @@ class RequestRegistrationTokenView(APIView):
 
         email = serializer.validated_data['email'].strip()
         if User.objects.filter(email__iexact=email).exists():
-            return Response({"error": "mail je vec registriran"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Mail je vec registriran"}, status=status.HTTP_400_BAD_REQUEST)
 
         now = timezone.now()
         expiry_seconds = getattr(settings, 'REGISTRATION_TOKEN_EXP_SECONDS', 900)
@@ -93,7 +93,7 @@ class RequestRegistrationTokenView(APIView):
         token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
 
         # PRINT U KONZOLU i cijeli link za frontend s tokenom
-        registration_link = f"{settings.FRONTEND_URL.rstrip('/')}{COMPLETE_REGISTER_PATH}/?token={token}/"
+        registration_link = f"{settings.FRONTEND_URL.rstrip('/')}{COMPLETE_REGISTER_PATH}?token={token}"
         print(f"[registration link for {email}]: {registration_link}")
 
         # PROMJENA
@@ -125,7 +125,7 @@ class ConfirmRegistrationView(APIView):
 
         User = get_user_model()
         if User.objects.filter(email__iexact=email).exists():
-            return Response({"error": "mail je vec registriran"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Mail je vec registriran"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             with transaction.atomic():

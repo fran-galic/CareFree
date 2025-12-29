@@ -7,6 +7,7 @@ from rest_framework.decorators import api_view
 from rest_framework.decorators import permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
+from rest_framework.pagination import PageNumberPagination
 from django.shortcuts import get_object_or_404
 from .serializers import (
     MeSerializer,
@@ -24,6 +25,7 @@ def help_categories(request):
     return Response({"categories": serializer.data})
 
 
+PAGE_SIZE = 20
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
@@ -31,34 +33,18 @@ def search_caretakers(request):
     """Search caretakers by name and/or categories.
 
     Query params:
-    - `name` (string, optional): arbitrary substring matched case-insensitively
-        against `first_name`, `last_name`, or the combined `full_name`.
-        Treat `name` as a free-form search term — do NOT assume tokenization into
-        first/last name (names can contain spaces).
+    - `name`: substring matched case-insensitively against first, last, or full name.
+    - `categories`: repeatable category slugs; matches category or its direct subcategories.
+    - `order`: `asc` (default) or `desc` to sort by last name.
 
-    - `categories` (repeatable, optional): category slug (case-insensitive exact).
-        This parameter may be provided multiple times to search for caretakers
-        belonging to any of the listed category slugs. Example: `?categories=general-anxiety&categories=depression`.
-
-    Behavior:
-    - When `name` is provided, caretakers are matched if `name` appears in their
-        first name, last name, or full name (case-insensitive).
-    - When one or more `categories` are provided, caretakers linked to at
-        least one of the provided categories OR any of that category's direct
-        subcategories are matched.
-    - When both `name` and `categories` are present, results must match the
-        name filter AND belong to at least one of the categories.
-
-    Response: a list serialized with `CaretakerShortSerializer`.
+    Response: paginated (page_size=20) `{count, next, previous, results}`.
     """
     query = request.GET.get("name", "").strip()
-    # accept repeated `categories` params: ?categories=Anxiety&categories=Depression
     categories_list = request.GET.getlist("categories")
 
     qs = Caretaker.objects.all()
 
     if query:
-        # annotate full name and filter against it
         qs = qs.annotate(
             full_name=Concat('user__first_name', Value(' '), 'user__last_name', output_field=CharField())
         ).filter(
@@ -67,13 +53,9 @@ def search_caretakers(request):
             | Q(full_name__icontains=query)
         )
 
-    # Category filtering: accept repeated `categories` params (slugs).
     if categories_list:
-        # normalize and remove empty values
         raw_slugs = [c.strip() for c in categories_list if c and c.strip()]
         if raw_slugs:
-            # For each provided slug, ensure it exists (case-insensitive).
-            # If any requested slug doesn't match a HelpCategory, return 400.
             found_slugs = []
             missing = []
             for s in raw_slugs:
@@ -101,8 +83,20 @@ def search_caretakers(request):
 
     qs = qs.distinct()
 
-    serialized = CaretakerShortSerializer(qs, many=True)
-    return Response(serialized.data)
+    order_param = request.GET.get("order", "asc").strip().lower()
+    if order_param == "desc":
+        ordering = ["-user__last_name", "user__first_name", "user_id"]
+    else:
+        ordering = ["user__last_name", "user__first_name", "user_id"]
+
+    qs = qs.order_by(*ordering)
+
+    paginator = PageNumberPagination()
+    paginator.page_size = PAGE_SIZE
+    page = paginator.paginate_queryset(qs, request)
+
+    serialized = CaretakerShortSerializer(page, many=True)
+    return paginator.get_paginated_response(serialized.data)
 
 
 

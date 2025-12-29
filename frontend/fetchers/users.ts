@@ -29,12 +29,15 @@ interface caretakerLong {
     office_address: string
 }
 
-// interface searchCaretakersResponse {
-//     caretakerList: Array<caretaker>
-// }
+interface PaginatedCaretakerResponse {
+    count: number
+    next: string | null
+    previous: string | null
+    results: Array<caretaker>
+}
 
 export function searchCaretakers(query: string) {
-    return fetcher<Array<caretaker>>(`${BACKEND_API}/users/caretakers/search/?q=${encodeURIComponent(query)}`,  { credentials: "include" })
+    return fetcher<PaginatedCaretakerResponse>(`${BACKEND_API}/users/caretakers/search/?q=${encodeURIComponent(query)}`,  { credentials: "include" })
 }
 
 export function searchCaretakerById(query: string) {
