@@ -1,45 +1,63 @@
-
 import { fetcher } from "./fetcher";
 
-const BACKEND_API = process.env.NEXT_PUBLIC_BACKEND_URL
+const BACKEND_API = process.env.NEXT_PUBLIC_BACKEND_URL;
 
-
-interface caretaker {
-    user_id: string
-    first_name: string
-    last_name: string
-    academic_title: string
-    help_categories: string[]
-    user_image_url: string | null
-    specialisation: string
-    working_since: string
+export interface Caretaker {
+  user_id: string;
+  first_name: string;
+  last_name: string;
+  academic_title: string;
+  help_categories: string[];
+  user_image_url: string | null;
+  specialisation: string;
+  working_since: string;
 }
 
-interface caretakerLong {
-    user_id: string
-    first_name: string
-    last_name: string
-    academic_title: string
-    help_categories: string[]
-    user_image_url: string | null
-    specialisation: string
-    about_me: string
-    working_since: string
-    tel_num: string
-    office_address: string
+// Tipovi za kategorije
+export interface SubCategory {
+    id: number;
+    label: string;
+    slug: string;
 }
 
-interface PaginatedCaretakerResponse {
-    count: number
-    next: string | null
-    previous: string | null
-    results: Array<caretaker>
+export interface HelpCategory {
+    id: number;
+    label: string;
+    slug: string;
+    subcategories: SubCategory[];
 }
 
-export function searchCaretakers(query: string) {
-    return fetcher<PaginatedCaretakerResponse>(`${BACKEND_API}/users/caretakers/search/?q=${encodeURIComponent(query)}`,  { credentials: "include" })
+export interface PaginatedCaretakerResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: Array<Caretaker>;
 }
 
-export function searchCaretakerById(query: string) {
-    return fetcher<caretakerLong>(`${BACKEND_API}/users/caretakers/caretaker/${encodeURIComponent(query)}`)
+// 1. Nova funkcija za dohvat kategorija (za filtere)
+export function getHelpCategories() {
+    return fetcher<{ categories: HelpCategory[] }>(`${BACKEND_API}/users/caretakers/help-categories`, {
+        credentials: "include"
+    });
+}
+
+// 2. Ažurirana pretraga koja prima i kategorije
+export function searchCaretakers(query: string, categories: string[] = []) {
+  const params = new URLSearchParams();
+  
+  if (query) params.append("name", query); // Backend očekuje "name" za tekstualnu pretragu [2]
+  
+  // Dodajemo svaku odabranu kategoriju u URL (npr. &categories=anksioznost&categories=stres)
+  categories.forEach(cat => params.append("categories", cat));
+
+  return fetcher<PaginatedCaretakerResponse>(
+      `${BACKEND_API}/users/caretakers/search/?${params.toString()}`, 
+      { credentials: "include" }
+  );
+}
+
+export function searchCaretakerById(id: string) {
+  return fetcher<any>(`${BACKEND_API}/users/caretakers/caretaker/${id}`, { // maknuo sam encodeURIComponent jer id je obicno clean
+      credentials: "include"
+  });
 }
