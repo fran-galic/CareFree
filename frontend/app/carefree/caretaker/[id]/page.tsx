@@ -49,31 +49,64 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
                             </div>
                         </Card>
                     </div>
-                    <div className="max-h-80 mt-5 grid gap-3 grid-cols-2 grid-rows-2">
-                        <Card className="row-start-1 row-end-3">
-                            <CardContent>
-                                <CardTitle className="text-lg">Specialization:</CardTitle>
-                                <p className="mt-1">{caretaker.specialisation}</p>
-                                <CardTitle className="text-lg mt-5">Help categories:</CardTitle>
-                                <p className="mt-1">{caretaker.help_categories}</p>
-                                <CardTitle className="text-lg mt-5">About me:</CardTitle>
-                                <p className="mt-1">{caretaker.about_me}</p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardContent>
-                                <CardTitle className="text-lg">Telephone:</CardTitle>
-                                <p className="mt-1">{caretaker.tel_num}</p>
-                                <CardTitle className="text-lg mt-5">Office address:</CardTitle>
-                                <p className="mt-1">{caretaker.office_address}</p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardContent>
-                                <CardTitle className="text-lg">Working since:</CardTitle>
-                                <p className="mt-1">{caretaker.working_since}</p>
-                            </CardContent>
 
+                    {/* PROFESSIONAL INFO - Javne informacije */}
+                    <div className="mt-5 space-y-3">
+                        {/* Specialization, Experience & Location */}
+                        <Card>
+                            <CardContent className="pt-6">
+                                <div className="grid md:grid-cols-2 gap-6">
+                                    <div>
+                                        <CardTitle className="text-lg mb-2">Specialization</CardTitle>
+                                        <p className="text-muted-foreground">
+                                            {caretaker.specialisation || "Not specified"}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <CardTitle className="text-lg mb-2">Working since</CardTitle>
+                                        <p className="text-muted-foreground">
+                                            {caretaker.working_since || "Not specified"}
+                                        </p>
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <CardTitle className="text-lg mb-2">Office address</CardTitle>
+                                        <p className="text-muted-foreground">
+                                            {caretaker.office_address || "Not specified"}
+                                        </p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Help Categories */}
+                        <Card>
+                            <CardContent className="pt-6">
+                                <CardTitle className="text-lg mb-3">Help categories</CardTitle>
+                                <div className="flex flex-wrap gap-2">
+                                    {Array.isArray(caretaker.help_categories) && caretaker.help_categories.length > 0 ? (
+                                        caretaker.help_categories.map((cat: string, idx: number) => (
+                                            <span 
+                                                key={idx}
+                                                className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary/10 text-primary border border-primary/20"
+                                            >
+                                                {cat}
+                                            </span>
+                                        ))
+                                    ) : (
+                                        <p className="text-muted-foreground">No categories specified</p>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* About Me */}
+                        <Card>
+                            <CardContent className="pt-6">
+                                <CardTitle className="text-lg mb-3">About me</CardTitle>
+                                <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
+                                    {caretaker.about_me || "No description available."}
+                                </p>
+                            </CardContent>
                         </Card>
                     </div>
                 </>

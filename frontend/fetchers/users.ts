@@ -42,13 +42,16 @@ export function getHelpCategories() {
 }
 
 // 2. Ažurirana pretraga koja prima i kategorije
-export function searchCaretakers(query: string, categories: string[] = []) {
+export function searchCaretakers(query: string, categories: string[] = [], page: number = 1) {
   const params = new URLSearchParams();
   
   if (query) params.append("name", query); // Backend očekuje "name" za tekstualnu pretragu [2]
   
   // Dodajemo svaku odabranu kategoriju u URL (npr. &categories=anksioznost&categories=stres)
   categories.forEach(cat => params.append("categories", cat));
+  
+  // Dodajemo page parametar
+  if (page > 1) params.append("page", page.toString());
 
   return fetcher<PaginatedCaretakerResponse>(
       `${BACKEND_API}/users/caretakers/search/?${params.toString()}`, 

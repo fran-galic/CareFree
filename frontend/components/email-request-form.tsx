@@ -9,7 +9,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldGroup, FieldLabel, FieldDescription } from "@/components/ui/field";
+import Link from "next/link";
 
 interface EmailRequestFormProps {
   onSuccess: (email: string) => void;
@@ -76,9 +77,18 @@ export default function EmailRequestForm({ onSuccess }: EmailRequestFormProps) {
               <div className="text-sm text-red-600 mt-2">{error}</div>
             )}
 
-            <Button type="submit" disabled={isLoading} className="w-full mt-4">
-              {isLoading ? "Sending..." : "Continue"}
-            </Button>
+            <Field>
+              <Button type="submit" disabled={isLoading} className="w-full">
+                {isLoading ? "Sending..." : "Continue"}
+              </Button>
+
+              <FieldDescription className="text-center">
+                Already have an account?{" "}
+                <Link href="/accounts/login" className="underline underline-offset-4 hover:text-primary">
+                  Log in
+                </Link>
+              </FieldDescription>
+            </Field>
           </FieldGroup>
         </form>
       </CardContent>

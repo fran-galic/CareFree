@@ -10,7 +10,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Filter, Briefcase, Clock, ChevronRight, Stethoscope } from 'lucide-react';
+import { Filter, Briefcase, Clock, ChevronRight, Stethoscope, ChevronLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function SearchPageClient() {
   const searchParams = useSearchParams();
@@ -19,15 +20,19 @@ export default function SearchPageClient() {
 
   const q = searchParams.get("q") ?? "";
   const categoriesParam = searchParams.getAll("categories");
+  const currentPage = parseInt(searchParams.get("page") ?? "1");
 
   const { data: categoriesData } = useSWR('help-categories', getHelpCategories);
   
   const { data: caretakersData, isLoading } = useSWR(
-    [`search`, q, categoriesParam], 
-    ([_, query, cats]) => searchCaretakers(query, cats)
+    [`search`, q, categoriesParam, currentPage], 
+    ([_, query, cats, page]) => searchCaretakers(query, cats, page)
   );
 
   const caretakerList = caretakersData?.results ?? [];
+  const totalCount = caretakersData?.count ?? 0;
+  const pageSize = 20; // Backend vraća 20 po stranici
+  const totalPages = Math.ceil(totalCount / pageSize);
 
   const handleCategoryChange = (slug: string, isChecked: boolean) => {
     const current = new URLSearchParams(Array.from(searchParams.entries()));
@@ -38,9 +43,25 @@ export default function SearchPageClient() {
         const newCats = categoriesParam.filter(c => c !== slug);
         newCats.forEach(c => current.append("categories", c));
     }
+    // Reset na prvu stranicu kad se mijenjaju filtri
+    current.delete("page");
     const search = current.toString();
     const query = search ? `?${search}` : "";
     router.push(`${pathname}${query}`);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    const current = new URLSearchParams(Array.from(searchParams.entries()));
+    if (newPage > 1) {
+      current.set("page", newPage.toString());
+    } else {
+      current.delete("page");
+    }
+    const search = current.toString();
+    const query = search ? `?${search}` : "";
+    router.push(`${pathname}${query}`);
+    // Scroll na vrh stranice
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -189,6 +210,67 @@ export default function SearchPageClient() {
                             </Card>
                         </Link>
                     ))}
+
+                    {/* INFO O BROJU REZULTATA (uvijek prikaži) */}
+                    {!isLoading && caretakerList.length > 0 && (
+                        <div className="mt-8 pt-6 border-t">
+                            <div className="text-sm text-center text-muted-foreground">
+                                Ukupno pronađeno: <span className="font-semibold text-foreground">{totalCount}</span> {totalCount === 1 ? 'stručnjak' : totalCount < 5 ? 'stručnjaka' : 'stručnjaka'}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* PAGINATION KONTROLE (samo ako ima više stranica) */}
+                    {!isLoading && caretakerList.length > 0 && totalPages > 1 && (
+                        <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4 pb-2">
+                            {/* Info o stranici */}
+                            <div className="text-sm text-muted-foreground">
+                                Stranica <span className="font-semibold text-foreground">{currentPage}</span> od <span className="font-semibold text-foreground">{totalPages}</span>
+                            </div>
+
+                            {/* Previous/Next buttoni */}
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handlePageChange(currentPage - 1)}
+                                    disabled={currentPage === 1}
+                                    className="gap-1"
+                                >
+                                    <ChevronLeft className="w-4 h-4" />
+                                    Prethodna
+                                </Button>
+
+                                {/* Page numbers (opcionalno, prikaži samo ako ima manje od 7 stranica) */}
+                                {totalPages <= 7 && (
+                                    <div className="hidden sm:flex gap-1">
+                                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                            <Button
+                                                key={page}
+                                                variant={page === currentPage ? "default" : "ghost"}
+                                                size="sm"
+                                                onClick={() => handlePageChange(page)}
+                                                className="w-9"
+                                            >
+                                                {page}
+                                            </Button>
+                                        ))}
+                                    </div>
+                                )}
+
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handlePageChange(currentPage + 1)}
+                                    disabled={currentPage >= totalPages}
+                                    className="gap-1"
+                                >
+                                    Sljedeća
+                                    <ChevronRight className="w-4 h-4" />
+                                </Button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
