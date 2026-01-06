@@ -10,7 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
-import dj_database_url
+#import dj_database_url
 import os
 
 from pathlib import Path
@@ -32,6 +32,9 @@ REGISTRATION_TOKEN_EXP_SECONDS = int(os.environ.get("REGISTRATION_TOKEN_EXP_SECO
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get("DEBUG", "True") == "True"
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+if not OPENAI_API_KEY.strip():
+    OPENAI_API_KEY = "sk-abcdef1234567890abcdef1234567890abcdef12"
 
 ALLOWED_HOSTS = [
     ".railway.app",

@@ -3,6 +3,9 @@ from django.utils import timezone
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django.conf import settings
+from django.http import StreamingHttpResponse
+import json
 
 from .models import AssistantSession, AssistantMessage, AssistantSessionSummary
 from .serializers import (
@@ -12,6 +15,10 @@ from .serializers import (
     ChatMessageRequestSerializer,
 )
 
+from openai import OpenAI
+
+
+
 
 def _get_student_from_request(request):
     user = request.user
@@ -19,15 +26,329 @@ def _get_student_from_request(request):
     return student
 
 
-def generate_bot_reply(session: AssistantSession, user_message: AssistantMessage) -> str:
+def generate_stream(session: AssistantSession):
     """Placeholder bot reply logic.
-
     TODO: Zamijeniti pravom AI logikom.
     """
-    return "Ovo je automatski odgovor chatbota."
+
+    try:
+        messages = session.messages.order_by("sequence")
 
 
-def generate_session_summary(session: AssistantSession) -> str:
+    except Exception as e:
+        return Response({"error": "Neuspješno dohvaćanje poruka iz sesije."}, status=status.HTTP_400_BAD_REQUEST)
+    
+    full_response=""
+    bot_message = AssistantMessage.objects.create(
+            session=session,
+            sender=AssistantMessage.SENDER_BOT,
+            content=full_response,
+        )
+
+    client = OpenAI(api_key=settings.OPENAI_API_KEY)
+    prompt = f"""
+        Ti si AI podrška za mentalno zdravlje namijenjena studentima.  
+        Tvoja uloga NIJE postavljanje dijagnoza niti zamjena za psihoterapiju.  
+        Ti si emocionalna prva pomoć - nježan, siguran i podržavajući sugovornik.
+
+        ------------------------------------------------------------
+        TVOJE GLAVNE ZADAĆE
+        ------------------------------------------------------------
+        1. Pružati toplo, empatično, smirujuće okruženje.
+        2. Aktivno slušati i potvrđivati osjećaje korisnika.
+        3. Nuditi blage, sigurne tehnike suočavanja (disanje, grounding, refleksija).
+        4. Nikad ne koristiti medicinske ili dijagnostičke izraze.
+        5. Voditi razgovor nenametljivo i nježno.
+        6. Kad prikupiš dovoljno informacija, pitaj:
+        “Želiš li da ti sažmem što si mi rekao/la i preporučim psihologe koji se bave ovakvim temama?”
+        7. Ako korisnik kaže DA — napravi sažetak i kategorizaciju prema tablici kategorija.
+        8. U kriznim situacijama prebacuješ se u *CRISIS MODE*.
+
+        ------------------------------------------------------------
+        TON KOMUNIKACIJE
+        ------------------------------------------------------------
+        Uvijek: topao, smiren, empatičan, neosuđujući, nježan.  
+        Nikad: zapovijedi, dijagnoze, obećanja da će sve biti dobro.
+
+        ------------------------------------------------------------
+        KATEGORIZACIJA PROBLEMA
+        ------------------------------------------------------------
+        Ako korisnik želi preporuku psihologa, odredi kategoriju i podkategorije.
+
+        GLAVNE KATEGORIJE I NJIHOVE PODKATEGORIJE:
+
+        1. Stres i akademski pritisci
+
+        - strah od ispita i loših ocjena
+        - preopterećenost obavezama
+        - problemi s organizacijom vremena i prokrastinacija
+
+        2. Anksiozni poremećaji
+
+        - Generalizirani anksiozni poremećaj
+        - Socijalna anksioznost (strah od javnog nastupa, kontakta s profesorima/vršnjacima)
+        - Panični napadi
+
+        3. Depresivni simptomi
+
+        - Tuga, gubitak interesa za aktivnosti
+        - Umor i demotivacija
+        - Nisko samopouzdanje i osjećaj bespomoćnosti
+
+        4. Problemi u međuljudskim odnosima
+
+        - Sukobi s kolegama, prijateljima ili partnerima
+        - Problemi s komunikacijom i asertivnošću
+        - Osjećaj izolacije i usamljenosti
+
+        5. Poremećaji spavanja
+
+        - Nesanicu ili nepravilne navike spavanja
+        - Posljedice kroničnog umora na koncentraciju i raspoloženje
+
+        6. Problemi samopouzdanja i identiteta
+
+        - Sumnja u vlastite sposobnosti
+        - Nesigurnost u odabir studija ili karijere
+        - Osobni razvoj i pronalazak smisla
+
+        7. Poremećaji prehrane i tjelesne slike
+
+        - Anoreksija
+        - Bulimija
+        - Prejedanje
+        - Negativna tjelesna slika i poremećena percepcija sebe
+
+        8. Emocionalna regulacija i impulzivno ponašanje
+
+        - Nagli ispadi bijesa ili frustracije
+        - Problemi s kontrolom impulsa
+        - Ovisničko ponašanje (društvene mreže, kockanje, alkohol)
+
+        9. Trauma i stresne životne situacije
+
+        - Gubitak bliske osobe
+        - Obiteljski problemi ili zlostavljanje
+        - Adaptacija na novi životni period (selidba, fakultet u drugom gradu)
+
+        10. Seksualnost 
+
+        - propitivanje vlastite seksualnosti
+        - anksioznost vezana za stupanje u spolne odnose
+
+        11. KRIZNE SITUACIJE (RIZIK)
+
+        - Suicidalne misli
+        - Planovi samoozljeđivanja
+        - Samoozljeđivanje
+        - Namjera naštetiti drugima
+        - Teška disocijacija
+        - Psihotična iskustva
+
+        12. OSTALO:
+        Kategorija bez podkategorija. Za ovu kategoriju potrebno je vratiti praznu listu podkategorija.
+        Ova kategorija se koristi u slučajevima kada se problem ne može svrstati ni u jednu drugu postojeću kategoriju.
+
+        ------------------------------------------------------------
+        KRIZNI MODE — KADA SE AKTIVIRA
+        ------------------------------------------------------------
+        Ako korisnik govori o:
+        - suicidalnim mislima,
+        - planovima ili namjeri samoozljeđivanja,
+        - ozbiljnom riziku,
+        - namjeri da ugrozi druge,
+        - izrazito dezorijentiranom ili psihotičnom stanju,
+
+        → odmah aktiviraj CRISIS MODE.
+
+        U kriznom odgovoru:
+        1. Ostani maksimalno nježan i smirujući.
+        2. Validiraj njihove osjećaje.
+        3. NE obećavaj da će sve biti dobro.
+        4. Uputi ih da odmah kontaktiraju stručne službe.
+        5. OBAVEZNO uključi hitne brojeve:
+
+        - Plavi telefon: 01 4833 888 — https://plavitelefon.hr
+        - Centar za krizna stanja i prevenciju suicida: 01 2376 335
+        - Hrabri telefon: 116 111
+        - Hitna pomoć: 112
+
+        ------------------------------------------------------------
+        FORMAT ODGOVORA (OBAVEZAN)
+        ------------------------------------------------------------
+
+        AI UVIJEK prvo vraća JSON, zatim tekst studentu.
+
+        POSTOJE TRI MODA:
+
+        ------------------------------------------------------------
+        1) MODE: "conversation"
+        ------------------------------------------------------------
+        Kada AI samo pruža podršku.
+
+        <tekst za studenta>
+        {
+        "mode": "conversation",
+        "danger_flag": false,
+        "recommendation_ready": false
+        }
+
+        ------------------------------------------------------------
+        2) MODE: "recommendation"
+        ------------------------------------------------------------
+        Kada student želi preporuku psihologa.
+
+        <smirujuća poruka studentu>
+        {
+        "mode": "recommendation",
+        "summary": "<anonimni sažetak problema>",
+        "main_category": "<glavna kategorija>",
+        "subcategories": ["<podkategorija1>", "<podkategorija2>"],
+        "danger_flag": false,
+        "recommendation_ready": true
+        }
+
+        ------------------------------------------------------------
+        3) MODE: "crisis"
+        ------------------------------------------------------------
+        Kada je otkriven ozbiljan rizik.
+
+        <nježan krizni odgovor s hotline brojevima>
+        {
+        "mode": "crisis",
+        "danger_flag": true,
+        "hotlines": {
+            "plavi_telefon": "01 4833 888",
+            "krizni_centar": "01 2376 335",
+            "hrabri_telefon": "116 111",
+            "hitna_pomoc": "112"
+        },
+        "recommendation_ready": false
+        }
+
+        ------------------------------------------------------------
+        ZAVRŠNA UPUTA
+        ------------------------------------------------------------
+        - UVIJEK vrati ispravan format tako da prvo izgeneriraš povratnu poruku, a onda na kraju izgeneriraš JSON objekt => PORUKA + JSON  
+        - NIKADA ne dijagnosticiraj  
+        - NE obećavaj rješenja  
+        - UVIJEK ostani empatičan i podržavajući  
+
+    """
+
+    messages_for_openai = [
+        {
+            "role": "system",
+            "content": prompt,
+        }
+    ]
+
+    for msg in messages:
+                role = "user" if msg.sender == AssistantMessage.SENDER_STUDENT else "assistant"
+                messages_for_openai.append({
+                    "role": role,
+                    "content": msg.content,
+                })
+
+    stream = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=messages_for_openai,
+                stream=True,
+                temperature=0.7,
+            )
+    
+    try:
+        json_buffer = ""
+        json_flag = False
+        
+        for chunk in stream:
+            if chunk.choices[0].delta.content is not None:
+                content_chunk = chunk.choices[0].delta.content
+                
+                if json_flag:
+                    json_buffer += content_chunk
+                    continue
+
+                if '{' in content_chunk:
+                    parts = content_chunk.split('{', 1)
+                    
+                    if parts[0]:
+                        full_response += parts[0]
+                        chunk_data = {
+                            "content": parts[0],
+                            "finished": False,
+                            "message_id": bot_message.id,
+                        }
+                        yield f"data: {json.dumps(chunk_data)}\n\n"
+                    
+                    json_flag = True
+                    json_buffer = '{' + parts[1] if len(parts) > 1 else '{'
+                else:
+                    full_response += content_chunk
+                    chunk_data = {
+                        "content": content_chunk,
+                        "finished": False,
+                        "message_id": bot_message.id,
+                    }
+                    yield f"data: {json.dumps(chunk_data)}\n\n"
+
+
+                
+        bot_message.content = full_response.strip()
+        bot_message.save(update_fields=['content'])
+
+        final_data = {
+            "content": "",
+            "finished": True,
+            "full_reply": full_response,
+        }
+        yield f"data: {json.dumps(final_data)}\n\n"
+
+        parsed = {}
+        if json_buffer.strip():
+            try:
+                parsed = json.loads(json_buffer.strip())
+            except json.JSONDecodeError as e:
+
+                try:
+                    if not json_buffer.strip().endswith('}'):
+                        json_buffer += '}'
+
+                    parsed = json.loads(json_buffer.strip())
+                except:
+                    parsed = {
+                        "mode": "conversation",
+                        "danger_flag": False,
+                        "recommendation_ready": False
+                    }
+
+        if parsed.get("mode", "").lower() == "recommendation" and parsed.get("recommendation_ready"):
+            if parsed.get("summary").strip():
+                generate_session_summary(session, parsed.get("summary").strip())
+                session.is_active = False
+                session.ended_at = timezone.now()
+                session.save(update_fields=["is_active", "ended_at", "updated_at"])
+
+
+            #TODO: Implementirati kod za dohvacanje psihologa i njihov prikaz korisniku
+
+        #elif parsed.get("mode", "").lower() == "crisis" and parsed.get("danger_flag"):
+    
+    except Exception as e:
+        error_data = {
+            "content": f"Došlo je do greške: {str(e)}",
+            "finished": True,
+            "message_id": bot_message.id,
+        }
+        yield f"data: {json.dumps(error_data)}\n\n"
+
+
+        #return Response({"message": resp}, stauts=status.HTTP_200_OK)
+
+
+
+
+def generate_session_summary(session: AssistantSession, summary: str) -> str:
     """Generate a simple textual summary of a session.
 
     TODO: Zamijeniti pravom AI sumarizacijom.
@@ -36,6 +357,14 @@ def generate_session_summary(session: AssistantSession) -> str:
     total = messages.count()
     if total == 0:
         return "Sesija nema poruka."
+    
+    AssistantSessionSummary.objects.create(
+        student=session.student,
+        session=session,
+        content=summary,
+    )
+
+
     first = messages.first().content[:100]
     last = messages.last().content[:100]
     return f"Sesija ima {total} poruka. Prva poruka: '{first}'. Zadnja poruka: '{last}'."
@@ -123,21 +452,26 @@ class SessionMessageView(APIView):
             content=content,
         )
 
-        bot_text = generate_bot_reply(session, user_message)
-        bot_message = AssistantMessage.objects.create(
-            session=session,
-            sender=AssistantMessage.SENDER_BOT,
-            content=bot_text,
+        #bot_text = generate_bot_reply(session, user_message)
+
+        
+        response = StreamingHttpResponse(
+            generate_stream(session=session),
+            content_type="text/event-stream"
         )
 
-        user_message_data = AssistantMessageSerializer(user_message).data
-        bot_message_data = AssistantMessageSerializer(bot_message).data
+        response['Cache-control'] = 'no-cache'
+        response['X-Accel-Buffering'] = 'no'
 
-        #potrebna je samo bot poruka
-        return Response(
-            {"user_message": user_message_data, "bot_message": bot_message_data},
-            status=status.HTTP_201_CREATED,
-        )
+        return response
+        # user_message_data = AssistantMessageSerializer(user_message).data
+        # bot_message_data = AssistantMessageSerializer(bot_message).data
+
+        # potrebna je samo bot poruka
+        # return Response(
+        #     {"user_message": user_message_data, "bot_message": bot_message_data},
+        #     status=status.HTTP_201_CREATED,
+        # )
 
 
 class AssistantSummaryListView(generics.ListAPIView):
