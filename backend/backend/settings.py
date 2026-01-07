@@ -28,7 +28,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key")
 
 # Registration token TTL (seconds) for stateless JWT used during signup
-REGISTRATION_TOKEN_EXP_SECONDS = int(os.environ.get("REGISTRATION_TOKEN_EXP_SECONDS", 900))
+REGISTRATION_TOKEN_EXP_SECONDS = int(os.environ.get("REGISTRATION_TOKEN_EXP_SECONDS", 7200))
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get("DEBUG", "True") == "True"
@@ -44,6 +44,20 @@ ALLOWED_HOSTS = [
     "127.0.0.1"
 ]
 
+
+# Email configuration for Gmail SMTP
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv(os.path.join(BASE_DIR, '.env'))
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
 
 
 # Application definition

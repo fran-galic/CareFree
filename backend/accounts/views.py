@@ -67,7 +67,7 @@ COMPLETE_REGISTER_PATH = "/accounts/signup"
 
 
 class RequestRegistrationTokenView(APIView):
-    """Accepts `{ "email": "..." }`. If email is unused, prints a JWT to server console (for now).
+    """Accepts `{ "email": "..." }`. Sends an email to complete the registration.
 
     Edit COMPLETE_REGISTER_PATH to be the frontend's path to complete registration.
     """
@@ -92,12 +92,26 @@ class RequestRegistrationTokenView(APIView):
         }
         token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
 
-        # PRINT U KONZOLU i cijeli link za frontend s tokenom
         registration_link = f"{settings.FRONTEND_URL.rstrip('/')}{COMPLETE_REGISTER_PATH}?token={token}"
+        #print u konzoli
         print(f"[registration link for {email}]: {registration_link}")
 
-        # PROMJENA
-        return Response({"detail": "Registration token generated and printed to server console."})
+        subject = "Dovršite registraciju na CareFree"
+        message = f"Za dovršetak registracije kliknite na sljedeći link:\n{registration_link}. Token istice nakon {int(expiry_seconds/3600)} sata."
+        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or getattr(settings, 'EMAIL_HOST_USER', None)
+        try:
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=from_email,
+                recipient_list=[email],
+                fail_silently=False,
+            )
+        except Exception as e:
+            return Response({"error": "Slanje emaila nije uspjelo."}, status=500)
+
+        return Response({"detail": "Poslali smo link za dovršetak registracije na Vaš email."})
+    
 
 
 class ConfirmRegistrationView(APIView):
