@@ -16,6 +16,11 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("--count", type=int, default=45, help="How many caretakers to create")
+        parser.add_argument(
+            "--force",
+            action="store_true",
+            help="Delete existing HelpCategory objects before seeding",
+        )
 
     @transaction.atomic
     def handle(self, *args, **options):
@@ -23,19 +28,21 @@ class Command(BaseCommand):
         count = options.get("count") or 45
         fake = Faker() if Faker else None
 
-        # Ensure there are some HelpCategory objects to assign
-        if HelpCategory.objects.count() == 0:
-            sample = [
-                ("general-anxiety", "General Anxiety"),
-                ("depression", "Depression"),
-                ("stress", "Stress"),
-                ("relationships", "Relationships"),
-                ("child-therapy", "Child Therapy"),
-            ]
-            for slug, label in sample:
-                HelpCategory.objects.create(slug=slug, label=label)
+        # Optionally delete existing Caretaker objects when --force is used
+        if options.get("force"):
+            try:
+                deleted = Caretaker.objects.count()
+                Caretaker.objects.all().delete()
+                self.stdout.write(self.style.WARNING(f"Deleted {deleted} existing Caretaker objects."))
+            except Exception as e:
+                self.stdout.write(self.style.WARNING(f"Failed deleting Caretaker objects: {e}"))
 
+        # Load help categories from the database (do not create hardcoded ones here)
         categories = list(HelpCategory.objects.all())
+        if not categories:
+            self.stdout.write(self.style.WARNING(
+                "No HelpCategory objects found in DB; caretakers will have no categories. Run seed_help_categories to populate categories."
+            ))
 
         created = 0
         skipped = 0
