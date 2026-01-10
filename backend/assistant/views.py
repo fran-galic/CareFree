@@ -427,7 +427,6 @@ def generate_session_summary(session: AssistantSession) -> str:
                 response_format={"type": "json_object"},
             ).choices[0].message.content
     
-    print(text)
     #summary = summary.choices[0].message.content
     parsed = json.loads(text)
     if parsed.get("recommendation_ready", ""):
