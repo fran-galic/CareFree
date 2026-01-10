@@ -4,6 +4,10 @@ from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.base_user import BaseUserManager
 from django.core.validators import MaxValueValidator
 from django.utils.text import slugify
+from django.core.exceptions import ValidationError
+
+# file validators
+from .validators import validate_file_type_and_size
 
 class CustomUserManager(BaseUserManager):
     use_in_migrations = True
@@ -92,20 +96,78 @@ class Caretaker(models.Model):
         related_name='caretaker'
     )
 
-    about_me = models.TextField(blank=True, max_length=800)
-    specialisation = models.CharField(max_length=50, blank=True, null=True)
-    working_since = models.PositiveIntegerField(blank=True, null=True, help_text="The year in which the person began working as a psychologist.")
     tel_num = models.CharField(max_length=15, blank=True, null=True)
-    office_address = models.TextField(max_length=150, blank=True, null=True)
-    academic_title = models.CharField(max_length=10, blank=True, null=True, help_text="Professional (academic) title.")
-    user_image_url = models.CharField(blank=True, null=True)
+    image_url = models.CharField(blank=True, null=True)
+    about_me = models.TextField(blank=True, max_length=800)
+    grad_year = models.PositiveIntegerField(blank=True, null=True, help_text="The year in which the person graduated as a psychologist.")
 
     help_categories = models.ManyToManyField(
         'HelpCategory', related_name='caretakers', blank=True
     )
 
+    is_profile_complete = models.BooleanField(default=False)
+
+    APPROVAL_PENDING = 'PENDING'
+    APPROVAL_APPROVED = 'APPROVED'
+    APPROVAL_DENIED = 'DENIED'
+
+    APPROVAL_STATUS_CHOICES = (
+        (APPROVAL_PENDING, 'Pending'),
+        (APPROVAL_APPROVED, 'Approved'),
+        (APPROVAL_DENIED, 'Denied'),
+    )
+
+    approval_status = models.CharField(max_length=20, choices=APPROVAL_STATUS_CHOICES, default=APPROVAL_PENDING)
+    is_approved = models.BooleanField(default=False)
+
+    def is_complete(self):
+        return all([
+            bool(self.tel_num and self.tel_num.strip()),
+            bool(self.image_url and self.image_url.strip()),
+            bool(self.about_me and self.about_me.strip()),
+            self.help_categories.exists(),
+            CaretakerCV.objects.filter(caretaker=self).exists(),
+            self.diplomas.exists(),
+        ])
+
     def __str__(self):
-        return f"{self.user.first_name} {self.user.last_name}, {self.academic_title}"
+        return f"{self.user.first_name} {self.user.last_name}"
+
+
+class CaretakerCV(models.Model):
+    """Single CV per caretaker."""
+    caretaker = models.OneToOneField(
+        'Caretaker', on_delete=models.CASCADE, related_name='cv'
+    )
+    file = models.FileField(upload_to='caretakers/cvs/', validators=[validate_file_type_and_size])
+    original_filename = models.CharField(max_length=255, blank=True, null=True)
+    mime_type = models.CharField(max_length=100, blank=True, null=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"CV for {self.caretaker}"
+
+
+class Diploma(models.Model):
+    DEGREE = 'DEGREE'
+    CERTIFICATE = 'CERTIFICATE'
+    LICENSE = 'LICENSE'
+
+    DIPLOMA_TYPE_CHOICES = (
+        (DEGREE, 'Degree'),
+        (CERTIFICATE, 'Certificate'),
+        (LICENSE, 'License'),
+    ) 
+
+    caretaker = models.ForeignKey('Caretaker', on_delete=models.CASCADE, related_name='diplomas')
+    file = models.FileField(upload_to='caretakers/diplomas/', validators=[validate_file_type_and_size])
+    diploma_type = models.CharField(max_length=20, choices=DIPLOMA_TYPE_CHOICES)
+    original_filename = models.CharField(max_length=255, blank=True, null=True)
+    mime_type = models.CharField(max_length=100, blank=True, null=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.diploma_type} for {self.caretaker}"
 
 
 class HelpCategory(models.Model):

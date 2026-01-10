@@ -3,6 +3,9 @@ from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework import status
 
+from accounts.permissions import IsCaretaker
+from rest_framework.parsers import FormParser, MultiPartParser
+
 from .models import Caretaker, Student
 from .serializers import (
     LoginSerializer,
@@ -27,6 +30,14 @@ from datetime import timedelta
 from django.contrib.auth import get_user_model
 from .serializers import EmailOnlySerializer, RegistrationConfirmSerializer
 from django.db import transaction
+from .serializers import (
+    CaretakerCVSerializer,
+    DiplomaSerializer,
+    CaretakerProfileSerializer,
+)
+from .models import CaretakerCV, Diploma, HelpCategory
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.generics import ListAPIView
 
 
 User = get_user_model()
@@ -178,6 +189,188 @@ class LoginView(generics.CreateAPIView):
             return Response({"error": "Neispravno korisničko ime ili lozinka"}, status=400)
         
         return build_auth_response(user)
+    
+
+
+class CaretakerCompleteRegistrationView(APIView):
+    serializer_class = CaretakerProfileSerializer
+    permission_classes = [IsCaretaker, IsAuthenticated]
+
+    def get(self, request):
+        caretaker = request.user.caretaker
+        serializer = self.serializer_class(caretaker)
+        data = serializer.data
+
+        try:
+            cv = caretaker.cv
+            cv_name = cv.original_filename or getattr(cv.file, 'name', None)
+        except Exception:
+            cv_name = None
+
+        diploma_names = []
+        try:
+            for d in caretaker.diplomas.all():
+                diploma_names.append(d.original_filename or getattr(d.file, 'name', None))
+        except Exception:
+            diploma_names = []
+
+        data['cv_filename'] = cv_name
+        data['diploma_filenames'] = diploma_names
+
+        return Response(data)
+
+    def post(self, request):
+        caretaker = request.user.caretaker
+        serializer = self.serializer_class(caretaker, data=request.data, partial=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        # require all registration fields to be provided in this request
+        def has_value(v):
+            if v is None:
+                return False
+            if isinstance(v, str):
+                return bool(v.strip())
+            try:
+                # list/tuple/set-like
+                return len(v) > 0
+            except Exception:
+                return True
+
+        req = request.data
+        missing = []
+        if not has_value(req.get('image_url')):
+            missing.append('image_url')
+        if not has_value(req.get('tel_num')):
+            missing.append('tel_num')
+        if not has_value(req.get('about_me')):
+            missing.append('about_me')
+        if not has_value(req.get('help_categories')):
+            missing.append('help_categories')
+    
+
+        serializer.save()
+
+        # after saving, ensure CV and at least one diploma exist
+        missing_files = []
+        try:
+            has_cv = hasattr(caretaker, 'cv')
+        except Exception:
+            has_cv = False
+        try:
+            has_diplomas = caretaker.diplomas.exists()
+        except Exception:
+            has_diplomas = False
+
+        if not has_cv:
+            missing_files.append('cv')
+        if not has_diplomas:
+            missing_files.append('diplomas')
+
+        if missing or missing_files:
+            return Response({
+                'error': 'Missing required fields or uploads',
+                'missing_fields': missing,
+                'missing_files': missing_files
+            }, status=400)
+
+        # evaluate profile completeness using model helper and save
+        try:
+            caretaker.is_profile_complete = caretaker.is_complete()
+        except Exception:
+            caretaker.is_profile_complete = False
+        caretaker.save()
+
+        return Response(CaretakerProfileSerializer(caretaker).data)
+    
+    # def patch(self, request):
+    #     caretaker = request.user.caretaker
+    #     serializer = self.serializer_class(caretaker, data=request.data, partial=True)
+    #     if not serializer.is_valid():
+    #         return Response(serializer.errors, status=400)
+    #     serializer.save()
+
+    #     # evaluate profile completeness using model helper
+    #     try:
+    #         caretaker.is_profile_complete = caretaker.is_complete()
+    #     except Exception:
+    #         caretaker.is_profile_complete = False
+    #     caretaker.save()
+
+    #     return Response(CaretakerProfileSerializer(caretaker).data)
+
+from drf_spectacular.utils import extend_schema
+
+@extend_schema(
+    request={
+        'multipart/form-data': {
+            'type': 'object',
+            'properties': {
+                'file': {
+                    'type': 'string',
+                    'format': 'binary',
+                }
+            },
+            'required': ['file'],
+        }
+    }
+)
+class CaretakerCVUploadView(APIView):
+    permission_classes = [IsAuthenticated, IsCaretaker]
+    serializer_class = CaretakerCVSerializer
+    parser_classes = (MultiPartParser, FormParser)
+
+    def post(self, request):
+        user = request.user
+        if not hasattr(user, 'caretaker'):
+            return Response({'error': 'User is not a caretaker'}, status=400)
+        caretaker = user.caretaker
+
+        serializer = self.serializer_class(data=request.data, context={'caretaker': caretaker})
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+        obj = serializer.save()
+
+        return Response({'detail': 'CV uploaded successfully'})
+
+
+@extend_schema(
+    request={
+        'multipart/form-data': {
+            'type': 'object',
+            'properties': {
+                'file': {
+                    'type': 'string',
+                    'format': 'binary',
+                },
+                'diploma_type': {
+                    'type': 'string',
+                    'enum': ['DEGREE', 'CERTIFICATE', 'LICENSE']
+                },
+            },
+            'required': ['file', 'diploma_type'],
+        }
+    }
+)
+class DiplomaCreateView(APIView):
+    permission_classes = [IsAuthenticated, IsCaretaker]
+    serializer_class = DiplomaSerializer
+    parser_classes = (MultiPartParser, FormParser)
+
+
+    def post(self, request):
+        user = request.user
+        if not hasattr(user, 'caretaker'):
+            return Response({'error': 'User is not a caretaker'}, status=400)
+        caretaker = user.caretaker
+
+        serializer = self.serializer_class(data=request.data, context={'caretaker': caretaker})
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+        obj = serializer.save()
+
+        return Response({'detail': 'Diploma uploaded successfully'})
+
     
     
 @api_view(['POST'])
