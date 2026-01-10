@@ -10,7 +10,8 @@ import {
 
 export default function SearchBar({ initial = "" }: { initial: string }) {
     return (
-        <form action="/search" method="get" className="w-full">
+        
+        <form action="/carefree/search" method="get" className="w-full">
             <InputGroup className="h-12">
                 <InputGroupAddon align="inline-start">
                     <Search className="opacity-70" />
