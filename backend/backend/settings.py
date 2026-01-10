@@ -16,10 +16,8 @@ import os
 from pathlib import Path
 from datetime import timedelta
 
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -34,7 +32,7 @@ REGISTRATION_TOKEN_EXP_SECONDS = int(os.environ.get("REGISTRATION_TOKEN_EXP_SECO
 DEBUG = os.environ.get("DEBUG", "True") == "True"
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 if not OPENAI_API_KEY.strip():
-    OPENAI_API_KEY = "sk-abcdef1234567890abcdef1234567890abcdef12"
+    OPENAI_API_KEY = "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"
 
 ALLOWED_HOSTS = [
     ".railway.app",
