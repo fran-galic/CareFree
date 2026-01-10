@@ -16,13 +16,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge"; 
+import { Loader2, Save, UserCircle, LogOut } from "lucide-react"; // DODANO: LogOut ikona
 
-// Definiramo tipove podataka točno kako ih backend vraća
+// Tipovi podataka prema backendu
 interface UserData {
   id: string;
   email: string;
-  first_name: string;
-  last_name: string;
+  first_name?: string; 
+  last_name?: string;
   role: "student" | "caretaker";
   sex: string;
   age: number;
@@ -33,18 +35,18 @@ interface UserData {
 interface StudentData {
   studying_at: string;
   year_of_study: number;
-  is_anonymous: boolean;     // Traženo u dokumentaciji
-  about_me: string;          // Traženo u dokumentaciji
+  is_anonymous: boolean;
+  about_me: string;
 }
 
 interface CaretakerData {
-  academic_title: string;    // Traženo: titula
+  academic_title: string;
   specialisation: string;
-  working_since: number;     // Traženo: godina početka rada
-  tel_num: string;           // Traženo: privatni telefon
-  office_address: string;    // Traženo: adresa ureda
-  about_me: string;          // Traženo: profesionalni opis
-  help_categories: string[]; // Traženo: kategorije
+  working_since: number;
+  tel_num: string;
+  office_address: string;
+  about_me: string;
+  help_categories: string[];
   user_image_url: string | null;
 }
 
@@ -55,7 +57,7 @@ export default function MyProfilePage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  // Stanje forme (objedinjuje sva polja koja se mogu mijenjati)
+  // Stanje forme
   const [formData, setFormData] = useState<any>({});
 
   // 1. DOHVAĆANJE PODATAKA
@@ -68,14 +70,14 @@ export default function MyProfilePage() {
         });
 
         if (!res.ok) {
-            if (res.status === 401) router.push("/accounts/login");
-            throw new Error("Failed to load profile");
+          if (res.status === 401) router.push("/accounts/login");
+          throw new Error("Failed to load profile");
         }
 
         const data = await res.json();
         setUser(data);
 
-        // Popunjavanje forme ovisno o ulozi
+        // Inicijalno punjenje forme
         if (data.role === "student" && data.student) {
           setFormData({
             ...data.student,
@@ -99,7 +101,7 @@ export default function MyProfilePage() {
     fetchUser();
   }, [router]);
 
-  // 2. FUNKCIJA ZA SPREMANJE I POVRATAK
+  // 2. FUNKCIJA ZA SPREMANJE
   const handleSave = async () => {
     setSaving(true);
     setMessage(null);
@@ -109,25 +111,23 @@ export default function MyProfilePage() {
       let endpoint = "";
       let bodyData = {};
 
-      // Priprema podataka za slanje
       if (user?.role === "student") {
         endpoint = `${backendUrl}/users/me/student/`;
         bodyData = {
-            studying_at: formData.studying_at,
-            year_of_study: formData.year_of_study ? parseInt(formData.year_of_study) : null,
-            about_me: formData.about_me,
-            // Šaljemo i is_anonymous iako ga trenutni backend serializer možda ignorira
-            is_anonymous: formData.is_anonymous, 
+          studying_at: formData.studying_at,
+          year_of_study: formData.year_of_study ? parseInt(formData.year_of_study) : null,
+          about_me: formData.about_me,
+          is_anonymous: formData.is_anonymous,
         };
       } else if (user?.role === "caretaker") {
         endpoint = `${backendUrl}/users/me/caretaker/`;
         bodyData = {
-            about_me: formData.about_me,
-            specialisation: formData.specialisation,
-            tel_num: formData.tel_num,
-            // Šaljemo i ove podatke iako ih trenutni backend serializer možda ignorira
-            office_address: formData.office_address,
-            academic_title: formData.academic_title,
+          about_me: formData.about_me,
+          specialisation: formData.specialisation,
+          tel_num: formData.tel_num,
+          office_address: formData.office_address,
+          academic_title: formData.academic_title,
+          working_since: formData.working_since ? parseInt(formData.working_since) : null,
         };
       }
 
@@ -140,18 +140,32 @@ export default function MyProfilePage() {
 
       if (!res.ok) throw new Error("Failed to update profile");
 
-      // Uspjeh
-      setMessage({ type: "success", text: "Profil ažuriran! Preusmjeravam..." });
+      setMessage({ type: "success", text: "Promjene su uspješno spremljene!" });
       
-      // Čekamo 1.5 sekundu da korisnik vidi poruku, pa vraćamo na glavnu
       setTimeout(() => {
-        router.push("/carefree/main");
-      }, 1500);
-      
+         router.refresh(); 
+      }, 1000);
+
     } catch (error) {
       console.error(error);
       setMessage({ type: "error", text: "Došlo je do greške prilikom spremanja." });
-      setSaving(false); // Samo ako je greška gasimo saving, inače ostaje dok ne preusmjeri
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // 3. NOVO: FUNKCIJA ZA ODJAVU (LOGOUT)
+  const handleLogout = async () => {
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/logout/`, {
+        method: "POST",
+        credentials: "include",
+      });
+      // Bez obzira na odgovor servera, preusmjeravamo na login
+      router.push("/accounts/login");
+    } catch (error) {
+      console.error("Logout failed:", error);
+      router.push("/accounts/login");
     }
   };
 
@@ -159,222 +173,266 @@ export default function MyProfilePage() {
     setFormData((prev: any) => ({ ...prev, [field]: value }));
   };
 
-  if (loading) return <div className="flex h-screen items-center justify-center">Učitavanje...</div>;
-  if (!user) return <div className="flex h-screen items-center justify-center">Niste prijavljeni.</div>;
+  if (loading) return (
+    <div className="flex h-screen items-center justify-center flex-col gap-4">
+      <Loader2 className="w-10 h-10 animate-spin text-primary" />
+      <p className="text-muted-foreground">Učitavanje vašeg profila...</p>
+    </div>
+  );
+
+  if (!user) return null;
+
+  const isCaretaker = user.role === "caretaker";
+
+  const displayName = user.first_name && user.last_name 
+    ? `${user.first_name} ${user.last_name}` 
+    : user.first_name 
+      ? user.first_name 
+      : "Moj Profil";
 
   return (
-    <div className="container mx-auto py-10 max-w-4xl px-4">
+    <div className="container mx-auto py-12 max-w-5xl px-6 animate-in fade-in duration-500">
       
-      {/* --- GLAVNA KARTICA KORISNIKA --- */}
-      <div className="flex flex-col md:flex-row items-center gap-6 mb-8 p-6 bg-card rounded-xl border shadow-sm">
-        <Avatar className="w-32 h-32 border-4 border-primary/10">
-            {/* Prikazujemo sliku samo ako je caretaker i ima url, inače inicijali */}
-            <AvatarImage src={user.role === 'caretaker' ? user.caretaker?.user_image_url || "" : ""} />
-            <AvatarFallback className="text-4xl bg-primary/10 text-primary font-bold">
-                {user.first_name?.charAt(0)}{user.last_name?.charAt(0)}
-            </AvatarFallback>
+      {/* --- HEADER --- */}
+      <div className="mb-12 flex flex-col md:flex-row items-center md:items-start gap-8">
+        <Avatar className="w-32 h-32 border-4 border-background shadow-xl ring-1 ring-muted">
+          <AvatarImage 
+            src={isCaretaker ? user.caretaker?.user_image_url || "" : ""} 
+            className="object-cover"
+          />
+          <AvatarFallback className={`text-6xl font-bold ${isCaretaker ? 'bg-orange-100 text-orange-600' : 'bg-blue-50 text-blue-600'}`}>
+            {isCaretaker ? "P" : "S"}
+          </AvatarFallback>
         </Avatar>
-        <div className="text-center md:text-left space-y-2">
-            <h1 className="text-3xl font-bold">{user.first_name} {user.last_name}</h1>
-            <div className="flex flex-col md:flex-row gap-2 items-center justify-center md:justify-start text-muted-foreground">
-                <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium capitalize">
-                    {user.role === 'caretaker' ? 'Psiholog' : 'Student'}
-                </span>
-                <span className="text-sm">{user.email}</span>
-            </div>
-            {user.role === 'caretaker' && (
-                <p className="text-sm font-medium text-muted-foreground">
-                   {formData.academic_title} {formData.working_since ? `• Radi od: ${formData.working_since}.` : ""}
-                </p>
+
+        <div className="text-center md:text-left space-y-3 pt-2">
+          <h1 className="text-4xl font-extrabold tracking-tight text-foreground">
+            {displayName}
+          </h1>
+          
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 text-muted-foreground">
+            <Badge variant={isCaretaker ? "default" : "secondary"} className={isCaretaker ? "bg-orange-500 hover:bg-orange-600" : ""}>
+              {isCaretaker ? "Psiholog" : "Student"}
+            </Badge>
+            <span className="text-sm">•</span>
+            <span className="text-sm font-medium">{user.email}</span>
+            {isCaretaker && formData.academic_title && (
+              <>
+                <span className="text-sm">•</span>
+                <span className="text-sm font-medium">{formData.academic_title}</span>
+              </>
             )}
+          </div>
         </div>
       </div>
 
-      <div className="grid gap-6">
+      <Separator className="mb-10 opacity-50" />
+
+      {/* --- GLAVNI GRID --- */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
         
-        {/* --- SEKCIJA ZA STUDENTE --- */}
-        {user.role === "student" && (
-            <Card>
-                <CardHeader>
-                    <CardTitle>Podaci o studiju</CardTitle>
-                    <CardDescription>Ovi podaci pomažu psiholozima da bolje razumiju vaš kontekst.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="grid md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="studying_at">Fakultet / Učilište</Label>
-                            <Input 
-                                id="studying_at" 
-                                value={formData.studying_at || ""} 
-                                onChange={(e) => handleChange("studying_at", e.target.value)}
-                                placeholder="npr. Filozofski fakultet"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="year_of_study">Godina studija</Label>
-                            <Input 
-                                id="year_of_study" 
-                                type="number" 
-                                min={1} max={12}
-                                value={formData.year_of_study || ""} 
-                                onChange={(e) => handleChange("year_of_study", e.target.value)}
-                            />
-                        </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                        <Label htmlFor="about_me">O meni</Label>
-                        <Textarea 
-                            id="about_me"
-                            value={formData.about_me || ""}
-                            onChange={(e) => handleChange("about_me", e.target.value)}
-                            placeholder="Kratko se predstavite (hobiji, interesi, razlog prijave)..."
-                            rows={3}
-                        />
-                    </div>
-
-                    <Separator />
-                    
-                    {/* ANONIMNOST (Traženo u dokumentaciji) */}
-                    <div className="flex items-start space-x-3 p-4 bg-secondary/20 rounded-lg border border-secondary">
-                        <Checkbox 
-                            id="is_anonymous" 
-                            checked={formData.is_anonymous}
-                            onCheckedChange={(checked) => handleChange("is_anonymous", checked)}
-                            className="mt-1"
-                        />
-                        <div className="grid gap-1.5 leading-none">
-                            <Label htmlFor="is_anonymous" className="text-base font-semibold cursor-pointer">
-                                Želim ostati anoniman
-                            </Label>
-                            <p className="text-sm text-muted-foreground leading-relaxed">
-                                Ako je ovo uključeno, psiholozima će biti vidljivi <strong>samo vaša dob i spol</strong>. 
-                                Ime i prezime bit će skriveni.
-                            </p>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-        )}
-
-        {/* --- SEKCIJA ZA PSIHOLOGE (CARETAKER) --- */}
-        {user.role === "caretaker" && (
-             <Card>
-             <CardHeader>
-                 <CardTitle>Profesionalni profil</CardTitle>
-                 <CardDescription>Uredite informacije koje studenti vide o vama.</CardDescription>
-             </CardHeader>
-             <CardContent className="space-y-6">
-                 
-                 <div className="grid md:grid-cols-2 gap-4">
-                     {/* Titula - Traženo u dokumentaciji */}
-                     <div className="space-y-2">
-                         <Label htmlFor="academic_title">Akademska titula</Label>
-                         <Input 
-                             id="academic_title" 
-                             value={formData.academic_title || ""} 
-                             onChange={(e) => handleChange("academic_title", e.target.value)}
-                             placeholder="npr. mag. psych."
-                         />
-                     </div>
-                     <div className="space-y-2">
-                         <Label htmlFor="specialisation">Specijalizacija</Label>
-                         <Input 
-                             id="specialisation" 
-                             value={formData.specialisation || ""} 
-                             onChange={(e) => handleChange("specialisation", e.target.value)}
-                             placeholder="npr. KBT, Gestalt..."
-                         />
-                     </div>
-                 </div>
-
-                 <div className="space-y-2">
-                     <Label htmlFor="about_me">O meni (Vaš opis za studente)</Label>
-                     <Textarea 
-                         id="about_me" 
-                         className="min-h-[120px]"
-                         value={formData.about_me || ""} 
-                         onChange={(e) => handleChange("about_me", e.target.value)}
-                         placeholder="Napišite nešto o svom pristupu, iskustvu i načinu rada..."
-                     />
-                     <p className="text-xs text-muted-foreground">Ovaj tekst je ključan studentima pri odabiru psihologa.</p>
-                 </div>
-
-                 <Separator />
-
-                 <div className="grid md:grid-cols-2 gap-4">
-                    {/* Telefon - Traženo da bude privatan */}
-                    <div className="space-y-2">
-                         <Label htmlFor="tel_num">Broj mobitela</Label>
-                         <Input 
-                             id="tel_num" 
-                             value={formData.tel_num || ""} 
-                             onChange={(e) => handleChange("tel_num", e.target.value)}
-                         />
-                         <p className="text-[11px] text-red-500 font-medium">Vidljivo samo administratorima (Privatno).</p>
-                     </div>
-                     {/* Adresa ureda - Traženo u dokumentaciji */}
-                     <div className="space-y-2">
-                         <Label htmlFor="office_address">Adresa ureda</Label>
-                         <Input 
-                             id="office_address" 
-                             value={formData.office_address || ""} 
-                             onChange={(e) => handleChange("office_address", e.target.value)}
-                             placeholder="Ulica i broj, Grad"
-                         />
-                     </div>
-                 </div>
-
-                 {/* Kategorije - Samo prikaz (jer se biraju pri registraciji ili admin panelu) */}
-                 <div className="space-y-3 pt-2">
-                     <Label>Moje kategorije pomoći</Label>
-                     <div className="flex flex-wrap gap-2">
-                         {formData.help_categories?.map((cat: string) => (
-                             <span key={cat} className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium border border-primary/20">
-                                 {cat}
-                             </span>
-                         ))}
-                         {(!formData.help_categories || formData.help_categories.length === 0) && 
-                            <span className="text-sm text-muted-foreground italic">Nema odabranih kategorija</span>
-                         }
-                     </div>
-                 </div>
-
-             </CardContent>
-         </Card>
-        )}
-
-        {/* --- AKCIJE (SPREMANJE I POVRATAK) --- */}
-        <div className="flex flex-col gap-4 pb-10">
-            {message && (
-                <div className={`p-4 rounded-md flex items-center gap-2 text-sm font-medium animate-in fade-in slide-in-from-bottom-2 ${
-                    message.type === 'success' 
-                    ? 'bg-green-100 text-green-800 border border-green-200' 
-                    : 'bg-red-100 text-red-800 border border-red-200'
-                }`}>
-                    {message.type === 'success' ? '✅' : '⚠️'} {message.text}
+        {/* LIJEVA STRANA - POSTAVKE & AKCIJE */}
+        <div className="space-y-6">
+          <div className="space-y-1">
+            <h3 className="font-semibold text-lg">Postavke računa</h3>
+            <p className="text-sm text-muted-foreground">
+              Upravljajte svojim podacima i sesijom.
+            </p>
+          </div>
+          
+          <Card>
+            <CardContent className="pt-6 space-y-4">
+              <div>
+                <Label className="text-xs text-muted-foreground uppercase">Email</Label>
+                <div className="font-medium truncate">{user.email}</div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs text-muted-foreground uppercase">Dob</Label>
+                  <div className="font-medium">{user.age} god.</div>
                 </div>
-            )}
-            
-            <div className="flex justify-end gap-4">
-                {/* Gumb za povratak na glavnu stranicu */}
-                <Button 
-                    variant="outline" 
-                    onClick={() => router.push("/carefree/main")}
-                    disabled={saving}
-                >
-                    Natrag na glavnu
-                </Button>
-                
-                {/* Gumb za spremanje */}
-                <Button 
-                    onClick={handleSave} 
-                    disabled={saving} 
-                    className="min-w-[150px]"
-                >
-                    {saving ? "Spremanje..." : "Spremi promjene"}
-                </Button>
+                <div>
+                  <Label className="text-xs text-muted-foreground uppercase">Spol</Label>
+                  <div className="font-medium">{user.sex === 'M' ? 'Muško' : user.sex === 'F' ? 'Žensko' : 'Drugo'}</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* GUMBI ZA AKCIJE */}
+          <div className="space-y-3">
+            <Button 
+              onClick={handleSave} 
+              disabled={saving} 
+              className={`w-full h-12 text-base shadow-sm transition-all ${isCaretaker ? 'bg-orange-600 hover:bg-orange-700' : ''}`}
+            >
+              {saving ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Save className="w-5 h-5 mr-2" />}
+              {saving ? "Spremanje..." : "Spremi promjene"}
+            </Button>
+
+            {/* NOVO: LOGOUT GUMB */}
+            <Button 
+              onClick={handleLogout} 
+              variant="outline"
+              className="w-full h-12 text-base hover:bg-destructive/10 hover:text-destructive hover:border-destructive/50 transition-colors"
+            >
+              <LogOut className="w-5 h-5 mr-2" />
+              Odjavi se
+            </Button>
+          </div>
+
+          {message && (
+            <div className={`p-3 rounded-lg text-center text-sm font-medium animate-in zoom-in ${
+              message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+            }`}>
+              {message.text}
             </div>
+          )}
+        </div>
+
+        {/* DESNA STRANA - FORMA (Ostaje ista) */}
+        <div className="md:col-span-2 space-y-8">
+          
+          {/* STUDENTA FORMA */}
+          {!isCaretaker && (
+            <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+              <div className="space-y-1">
+                <h3 className="font-semibold text-xl flex items-center gap-2">
+                  <UserCircle className="w-5 h-5 text-primary" /> 
+                  O meni
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Podaci koji pomažu psiholozima da vas bolje razumiju.
+                </p>
+              </div>
+
+              <Card>
+                <CardContent className="pt-6 space-y-6">
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="studying_at">Fakultet / Učilište</Label>
+                      <Input 
+                        id="studying_at" 
+                        value={formData.studying_at || ""} 
+                        onChange={(e) => handleChange("studying_at", e.target.value)}
+                        placeholder="npr. FER, Filozofski..."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="year_of_study">Godina studija</Label>
+                      <Input 
+                        id="year_of_study" 
+                        type="number" 
+                        min={1} max={10}
+                        value={formData.year_of_study || ""} 
+                        onChange={(e) => handleChange("year_of_study", e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="about_me">Biografija</Label>
+                    <Textarea 
+                      id="about_me"
+                      value={formData.about_me || ""}
+                      onChange={(e) => handleChange("about_me", e.target.value)}
+                      placeholder="Što studirate? Koji su vam interesi? Što vas muči?"
+                      rows={5}
+                      className="resize-none bg-muted/20"
+                    />
+                  </div>
+
+                  <Separator />
+
+                  <div className="flex items-start space-x-3 pt-2">
+                    <Checkbox 
+                      id="is_anonymous" 
+                      checked={formData.is_anonymous}
+                      onCheckedChange={(checked) => handleChange("is_anonymous", checked)}
+                      className="mt-1"
+                    />
+                    <div className="grid gap-1.5 leading-none">
+                      <Label htmlFor="is_anonymous" className="text-base font-medium cursor-pointer">
+                        Želim ostati anoniman
+                      </Label>
+                      <p className="text-sm text-muted-foreground">
+                        Vaše ime i prezime bit će skriveni psiholozima. Vidjet će samo vašu dob i spol.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* PSIHOLOG FORMA */}
+          {isCaretaker && (
+            <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+              <div className="space-y-1">
+                <h3 className="font-semibold text-xl text-orange-700">Profesionalni podaci</h3>
+                <p className="text-sm text-muted-foreground">
+                  Uredite kako vas vide studenti.
+                </p>
+              </div>
+
+              <Card>
+                <CardContent className="pt-6 space-y-6">
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="academic_title">Akademska titula</Label>
+                      <Input 
+                        id="academic_title" 
+                        value={formData.academic_title || ""} 
+                        onChange={(e) => handleChange("academic_title", e.target.value)}
+                        placeholder="npr. mag. psych."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="specialisation">Specijalizacija</Label>
+                      <Input 
+                        id="specialisation" 
+                        value={formData.specialisation || ""} 
+                        onChange={(e) => handleChange("specialisation", e.target.value)}
+                        placeholder="npr. KBT, Gestalt..."
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="about_me">O meni (Javni opis)</Label>
+                    <Textarea 
+                      id="about_me" 
+                      value={formData.about_me || ""} 
+                      onChange={(e) => handleChange("about_me", e.target.value)}
+                      placeholder="Opišite svoj pristup radu..."
+                      rows={6}
+                      className="resize-none bg-muted/20"
+                    />
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-6 pt-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="tel_num">Kontakt Telefon <span className="text-red-400">*</span></Label>
+                      <Input 
+                        id="tel_num" 
+                        value={formData.tel_num || ""} 
+                        onChange={(e) => handleChange("tel_num", e.target.value)}
+                      />
+                      <p className="text-[10px] text-muted-foreground">Vidljivo samo administratorima.</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="office_address">Adresa ureda</Label>
+                      <Input 
+                        id="office_address" 
+                        value={formData.office_address || ""} 
+                        onChange={(e) => handleChange("office_address", e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
       </div>
     </div>
