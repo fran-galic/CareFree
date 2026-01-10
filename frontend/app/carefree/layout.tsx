@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import useSWR from "swr";
 import { fetcher } from "@/fetchers/fetcher";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@/components/ui/skeleton"; // Koristimo skeleton za loading
 import { 
   Home, 
   MessageCircle, 
@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 
-// Definiramo točne tipove prema backendu
+// Definiramo točne tipove
 interface User {
   id: string;
   email: string;
@@ -33,7 +33,6 @@ export default function CarefreeLayout({
   const pathname = usePathname();
   
   // 1. DOHVAT KORISNIKA
-  // Koristimo SWR da dohvatimo podatke o korisniku
   const { data: user, isLoading } = useSWR<User>("/users/me/", fetcher);
 
   const isActive = (path: string) => pathname === path;
@@ -45,18 +44,7 @@ export default function CarefreeLayout({
         : "text-muted-foreground hover:bg-primary/10 hover:text-primary"
     }`;
 
-  // 2. LOGIKA ODABIRA TEME I LINKOVA
-  // Ovo se izvršava tek kad podaci stignu.
-  const isCaretaker = user?.role === "caretaker";
-  const isStudent = user?.role === "student";
-
-  // Odabir CSS klase za boje
-  let themeClass = "";
-  if (isCaretaker) themeClass = "theme-caretaker";
-  else if (isStudent) themeClass = "theme-student";
-  // Ako se podaci još nisu učitali, themeClass je prazan (neutralno/sivo).
-
-  // 3. DEFINICIJA LINKOVA (Različite liste)
+  // 2. DEFINICIJA LINKOVA (Različite liste)
   const studentLinks = [
     { href: "/carefree/main", label: "Home", icon: Home },
     { href: "/carefree/messages", label: "Chat", icon: MessageCircle },
@@ -67,15 +55,17 @@ export default function CarefreeLayout({
 
   const caretakerLinks = [
     { href: "/carefree/main", label: "Dashboard", icon: Home },
-    // Psiholog nema Chat ni Dnevnik
+    // Psiholog nema Chat ni Dnevnik prema specifikaciji
     { href: "/carefree/calendar", label: "Moji Termini", icon: CalendarDays },
     { href: "/carefree/search", label: "Baza kolega", icon: Search },
   ];
 
+  // 3. LOGIKA ODABIRA (Samo ako imamo user podatke)
+  const isCaretaker = user?.role === "caretaker";
   const navigationLinks = isCaretaker ? caretakerLinks : studentLinks;
 
-  // 4. LOADING STANJE (SIVA ZONA)
-  // Dok se podaci učitavaju, ne prikazujemo krivi header, nego neutralni Skeleton.
+  // 4. LOADING STANJE - KLJUČNO PROTIV TREPERENJA
+  // Dok se podaci učitavaju, prikazujemo "kostur" headera, ne krivi header
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
@@ -105,10 +95,10 @@ export default function CarefreeLayout({
     );
   }
 
-  // 5. RENDERIRANJE STVARNOG SADRŽAJA
+  // 5. RENDERIRANJE STVARNOG SADRŽAJA (Kad znamo tko je user)
   return (
-    // VAŽNO: Ovdje se aplicira klasa theme-student ili theme-caretaker
-    <div className={`min-h-screen bg-background flex flex-col ${themeClass}`}>
+    // Ako želimo boje, ovdje bi išao className={isCaretaker ? "theme-caretaker" : ""}
+    <div className={`min-h-screen bg-background flex flex-col`}>
       
       {/* HEADER */}
       <header className="sticky top-0 z-50 w-full border-b bg-card/90 backdrop-blur-md shadow-sm transition-colors duration-500">
@@ -127,7 +117,7 @@ export default function CarefreeLayout({
             <span className="text-2xl font-bold text-primary tracking-tight">CareFree</span>
           </Link>
 
-          {/* NAVIGACIJA */}
+          {/* NAVIGACIJA - Renderiramo ispravnu listu */}
           <nav className="hidden md:flex items-center gap-1 bg-secondary/30 p-1.5 rounded-full border border-secondary/50">
             {navigationLinks.map((link) => (
               <Link key={link.href} href={link.href} className={navLinkClass(link.href)}>
@@ -165,7 +155,7 @@ export default function CarefreeLayout({
                      {user?.first_name ? user.first_name : "Moj Profil"}
                   </p>
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                    {/* Ispisuje točnu ulogu */}
+                    {/* Hardkodiran ispis uloge */}
                     {isCaretaker ? 'Psiholog' : 'Student'}
                   </p>
                 </div>
