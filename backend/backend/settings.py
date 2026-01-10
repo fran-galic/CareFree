@@ -32,7 +32,7 @@ REGISTRATION_TOKEN_EXP_SECONDS = int(os.environ.get("REGISTRATION_TOKEN_EXP_SECO
 DEBUG = os.environ.get("DEBUG", "True") == "True"
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 if not OPENAI_API_KEY.strip():
-    OPENAI_API_KEY = "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"
+    OPENAI_API_KEY = "dummy_key"
 
 ALLOWED_HOSTS = [
     ".railway.app",
