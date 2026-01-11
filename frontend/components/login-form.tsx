@@ -67,9 +67,9 @@ export function LoginForm({
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader>
-          <CardTitle>Login to your account</CardTitle>
+          <CardTitle>Prijavite se na svoj račun</CardTitle>
           <CardDescription>
-            Enter your email below to login to your account
+            Unesite svoj email za prijavu
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -80,7 +80,7 @@ export function LoginForm({
                 <Input
                   id="email"
                   type="email"
-                  placeholder="m@example.com"
+                  placeholder="ime@primjer.com"
                   required
                   value={email}
                   onChange={e => setEmail(e.target.value)}
@@ -88,7 +88,7 @@ export function LoginForm({
               </Field>
               <Field>
                 <div className="flex items-center">
-                  <FieldLabel htmlFor="password">Password</FieldLabel>
+                  <FieldLabel htmlFor="password">Lozinka</FieldLabel>
                   <a
                     href="#"
                     className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
@@ -105,10 +105,10 @@ export function LoginForm({
                 />
               </Field>
               <Field>
-                <Button type="submit" disabled={loading}>Login</Button>
+                <Button type="submit" disabled={loading}>Prijavi se</Button>
                 {error && <p className="text-red-500 text-sm">{error}</p>}
                 <FieldDescription className="text-center">
-                  Don&apos;t have an account? <Link href="./signup" className="underline">Sign up</Link>
+                  Nemate račun? <Link href="./signup" className="underline">Registrirajte se</Link>
                 </FieldDescription>
               </Field>
               <div className="relative my-4">
