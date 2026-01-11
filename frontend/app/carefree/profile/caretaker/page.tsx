@@ -7,12 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Loader2, Save, UserCircle, LogOut } from "lucide-react";
 import { ProfileHeader } from "@/components/profile-header";
 
-export default function StudentProfilePage() {
+export default function CaretakerProfilePage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [formData, setFormData] = useState<any>({});
@@ -20,7 +19,7 @@ export default function StudentProfilePage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  // 1. DOHVAT PODATAKA
+  
   useEffect(() => {
     async function fetchUser() {
       try {
@@ -36,19 +35,18 @@ export default function StudentProfilePage() {
 
         const data = await res.json();
         
-        // Sigurnosna provjera - ako je zalutao psiholog, prebaci ga
-        if (data.role === "caretaker") {
-            router.push("/carefree/profile/caretaker");
+        
+        if (data.role === "student") {
+            router.push("/carefree/profile/student");
             return;
         }
 
         setUser(data);
-        if (data.student) {
+        if (data.caretaker) {
           setFormData({
-            studying_at: data.student.studying_at,
-            year_of_study: data.student.year_of_study,
-            is_anonymous: data.student.is_anonymous,
-            about_me: data.student.about_me,
+            tel_num: data.caretaker.tel_num,
+            about_me: data.caretaker.about_me,
+            grad_year: data.caretaker.grad_year,
           });
         }
       } catch (error) {
@@ -60,20 +58,19 @@ export default function StudentProfilePage() {
     fetchUser();
   }, [router]);
 
-  // 2. SPREMANJE
+  
   const handleSave = async () => {
     setSaving(true);
     setMessage(null);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users/me/student/`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users/me/caretaker/`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          studying_at: formData.studying_at,
-          year_of_study: formData.year_of_study ? parseInt(formData.year_of_study) : null,
+          tel_num: formData.tel_num,
           about_me: formData.about_me,
-          is_anonymous: formData.is_anonymous,
+          grad_year: formData.grad_year ? parseInt(formData.grad_year) : null,
         }),
       });
 
@@ -96,17 +93,17 @@ export default function StudentProfilePage() {
   if (!user) return null;
 
   return (
-    <div className="container mx-auto py-12 max-w-5xl px-6" data-theme="student">
+    <div className="container mx-auto py-12 max-w-5xl px-6" data-theme="caretaker">
       <ProfileHeader 
         firstName={user.first_name} 
         lastName={user.last_name} 
         email={user.email} 
-        role="student"
+        role="caretaker"
       />
       <Separator className="mb-10 opacity-50" />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-        {/* Sidebar */}
+        
         <div className="space-y-6">
             <h3 className="font-semibold text-lg">Postavke</h3>
             <Card>
@@ -126,35 +123,27 @@ export default function StudentProfilePage() {
             {message && <div className={`p-3 rounded text-sm text-center ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{message.text}</div>}
         </div>
 
-        {/* Forma */}
+        
         <div className="md:col-span-2 space-y-6">
             <div className="space-y-1">
                 <h3 className="font-semibold text-xl flex items-center gap-2"><UserCircle className="w-5 h-5 text-primary" /> O meni</h3>
-                <p className="text-sm text-muted-foreground">Podaci koji pomažu psiholozima da vas bolje razumiju.</p>
+                <p className="text-sm text-muted-foreground">Osnovni podaci o vašem profilu.</p>
             </div>
             <Card>
                 <CardContent className="pt-6 space-y-6">
                     <div className="grid md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                            <Label>Fakultet</Label>
-                            <Input value={formData.studying_at || ""} onChange={e => setFormData({...formData, studying_at: e.target.value})} />
+                            <Label>Telefon</Label>
+                            <Input value={formData.tel_num || ""} onChange={e => setFormData({...formData, tel_num: e.target.value})} placeholder="+385 ..." />
                         </div>
                         <div className="space-y-2">
-                            <Label>Godina studija</Label>
-                            <Input type="number" value={formData.year_of_study || ""} onChange={e => setFormData({...formData, year_of_study: e.target.value})} />
+                            <Label>Godina diplomiranja</Label>
+                            <Input type="number" value={formData.grad_year || ""} onChange={e => setFormData({...formData, grad_year: e.target.value})} placeholder="npr. 2020" />
                         </div>
                     </div>
                     <div className="space-y-2">
-                        <Label>Biografija</Label>
-                        <Textarea rows={5} value={formData.about_me || ""} onChange={e => setFormData({...formData, about_me: e.target.value})} className="resize-none" />
-                    </div>
-                    <Separator />
-                    <div className="flex items-start space-x-3 pt-2">
-                        <Checkbox checked={formData.is_anonymous} onCheckedChange={(c) => setFormData({...formData, is_anonymous: c})} />
-                        <div className="grid gap-1.5">
-                            <Label>Želim ostati anoniman</Label>
-                            <p className="text-sm text-muted-foreground">Psiholozi neće vidjeti vaše ime, samo dob i spol.</p>
-                        </div>
+                        <Label>O meni</Label>
+                        <Textarea rows={5} value={formData.about_me || ""} onChange={e => setFormData({...formData, about_me: e.target.value})} className="resize-none" placeholder="Opišite svoje radno iskustvo i pristup radu..." />
                     </div>
                 </CardContent>
             </Card>
