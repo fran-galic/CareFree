@@ -62,20 +62,20 @@ export default function SignupPage() {
       <div className="flex min-h-screen items-center justify-center p-6">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Check Your Email</CardTitle>
+            <CardTitle className="text-3xl">Provjerite email</CardTitle>
             <CardDescription className="text-base">
-              We've sent a registration link to your email
+              Poslali smo link za registraciju na vašu email adresu
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="p-4 bg-muted rounded-lg text-center">
-              <p className="text-sm text-muted-foreground mb-1">Sent to:</p>
+              <p className="text-sm text-muted-foreground mb-1">Poslano na:</p>
               <p className="font-semibold text-lg">{email}</p>
             </div>
 
             <div className="pt-2 space-y-3">
               <p className="text-sm text-center text-muted-foreground">
-                Didn't receive the email? Check your spam folder or resend it.
+                Niste primili email? Provjerite spam folder ili pošaljite ponovno.
               </p>
               
               <Button
@@ -87,17 +87,17 @@ export default function SignupPage() {
                 {isResending ? (
                   <>
                     <Mail className="mr-2 h-4 w-4 animate-pulse" />
-                    Sending...
+                    Šalje se...
                   </>
                 ) : resendCooldown > 0 ? (
                   <>
                     <Clock className="mr-2 h-4 w-4" />
-                    Resend in {resendCooldown}s
+                    Pošalji ponovno za {resendCooldown}s
                   </>
                 ) : (
                   <>
                     <Mail className="mr-2 h-4 w-4" />
-                    Resend Email
+                    Pošalji ponovno
                   </>
                 )}
               </Button>

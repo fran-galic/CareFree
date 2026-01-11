@@ -27,7 +27,7 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
   const [error, setError] = useState("");
 
   useEffect(() => {
-    // Decode JWT token to extract email
+    
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
       setEmail(payload.email || "");
@@ -40,32 +40,32 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
     e.preventDefault();
     setError("");
 
-    // Validation
+    
     if (!formData.first_name || !formData.last_name || !formData.password || !formData.role) {
-      setError("All fields are required");
+      setError("Sva polja su obavezna");
       return;
     }
 
-    // Student-specific validation
+    
     if (formData.role === "student" && !formData.age) {
-      setError("Age is required for students");
+      setError("Dob je obavezna za studente");
       return;
     }
 
     if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
+      setError("Lozinke se ne podudaraju");
       return;
     }
 
     if (formData.password.length < 8) {
-      setError("Password must be at least 8 characters");
+      setError("Lozinka mora imati najmanje 8 znakova");
       return;
     }
 
     setLoading(true);
 
     try {
-      // Step 1: Register user
+      
       const registerResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/register/confirm/`, {
         method: "POST",
         headers: {
@@ -83,13 +83,13 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
       const registerData = await registerResponse.json();
 
       if (!registerResponse.ok) {
-        setError(registerData.error || "Registration failed. Please try again.");
+        setError(registerData.error || "Registracija nije uspjela. Pokušajte ponovno.");
         return;
       }
 
-      // Step 2: If student, login and update profile
+      
       if (formData.role === "student") {
-        // Login to get tokens
+        
         const loginResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/login/`, {
           method: "POST",
           headers: {
@@ -111,7 +111,7 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
         const loginData = await loginResponse.json();
         const accessToken = loginData.access;
 
-        // Update User age
+        
         if (formData.age) {
           await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users/me/`, {
             method: "PATCH",
@@ -126,7 +126,7 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
           });
         }
 
-        // Update Student studying_at
+        
         if (formData.studying_at) {
           await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users/me/student/`, {
             method: "PATCH",
@@ -141,10 +141,10 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
           });
         }
 
-        // Redirect to dashboard or home
+        
         router.push("/carefree/main");
       } else {
-        // Caretaker - auto-login and redirect to profile edit
+        
         const loginResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/login/`, {
           method: "POST",
           headers: {
@@ -158,16 +158,16 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
         });
 
         if (!loginResponse.ok) {
-          setError("Registration successful but auto-login failed. Please login manually.");
+          setError("Registracija uspješna, ali automatska prijava nije uspjela. Prijavite se ručno.");
           router.push("/accounts/login");
           return;
         }
 
-        // Redirect to profile edit
+        
         router.push("/carefree/myprofile");
       }
     } catch (err) {
-      setError("Network error. Please try again.");
+      setError("Greška u mreži. Pokušajte ponovno.");
     } finally {
       setLoading(false);
     }
@@ -177,11 +177,11 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
     <div className="flex min-h-screen items-center justify-center p-6">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl">Complete Your Registration</CardTitle>
+          <CardTitle className="text-2xl">Dovršite registraciju</CardTitle>
           <CardDescription>
             {email && (
               <span className="block mt-1">
-                Creating account for <span className="font-semibold text-foreground">{email}</span>
+                Stvaranje računa za <span className="font-semibold text-foreground">{email}</span>
               </span>
             )}
           </CardDescription>
@@ -189,7 +189,7 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-3">
-              <Label>I am a</Label>
+              <Label>Ja sam</Label>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
@@ -216,21 +216,21 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
                 >
                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
                     formData.role === "caretaker"
-                      ? "border-primary"
+                      ? "border-orange-500"
                       : "border-muted-foreground/30"
                   }`}>
                     {formData.role === "caretaker" && (
-                      <div className="w-3 h-3 rounded-full bg-primary"></div>
+                      <div className="w-3 h-3 rounded-full bg-orange-500"></div>
                     )}
                   </div>
-                  <span className="font-medium">Caretaker</span>
+                  <span className="font-medium">Psiholog</span>
                 </button>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="first_name">First Name</Label>
+                <Label htmlFor="first_name">Ime</Label>
                 <Input
                   id="first_name"
                   type="text"
@@ -241,7 +241,7 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="last_name">Last Name</Label>
+                <Label htmlFor="last_name">Prezime</Label>
                 <Input
                   id="last_name"
                   type="text"
@@ -256,7 +256,7 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
             {formData.role === "student" && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="age">Age</Label>
+                  <Label htmlFor="age">Dob</Label>
                   <Input
                     id="age"
                     type="number"
@@ -270,13 +270,13 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="studying_at">University / Faculty (Optional)</Label>
+                  <Label htmlFor="studying_at">Sveučilište / Fakultet (Opcionalno)</Label>
                   <Input
                     id="studying_at"
                     type="text"
                     value={formData.studying_at}
                     onChange={(e) => setFormData({ ...formData, studying_at: e.target.value })}
-                    placeholder="e.g., FER, PMF..."
+                    placeholder="npr. FER, PMF..."
                     disabled={loading}
                   />
                 </div>
@@ -284,7 +284,7 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Lozinka</Label>
               <Input
                 id="password"
                 type="password"
@@ -296,7 +296,7 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword">Potvrdite lozinku</Label>
               <Input
                 id="confirmPassword"
                 type="password"
@@ -313,8 +313,16 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
               </div>
             )}
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Creating Account..." : "Complete Registration"}
+            <Button 
+              type="submit" 
+              className={`w-full ${
+                formData.role === "caretaker" 
+                  ? "bg-orange-500 hover:bg-orange-600" 
+                  : ""
+              }`}
+              disabled={loading}
+            >
+              {loading ? "Kreiranje računa..." : "Dovršite registraciju"}
             </Button>
           </form>
         </CardContent>

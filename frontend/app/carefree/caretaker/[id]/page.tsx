@@ -147,19 +147,19 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
     <div className="container mx-auto py-10 px-4 max-w-5xl">
       {/* HEADER PROFILA */}
       <Card className="mb-8 overflow-hidden border-none shadow-md bg-card">
-        <div className="h-32 bg-gradient-to-r from-primary/20 to-primary/5"></div>
+        <div className="h-16"></div>
         <div className="px-8 pb-8">
           <div className="relative flex justify-between items-end -mt-12 mb-6">
             <Avatar className="w-32 h-32 border-4 border-background shadow-lg">
               <AvatarImage src={caretaker.user_image_url || ""} className="object-cover" />
-              <AvatarFallback className="text-3xl font-bold bg-primary/20 text-primary">
+              <AvatarFallback className="text-3xl font-bold bg-muted text-muted-foreground">
                 {caretaker.first_name?.charAt(0)}{caretaker.last_name?.charAt(0)}
               </AvatarFallback>
             </Avatar>
             {/* Status badge */}
             <div className="hidden md:flex gap-2 mb-2">
-              <span className="px-3 py-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-full text-xs font-semibold border border-green-200 dark:border-green-800 flex items-center gap-1">
-                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+              <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-semibold border border-primary/20 flex items-center gap-1">
+                <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
                 Dostupan za nove klijente
               </span>
             </div>
