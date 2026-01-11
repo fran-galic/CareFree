@@ -4,6 +4,8 @@ from rest_framework.validators import UniqueValidator
 
 from accounts.models import Caretaker, Student
 from accounts.models import CaretakerCV, Diploma
+from .validators import validate_caretaker_image, validate_file_type_and_size
+from django.core.exceptions import ValidationError as DjangoValidationError
 
 User = get_user_model()
 
@@ -50,6 +52,13 @@ class CaretakerCVSerializer(serializers.ModelSerializer):
         caretaker = self.context.get('caretaker')
         if not caretaker:
             raise serializers.ValidationError('Caretaker context required')
+        # validate file (type and size)
+        try:
+            validate_file_type_and_size(uploaded)
+        except DjangoValidationError as e:
+            raise serializers.ValidationError({'file': e.messages})
+        except Exception as e:
+            raise serializers.ValidationError({'file': str(e)})
 
         # replace existing CV if present
         obj, created = CaretakerCV.objects.update_or_create(
@@ -68,7 +77,7 @@ class DiplomaSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Diploma
-        fields = ['id', 'file', 'diploma_type', 'original_filename', 'mime_type', 'uploaded_at']
+        fields = ['id', 'file', 'original_filename', 'mime_type', 'uploaded_at']
         read_only_fields = ['id', 'original_filename', 'mime_type', 'uploaded_at']
 
     def create(self, validated_data):
@@ -76,6 +85,14 @@ class DiplomaSerializer(serializers.ModelSerializer):
         caretaker = self.context.get('caretaker')
         if not caretaker:
             raise serializers.ValidationError('Caretaker context required')
+
+        # validate file (type and size)
+        try:
+            validate_file_type_and_size(uploaded)
+        except DjangoValidationError as e:
+            raise serializers.ValidationError({'file': e.messages})
+        except Exception as e:
+            raise serializers.ValidationError({'file': str(e)})
 
         obj = Diploma.objects.create(
             caretaker=caretaker,
@@ -89,8 +106,58 @@ class DiplomaSerializer(serializers.ModelSerializer):
 
 class CaretakerProfileSerializer(serializers.ModelSerializer):
     help_categories = serializers.PrimaryKeyRelatedField(many=True, queryset=Caretaker.help_categories.field.related_model.objects.all(), required=False)
+    image = serializers.ImageField(required=False, allow_null=True)
+    image_mime_type = serializers.CharField(read_only=True)
 
     class Meta:
         model = Caretaker
-        fields = ['about_me', 'tel_num', 'image_url', 'grad_year', 'help_categories', 'is_profile_complete', 'is_approved', 'approval_status']
-        read_only_fields = ['is_profile_complete', 'is_approved', 'approval_status']
+        fields = ['about_me', 'tel_num', 'image', 'image_mime_type', 'grad_year', 'help_categories', 'is_profile_complete', 'is_approved', 'approval_status']
+        read_only_fields = ['is_profile_complete', 'is_approved', 'approval_status', 'image_mime_type']
+
+
+class CaretakerImageSerializer(serializers.Serializer):
+    image = serializers.FileField(write_only=True)
+
+    def validate_image(self, value):
+        # file extension and size validator
+        try:
+            validate_caretaker_image(value)
+        except DjangoValidationError as e:
+            raise serializers.ValidationError({'image': e.messages})
+        except Exception as e:
+            raise serializers.ValidationError({'image': str(e)})
+
+        # verify image content using Pillow
+        try:
+            from PIL import Image, UnidentifiedImageError
+            # Image.open may consume the file pointer; ensure seek(0) afterwards
+            img = Image.open(value)
+            img.verify()
+            try:
+                value.seek(0)
+            except Exception:
+                pass
+        except UnidentifiedImageError:
+            raise serializers.ValidationError({'image': 'Upload a valid image. The file you uploaded was either not an image or a corrupted image.'})
+        except Exception as e:
+            raise serializers.ValidationError({'image': str(e)})
+
+        return value
+
+    def create(self, validated_data):
+        uploaded = validated_data.get('image')
+        caretaker = self.context.get('caretaker')
+        if not caretaker:
+            raise serializers.ValidationError('Caretaker context required')
+
+        # assign and save; model's save() will try to populate mime type
+        caretaker.image = uploaded
+        try:
+            content_type = getattr(uploaded, 'content_type', None)
+            if content_type:
+                caretaker.image_mime_type = content_type
+        except Exception:
+            pass
+
+        caretaker.save()
+        return caretaker

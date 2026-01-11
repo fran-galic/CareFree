@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import User, Student, Caretaker, HelpCategory, CaretakerCV, Diploma
+from .models import Certificate, User, Student, Caretaker, HelpCategory, CaretakerCV, Diploma
 from django.core.mail import send_mail
 from django.conf import settings
 from django.utils.html import format_html
@@ -8,7 +8,7 @@ from django.utils.html import format_html
 class DiplomaInline(admin.TabularInline):
     model = Diploma
     extra = 0
-    readonly_fields = ('file_link', 'diploma_type', 'uploaded_at')
+    readonly_fields = ('file_link', 'uploaded_at')
 
     def file_link(self, obj):
         if obj and obj.file:
@@ -31,13 +31,25 @@ class CaretakerCVInline(admin.StackedInline):
     file_link.short_description = 'CV'
 
 
+class CertificateInline(admin.TabularInline):
+    model = Certificate
+    extra = 0
+    readonly_fields = ('file_link', 'uploaded_at')
+
+    def file_link(self, obj):
+        if obj and getattr(obj, 'file', None):
+            return format_html('<a href="{}" target="_blank">{}</a>', obj.file.url, obj.original_filename or 'file')
+        return '-'
+    file_link.short_description = 'File'
+
+
 # Register your models here.
 class CaretakerAdmin(admin.ModelAdmin):
-    list_display = ('__str__', 'user', 'cv_link', 'diplomas_count', 'is_profile_complete', 'is_approved', 'approval_status')
+    list_display = ('__str__', 'user', 'cv_link', 'diplomas_count', 'certificates_count', 'is_profile_complete', 'is_approved', 'approval_status')
     search_fields = ('user__email',)
     filter_horizontal = ('help_categories',)
     actions = ['approve_caretakers', 'deny_caretakers']
-    inlines = [CaretakerCVInline, DiplomaInline]
+    inlines = [CaretakerCVInline, DiplomaInline, CertificateInline]
 
     def cv_link(self, obj):
         try:
@@ -52,6 +64,10 @@ class CaretakerAdmin(admin.ModelAdmin):
     def diplomas_count(self, obj):
         return obj.diplomas.count()
     diplomas_count.short_description = 'Diplomas'
+
+    def certificates_count(self, obj):
+        return obj.certificates.count()
+    certificates_count.short_description = 'Certificates'
 
     def approve_caretakers(self, request, queryset):
         updated = 0

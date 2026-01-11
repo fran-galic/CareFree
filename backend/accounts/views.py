@@ -34,6 +34,7 @@ from .serializers import (
     CaretakerCVSerializer,
     DiplomaSerializer,
     CaretakerProfileSerializer,
+    CaretakerImageSerializer,
 )
 from .models import CaretakerCV, Diploma, HelpCategory
 from rest_framework.permissions import IsAuthenticated
@@ -232,15 +233,17 @@ class CaretakerCompleteRegistrationView(APIView):
             if isinstance(v, str):
                 return bool(v.strip())
             try:
-                # list/tuple/set-like
+                # file-like upload (UploadedFile) or list/tuple/set-like
+                if hasattr(v, 'name'):
+                    return True
                 return len(v) > 0
             except Exception:
                 return True
 
         req = request.data
         missing = []
-        if not has_value(req.get('image_url')):
-            missing.append('image_url')
+        if not has_value(req.get('image')):
+            missing.append('image')
         if not has_value(req.get('tel_num')):
             missing.append('tel_num')
         if not has_value(req.get('about_me')):
@@ -321,17 +324,14 @@ class CaretakerCVUploadView(APIView):
     parser_classes = (MultiPartParser, FormParser)
 
     def post(self, request):
-        user = request.user
-        if not hasattr(user, 'caretaker'):
-            return Response({'error': 'User is not a caretaker'}, status=400)
-        caretaker = user.caretaker
+        caretaker = request.user.caretaker
 
         serializer = self.serializer_class(data=request.data, context={'caretaker': caretaker})
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
         obj = serializer.save()
 
-        return Response({'detail': 'CV uploaded successfully'})
+        return Response({'message': 'CV uploaded successfully'})
 
 
 @extend_schema(
@@ -343,12 +343,12 @@ class CaretakerCVUploadView(APIView):
                     'type': 'string',
                     'format': 'binary',
                 },
-                'diploma_type': {
-                    'type': 'string',
-                    'enum': ['DEGREE', 'CERTIFICATE', 'LICENSE']
-                },
+                # 'diploma_type': {
+                #     'type': 'string',
+                #     'enum': ['DEGREE', 'CERTIFICATE', 'LICENSE']
+                # },
             },
-            'required': ['file', 'diploma_type'],
+            'required': ['file'],
         }
     }
 )
@@ -357,19 +357,45 @@ class DiplomaCreateView(APIView):
     serializer_class = DiplomaSerializer
     parser_classes = (MultiPartParser, FormParser)
 
-
     def post(self, request):
-        user = request.user
-        if not hasattr(user, 'caretaker'):
-            return Response({'error': 'User is not a caretaker'}, status=400)
-        caretaker = user.caretaker
+        caretaker = request.user.caretaker
 
         serializer = self.serializer_class(data=request.data, context={'caretaker': caretaker})
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
         obj = serializer.save()
 
-        return Response({'detail': 'Diploma uploaded successfully'})
+        return Response({'message': 'Diploma uploaded successfully'})
+
+
+@extend_schema(
+    request={
+        'multipart/form-data': {
+            'type': 'object',
+            'properties': {
+                'image': {
+                    'type': 'string',
+                    'format': 'binary',
+                }
+            },
+            'required': ['image'],
+        }
+    }
+)
+class CaretakerImageUploadView(APIView):
+    permission_classes = [IsAuthenticated, IsCaretaker]
+    serializer_class = CaretakerImageSerializer
+    parser_classes = (MultiPartParser, FormParser)
+
+    def post(self, request):
+        caretaker = request.user.caretaker
+
+        serializer = self.serializer_class(data=request.data, context={'caretaker': caretaker})
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+        obj = serializer.save()
+
+        return Response({'message': 'Image uploaded successfully'})
 
     
     
