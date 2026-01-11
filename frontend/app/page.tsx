@@ -38,28 +38,28 @@ export default function Home() {
 
           <div className="title-section">
             <h1 className="main-title">
-              Welcome to{" "}
+              Dobrodošli u{" "}
               <span className={`${colors[colorIndex]} color-shift`}>
                 CareFree
               </span>
             </h1>
             <p className="subtitle">
-              Your safe space for mental wellness and support
+              Vaš siguran prostor za mentalno zdravlje i podršku
             </p>
           </div>
 
           <p className="description">
-            Connect with professional caretakers, track your journey, and take
-            control of your mental health in a supportive, confidential
-            environment.
+            Povežite se s profesionalnim psihozima, pratite svoj napredak i 
+            preuzmite kontrolu nad svojim mentalnim zdravljem u podržavajućem i 
+            povjerljivom okruženju.
           </p>
 
           <div className="button-group">
             <Button asChild size="lg" className="cta-button">
-              <Link href="/accounts/signup">Get Started</Link>
+              <Link href="/accounts/signup">Registriraj se</Link>
             </Button>
             <Button asChild variant="outline" size="lg" className="cta-outline">
-              <Link href="/accounts/login">Log in</Link>
+              <Link href="/accounts/login">Prijavi se</Link>
             </Button>
           </div>
 
@@ -68,9 +68,9 @@ export default function Home() {
               <div className="card-icon">
                 <i className="fi fi-rr-hands-brain text-4xl"></i>
               </div>
-              <h3 className="card-title">AI Chat & Expert Help</h3>
+              <h3 className="card-title">AI Chat i stručna pomoć</h3>
               <p className="card-text">
-                Talk to our AI assistant anytime, or connect with licensed psychologists for professional support
+                Razgovarajte s našim AI asistentom bilo kada, ili se povežite s licenciranim psihozima za profesionalnu podršku
               </p>
             </div>
 
@@ -78,9 +78,9 @@ export default function Home() {
               <div className="card-icon">
                 <i className="fi fi-rr-shield-check text-4xl"></i>
               </div>
-              <h3 className="card-title">Stay Anonymous</h3>
+              <h3 className="card-title">Ostanite anonimni</h3>
               <p className="card-text">
-                Your identity remains private. Share freely without revealing who you are
+                Vaš identitet ostaje privatan. Dijelite slobodno bez otkrivanja tko ste
               </p>
             </div>
 
@@ -88,9 +88,9 @@ export default function Home() {
               <div className="card-icon">
                 <i className="fi fi-rr-users text-4xl"></i>
               </div>
-              <h3 className="card-title">Browse Experts</h3>
+              <h3 className="card-title">Pregledajte stručnjake</h3>
               <p className="card-text">
-                View psychologist profiles, schedule appointments, and find the right match for you
+                Pregledajte profile psihologa, zakažite termine i pronađite pravog za vas
               </p>
             </div>
           </div>

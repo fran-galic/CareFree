@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
 import useSWR from "swr";
 import { fetcher } from "@/fetchers/fetcher";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -11,9 +12,13 @@ import {
   MessageCircle, 
   CalendarDays, 
   BookOpen, 
-  Search 
+  Search,
+  Clock,
+  Inbox
 } from "lucide-react";
 import Image from "next/image";
+
+const BACKEND_API = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 // Definiramo tipove podataka koji dolaze s backenda
 interface User {
@@ -31,13 +36,28 @@ export default function CarefreeLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   
-  // 1. DOHVAT KORISNIKA
-  const { data: user, isLoading } = useSWR<User>("/users/me/", fetcher);
+  
+  const { data: user, isLoading, error } = useSWR<User>(
+    `${BACKEND_API}/users/me/`, 
+    fetcher,
+    {
+      revalidateOnMount: true,
+      dedupingInterval: 0
+    }
+  );
 
-  // Funkcija za provjeru aktivnog taba
+  
+  useEffect(() => {
+    if (error && error.message.includes('401') && !isLoading) {
+      router.push('/accounts/login');
+    }
+  }, [error, isLoading, router]);
+
+  
   const isActive = (path: string) => {
-    // Posebna provjera za profil jer ima pod-rute
+    
     if (path === "/carefree/profile") {
         return pathname.includes("/carefree/profile/");
     }
@@ -51,43 +71,43 @@ export default function CarefreeLayout({
         : "text-muted-foreground hover:bg-primary/10 hover:text-primary"
     }`;
 
-  // 2. DEFINICIJA LINKOVA (Različite liste ovisno o ulozi)
+  
   const studentLinks = [
-    { href: "/carefree/main", label: "Home", icon: Home },
-    { href: "/carefree/messages", label: "Chat", icon: MessageCircle },
+    { href: "/carefree/main", label: "Početna", icon: Home },
+    { href: "/carefree/messages", label: "Razgovor", icon: MessageCircle },
     { href: "/carefree/calendar", label: "Kalendar", icon: CalendarDays },
     { href: "/carefree/journal", label: "Dnevnik", icon: BookOpen },
     { href: "/carefree/search", label: "Pretraga", icon: Search },
   ];
 
   const caretakerLinks = [
-    { href: "/carefree/main", label: "Dashboard", icon: Home },
-    // Psiholog nema Chat ni Dnevnik prema specifikaciji
-    { href: "/carefree/calendar", label: "Moji Termini", icon: CalendarDays },
-    { href: "/carefree/search", label: "Baza kolega", icon: Search },
+    { href: "/carefree/main", label: "Početna", icon: Home },
+    { href: "/carefree/availability", label: "Termini (dostupnost)", icon: Clock },
+    { href: "/carefree/requests", label: "Zahtjevi studenata", icon: Inbox },
+    { href: "/carefree/calendar", label: "Moj kalendar", icon: CalendarDays },
   ];
 
-  // 3. LOGIKA ODABIRA (Samo ako imamo user podatke)
+  
   const isCaretaker = user?.role === "caretaker";
   const navigationLinks = isCaretaker ? caretakerLinks : studentLinks;
 
-  // 4. LOADING STANJE - KLJUČNO PROTIV TREPERENJA
+  
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <header className="sticky top-0 z-50 w-full border-b bg-card/90 backdrop-blur-md shadow-sm h-20 flex items-center justify-between px-4 container mx-auto">
-          {/* Logo loading */}
+          
           <div className="flex items-center gap-3">
             <Skeleton className="w-10 h-10 rounded-full" />
             <Skeleton className="w-24 h-6" />
           </div>
-          {/* Nav loading */}
+          
           <div className="hidden md:flex gap-2">
             <Skeleton className="w-20 h-8 rounded-full" />
             <Skeleton className="w-20 h-8 rounded-full" />
             <Skeleton className="w-20 h-8 rounded-full" />
           </div>
-          {/* Profile loading */}
+          
           <div className="flex items-center gap-2">
             <Skeleton className="w-9 h-9 rounded-full" />
             <Skeleton className="w-24 h-8 rounded-full" />
@@ -101,15 +121,15 @@ export default function CarefreeLayout({
     );
   }
 
-  // 5. RENDERIRANJE STVARNOG SADRŽAJA
+  
   return (
-    <div className={`min-h-screen bg-background flex flex-col`}>
+    <div className={`min-h-screen bg-background flex flex-col`} data-theme={user?.role === "caretaker" ? "caretaker" : "student"}>
       
-      {/* HEADER */}
+      
       <header className="sticky top-0 z-50 w-full border-b bg-card/90 backdrop-blur-md shadow-sm transition-colors duration-500">
         <div className="container mx-auto px-4 h-20 flex items-center justify-between">
           
-          {/* LOGO */}
+          
           <Link href="/carefree/main" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <div className="relative w-10 h-10">
               <Image 
@@ -119,10 +139,10 @@ export default function CarefreeLayout({
                 className="object-contain"
               />
             </div>
-            <span className="text-2xl font-bold text-primary tracking-tight">CareFree</span>
+            <span className="text-2xl font-bold tracking-tight" style={{ color: 'oklch(0.783 0.1136 182.2)' }}>CareFree</span>
           </Link>
 
-          {/* NAVIGACIJA */}
+          
           <nav className="hidden md:flex items-center gap-1 bg-secondary/30 p-1.5 rounded-full border border-secondary/50">
             {navigationLinks.map((link) => (
               <Link key={link.href} href={link.href} className={navLinkClass(link.href)}>
@@ -132,7 +152,7 @@ export default function CarefreeLayout({
             ))}
           </nav>
 
-          {/* PROFIL (DESNI KUT) - DINAMIČKI LINK */}
+          
           <div className="flex items-center gap-4">
             <Link href={isCaretaker ? "/carefree/profile/caretaker" : "/carefree/profile/student"}>
               <div className={`flex items-center gap-3 pl-1 pr-4 py-1 rounded-full border transition-all cursor-pointer group ${
@@ -145,7 +165,7 @@ export default function CarefreeLayout({
                     src={isCaretaker ? user?.caretaker?.user_image_url || "" : ""} 
                     className="object-cover" 
                   />
-                  {/* UJEDNAČEN DIZAJN: Primary boja za oba tipa korisnika */}
+                  
                   <AvatarFallback className="text-sm font-bold bg-primary/10 text-primary">
                     {isCaretaker ? 'P' : 'S'}
                   </AvatarFallback>
@@ -165,7 +185,7 @@ export default function CarefreeLayout({
         </div>
       </header>
 
-      {/* GLAVNI SADRŽAJ */}
+      
       <main className="flex-1 w-full">
         {children}
       </main>

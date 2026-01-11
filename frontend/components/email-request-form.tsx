@@ -52,9 +52,9 @@ export default function EmailRequestForm({ onSuccess }: EmailRequestFormProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Create an account</CardTitle>
+        <CardTitle>Kreirajte račun</CardTitle>
         <CardDescription>
-          Enter your email to get started with CareFree
+          Unesite svoj email za početak korištenja CareFree
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -66,7 +66,7 @@ export default function EmailRequestForm({ onSuccess }: EmailRequestFormProps) {
                 id="email"
                 name="email"
                 type="email"
-                placeholder="student@example.com"
+                placeholder="student@primjer.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -79,13 +79,13 @@ export default function EmailRequestForm({ onSuccess }: EmailRequestFormProps) {
 
             <Field>
               <Button type="submit" disabled={isLoading} className="w-full">
-                {isLoading ? "Sending..." : "Continue"}
+                {isLoading ? "Šalje se..." : "Nastavi"}
               </Button>
 
               <FieldDescription className="text-center">
-                Already have an account?{" "}
+                Već imate račun?{" "}
                 <Link href="/accounts/login" className="underline underline-offset-4 hover:text-primary">
-                  Log in
+                  Prijavite se
                 </Link>
               </FieldDescription>
             </Field>
