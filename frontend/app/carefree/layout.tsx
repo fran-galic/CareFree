@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import useSWR from "swr";
 import { fetcher } from "@/fetchers/fetcher";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Skeleton } from "@/components/ui/skeleton"; // Koristimo skeleton za loading
+import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Home, 
   MessageCircle, 
@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 
-// Definiramo točne tipove
+// Definiramo tipove podataka koji dolaze s backenda
 interface User {
   id: string;
   email: string;
@@ -35,7 +35,14 @@ export default function CarefreeLayout({
   // 1. DOHVAT KORISNIKA
   const { data: user, isLoading } = useSWR<User>("/users/me/", fetcher);
 
-  const isActive = (path: string) => pathname === path;
+  // Funkcija za provjeru aktivnog taba
+  const isActive = (path: string) => {
+    // Posebna provjera za profil jer ima pod-rute
+    if (path === "/carefree/profile") {
+        return pathname.includes("/carefree/profile/");
+    }
+    return pathname === path;
+  }
   
   const navLinkClass = (path: string) => 
     `flex items-center gap-2 px-4 py-2 rounded-full transition-all text-sm font-medium ${
@@ -44,7 +51,7 @@ export default function CarefreeLayout({
         : "text-muted-foreground hover:bg-primary/10 hover:text-primary"
     }`;
 
-  // 2. DEFINICIJA LINKOVA (Različite liste)
+  // 2. DEFINICIJA LINKOVA (Različite liste ovisno o ulozi)
   const studentLinks = [
     { href: "/carefree/main", label: "Home", icon: Home },
     { href: "/carefree/messages", label: "Chat", icon: MessageCircle },
@@ -65,39 +72,37 @@ export default function CarefreeLayout({
   const navigationLinks = isCaretaker ? caretakerLinks : studentLinks;
 
   // 4. LOADING STANJE - KLJUČNO PROTIV TREPERENJA
-  // Dok se podaci učitavaju, prikazujemo "kostur" headera, ne krivi header
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <header className="sticky top-0 z-50 w-full border-b bg-card/90 backdrop-blur-md shadow-sm h-20 flex items-center justify-between px-4 container mx-auto">
-           {/* Logo loading */}
-           <div className="flex items-center gap-3">
-             <Skeleton className="w-10 h-10 rounded-full" />
-             <Skeleton className="w-24 h-6" />
-           </div>
-           {/* Nav loading */}
-           <div className="hidden md:flex gap-2">
-             <Skeleton className="w-20 h-8 rounded-full" />
-             <Skeleton className="w-20 h-8 rounded-full" />
-             <Skeleton className="w-20 h-8 rounded-full" />
-           </div>
-           {/* Profile loading */}
-           <div className="flex items-center gap-2">
-             <Skeleton className="w-9 h-9 rounded-full" />
-             <Skeleton className="w-24 h-8 rounded-full" />
-           </div>
+          {/* Logo loading */}
+          <div className="flex items-center gap-3">
+            <Skeleton className="w-10 h-10 rounded-full" />
+            <Skeleton className="w-24 h-6" />
+          </div>
+          {/* Nav loading */}
+          <div className="hidden md:flex gap-2">
+            <Skeleton className="w-20 h-8 rounded-full" />
+            <Skeleton className="w-20 h-8 rounded-full" />
+            <Skeleton className="w-20 h-8 rounded-full" />
+          </div>
+          {/* Profile loading */}
+          <div className="flex items-center gap-2">
+            <Skeleton className="w-9 h-9 rounded-full" />
+            <Skeleton className="w-24 h-8 rounded-full" />
+          </div>
         </header>
         <main className="flex-1 w-full p-6 space-y-4">
-           <Skeleton className="h-12 w-1/3" />
-           <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-12 w-1/3" />
+          <Skeleton className="h-64 w-full" />
         </main>
       </div>
     );
   }
 
-  // 5. RENDERIRANJE STVARNOG SADRŽAJA (Kad znamo tko je user)
+  // 5. RENDERIRANJE STVARNOG SADRŽAJA
   return (
-    // Ako želimo boje, ovdje bi išao className={isCaretaker ? "theme-caretaker" : ""}
     <div className={`min-h-screen bg-background flex flex-col`}>
       
       {/* HEADER */}
@@ -117,7 +122,7 @@ export default function CarefreeLayout({
             <span className="text-2xl font-bold text-primary tracking-tight">CareFree</span>
           </Link>
 
-          {/* NAVIGACIJA - Renderiramo ispravnu listu */}
+          {/* NAVIGACIJA */}
           <nav className="hidden md:flex items-center gap-1 bg-secondary/30 p-1.5 rounded-full border border-secondary/50">
             {navigationLinks.map((link) => (
               <Link key={link.href} href={link.href} className={navLinkClass(link.href)}>
@@ -127,11 +132,11 @@ export default function CarefreeLayout({
             ))}
           </nav>
 
-          {/* PROFIL (DESNI KUT) */}
+          {/* PROFIL (DESNI KUT) - DINAMIČKI LINK */}
           <div className="flex items-center gap-4">
-            <Link href="/carefree/myprofile">
+            <Link href={isCaretaker ? "/carefree/profile/caretaker" : "/carefree/profile/student"}>
               <div className={`flex items-center gap-3 pl-1 pr-4 py-1 rounded-full border transition-all cursor-pointer group ${
-                isActive("/carefree/myprofile") 
+                isActive("/carefree/profile") 
                   ? "border-primary bg-primary/5" 
                   : "border-transparent hover:bg-accent"
               }`}>
@@ -140,22 +145,17 @@ export default function CarefreeLayout({
                     src={isCaretaker ? user?.caretaker?.user_image_url || "" : ""} 
                     className="object-cover" 
                   />
-                  {/* LOGIKA ZA S / P U KRUGU */}
-                  <AvatarFallback className={`text-sm font-bold ${
-                    isCaretaker 
-                      ? 'bg-orange-100 text-orange-600' // Narančasto za P
-                      : 'bg-teal-100 text-teal-600'     // Zeleno za S
-                  }`}>
+                  {/* UJEDNAČEN DIZAJN: Primary boja za oba tipa korisnika */}
+                  <AvatarFallback className="text-sm font-bold bg-primary/10 text-primary">
                     {isCaretaker ? 'P' : 'S'}
                   </AvatarFallback>
                 </Avatar>
                 
                 <div className="hidden sm:block text-left">
                   <p className="text-xs font-semibold group-hover:text-primary transition-colors">
-                     {user?.first_name ? user.first_name : "Moj Profil"}
+                    {user?.first_name ? user.first_name : "Moj Profil"}
                   </p>
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                    {/* Hardkodiran ispis uloge */}
                     {isCaretaker ? 'Psiholog' : 'Student'}
                   </p>
                 </div>
