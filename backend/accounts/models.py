@@ -7,7 +7,8 @@ from django.utils.text import slugify
 from django.core.exceptions import ValidationError
 
 # file validators
-from .validators import validate_file_type_and_size
+from .validators import validate_file_type_and_size, validate_caretaker_image
+import mimetypes
 
 class CustomUserManager(BaseUserManager):
     use_in_migrations = True
@@ -97,7 +98,8 @@ class Caretaker(models.Model):
     )
 
     tel_num = models.CharField(max_length=15, blank=True, null=True)
-    image_url = models.CharField(blank=True, null=True)
+    image = models.ImageField(upload_to='caretakers/images/', blank=True, null=True, validators=[validate_caretaker_image])
+    image_mime_type = models.CharField(max_length=100, blank=True, null=True)
     about_me = models.TextField(blank=True, max_length=800)
     grad_year = models.PositiveIntegerField(blank=True, null=True, help_text="The year in which the person graduated as a psychologist.")
 
@@ -121,14 +123,52 @@ class Caretaker(models.Model):
     is_approved = models.BooleanField(default=False)
 
     def is_complete(self):
+        # check for uploaded image
+        has_image = False
+        try:
+            img = getattr(self, 'image', None)
+            if img and getattr(img, 'name', None):
+                has_image = True
+        except Exception:
+            has_image = False
+
         return all([
-            bool(self.tel_num and self.tel_num.strip()),
-            bool(self.image_url and self.image_url.strip()),
-            bool(self.about_me and self.about_me.strip()),
+            bool(self.tel_num and str(self.tel_num).strip()),
+            has_image,
+            bool(self.about_me and str(self.about_me).strip()),
             self.help_categories.exists(),
             CaretakerCV.objects.filter(caretaker=self).exists(),
             self.diplomas.exists(),
         ])
+
+    def save(self, *args, **kwargs):
+        # populate image metadata if a new image was uploaded
+        try:
+            prior_name = None
+            if self.pk:
+                prior = Caretaker.objects.filter(pk=self.pk).first()
+                if prior:
+                    prior_name = getattr(prior.image, 'name', None)
+
+            curr_name = getattr(self.image, 'name', None) if getattr(self, 'image', None) else None
+            if curr_name and curr_name != prior_name:
+                # try to get content_type from uploaded file; fallback to mimetypes
+                content_type = None
+                try:
+                    uploaded_file = getattr(self.image, 'file', None)
+                    content_type = getattr(uploaded_file, 'content_type', None)
+                except Exception:
+                    content_type = None
+
+                if not content_type:
+                    content_type = mimetypes.guess_type(curr_name)[0] or ''
+
+                self.image_mime_type = content_type
+        except Exception:
+            # never fail save due to metadata extraction
+            pass
+
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.user.first_name} {self.user.last_name}"
@@ -148,26 +188,37 @@ class CaretakerCV(models.Model):
         return f"CV for {self.caretaker}"
 
 
-class Diploma(models.Model):
-    DEGREE = 'DEGREE'
-    CERTIFICATE = 'CERTIFICATE'
-    LICENSE = 'LICENSE'
-
-    DIPLOMA_TYPE_CHOICES = (
-        (DEGREE, 'Degree'),
-        (CERTIFICATE, 'Certificate'),
-        (LICENSE, 'License'),
-    ) 
-
-    caretaker = models.ForeignKey('Caretaker', on_delete=models.CASCADE, related_name='diplomas')
-    file = models.FileField(upload_to='caretakers/diplomas/', validators=[validate_file_type_and_size])
-    diploma_type = models.CharField(max_length=20, choices=DIPLOMA_TYPE_CHOICES)
+class Certificate(models.Model):
+    caretaker = models.ForeignKey('Caretaker', on_delete=models.CASCADE, related_name='certificates')
+    file = models.FileField(upload_to='caretakers/certificates/', validators=[validate_file_type_and_size])
     original_filename = models.CharField(max_length=255, blank=True, null=True)
     mime_type = models.CharField(max_length=100, blank=True, null=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.diploma_type} for {self.caretaker}"
+        return f"Certificate for {self.caretaker}"
+    
+
+class Diploma(models.Model):
+    # DEGREE = 'DEGREE'
+    # CERTIFICATE = 'CERTIFICATE'
+    # LICENSE = 'LICENSE'
+
+    # DIPLOMA_TYPE_CHOICES = (
+    #     (DEGREE, 'Degree'),
+    #     (CERTIFICATE, 'Certificate'),
+    #     (LICENSE, 'License'),
+    # ) 
+
+    caretaker = models.ForeignKey('Caretaker', on_delete=models.CASCADE, related_name='diplomas')
+    file = models.FileField(upload_to='caretakers/diplomas/', validators=[validate_file_type_and_size])
+    # diploma_type = models.CharField(max_length=20, choices=DIPLOMA_TYPE_CHOICES)
+    original_filename = models.CharField(max_length=255, blank=True, null=True)
+    mime_type = models.CharField(max_length=100, blank=True, null=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Diploma for {self.caretaker}"
 
 
 class HelpCategory(models.Model):
