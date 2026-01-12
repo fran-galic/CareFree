@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Save, UserCircle, LogOut, Upload, CheckCircle2, XCircle, Clock, AlertTriangle, FileText, Award, Image as ImageIcon } from "lucide-react";
+import { Loader2, Save, UserCircle, LogOut, Upload, CheckCircle2, XCircle, Clock, AlertTriangle, FileText, Award, Image as ImageIcon, Key, Trash } from "lucide-react";
 import { ProfileHeader } from "@/components/profile-header";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -180,6 +180,27 @@ export default function CaretakerProfilePage() {
     router.push("/accounts/login");
   };
 
+  const handleDeleteAccount = async () => {
+    if (!confirm("Jeste li sigurni da želite TRAJNO obrisati svoj račun? Ova akcija se ne može poništiti!")) return;
+    if (!confirm("Posljednje upozorenje: Svi vaši podaci će biti trajno izbrisani. Nastaviti?")) return;
+    
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/delete/`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        alert("Račun uspješno obrisan.");
+        router.push("/accounts/login");
+      } else {
+        throw new Error("Greška pri brisanju računa");
+      }
+    } catch (error) {
+      alert("Greška pri brisanju računa. Pokušajte ponovno.");
+    }
+  };
+
   const toggleCategory = (categoryId: number) => {
     setFormData((prev: any) => ({
       ...prev,
@@ -344,8 +365,15 @@ export default function CaretakerProfilePage() {
             <Button onClick={handleSaveProfile} disabled={saving} className="w-full h-12">
               {saving ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2 h-4 w-4" />} Spremi profil
             </Button>
+            <Button onClick={() => router.push("/carefree/profile/change-password")} variant="outline" className="w-full h-12">
+              <Key className="mr-2 h-4 w-4" /> Promijeni lozinku
+            </Button>
             <Button onClick={handleLogout} variant="outline" className="w-full h-12 text-destructive hover:bg-destructive/10">
               <LogOut className="mr-2 h-4 w-4" /> Odjava
+            </Button>
+            <Separator className="my-2" />
+            <Button onClick={handleDeleteAccount} variant="destructive" className="w-full h-12">
+              <Trash className="mr-2 h-4 w-4" /> Obriši račun
             </Button>
           </div>
 

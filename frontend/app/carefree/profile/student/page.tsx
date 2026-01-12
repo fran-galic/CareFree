@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Save, UserCircle, LogOut } from "lucide-react";
+import { Loader2, Save, UserCircle, LogOut, Key, Trash } from "lucide-react";
 import { ProfileHeader } from "@/components/profile-header";
 
 export default function StudentProfilePage() {
@@ -92,6 +92,27 @@ export default function StudentProfilePage() {
     router.push("/accounts/login");
   };
 
+  const handleDeleteAccount = async () => {
+    if (!confirm("Jeste li sigurni da želite TRAJNO obrisati svoj račun? Ova akcija se ne može poništiti!")) return;
+    if (!confirm("Posljednje upozorenje: Svi vaši podaci će biti trajno izbrisani. Nastaviti?")) return;
+    
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/delete/`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        alert("Račun uspješno obrisan.");
+        router.push("/accounts/login");
+      } else {
+        throw new Error("Greška pri brisanju računa");
+      }
+    } catch (error) {
+      alert("Greška pri brisanju računa. Pokušajte ponovno.");
+    }
+  };
+
   if (loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin" /></div>;
   if (!user) return null;
 
@@ -119,8 +140,15 @@ export default function StudentProfilePage() {
                 <Button onClick={handleSave} disabled={saving} className="w-full h-12">
                     {saving ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2 h-4 w-4" />} Spremi
                 </Button>
+                <Button onClick={() => router.push("/carefree/profile/change-password")} variant="outline" className="w-full h-12">
+                    <Key className="mr-2 h-4 w-4" /> Promijeni lozinku
+                </Button>
                 <Button onClick={handleLogout} variant="outline" className="w-full h-12 text-destructive hover:bg-destructive/10">
                     <LogOut className="mr-2 h-4 w-4" /> Odjava
+                </Button>
+                <Separator className="my-2" />
+                <Button onClick={handleDeleteAccount} variant="destructive" className="w-full h-12">
+                    <Trash className="mr-2 h-4 w-4" /> Obriši račun
                 </Button>
             </div>
             {message && <div className={`p-3 rounded text-sm text-center ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{message.text}</div>}

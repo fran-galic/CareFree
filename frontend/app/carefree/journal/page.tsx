@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import useSWR, { mutate } from "swr";
-import { getJournalEntries, createJournalEntry, deleteJournalEntry } from "@/fetchers/journal";
+import { getJournalEntries, createJournalEntry, deleteJournalEntry, updateJournalEntry } from "@/fetchers/journal";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, PlusCircle, BookOpen } from "lucide-react"; // Ikone za ljepši izgled
+import { Trash2, PlusCircle, BookOpen, Edit2 } from "lucide-react"; // Dodana Edit2 ikona
 import { Separator } from "@/components/ui/separator";
 
 export default function JournalPage() {
@@ -18,6 +18,7 @@ export default function JournalPage() {
   
   // Stanje za formu novog unosa
   const [isCreating, setIsCreating] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null); // ID zapisa koji se uređuje
   const [newEntry, setNewEntry] = useState({ title: "", content: "", mood: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -26,12 +27,19 @@ export default function JournalPage() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      await createJournalEntry(newEntry);
+      if (editingId) {
+        // Ažuriranje postojećeg zapisa
+        await updateJournalEntry(editingId, newEntry);
+        setEditingId(null);
+      } else {
+        // Kreiranje novog zapisa
+        await createJournalEntry(newEntry);
+      }
       setNewEntry({ title: "", content: "", mood: "" }); // Reset forme
       setIsCreating(false); // Zatvori formu
       mutate("/api/journal/"); // Osvježi listu odmah
     } catch (err) {
-      console.error("Greška pri kreiranju:", err);
+      console.error("Greška pri spremanju:", err);
       alert("Nismo uspjeli spremiti zapis. Provjerite vezu.");
     } finally {
       setIsSubmitting(false);
@@ -47,6 +55,25 @@ export default function JournalPage() {
     } catch (err) {
       console.error("Greška pri brisanju:", err);
     }
+  };
+
+  // Funkcija za pokretanje uređivanja
+  const handleEdit = (entry: any) => {
+    setNewEntry({
+      title: entry.title,
+      content: entry.content,
+      mood: entry.mood || "",
+    });
+    setEditingId(entry.id);
+    setIsCreating(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Funkcija za otkazivanje uređivanja
+  const handleCancel = () => {
+    setIsCreating(false);
+    setEditingId(null);
+    setNewEntry({ title: "", content: "", mood: "" });
   };
 
   // Formatiranje datuma
@@ -81,8 +108,8 @@ export default function JournalPage() {
         <div className="mb-10 animate-in slide-in-from-top-4 duration-300">
           <Card className="border-primary/20 shadow-lg">
             <CardHeader>
-              <CardTitle>Novi unos</CardTitle>
-              <CardDescription>Kako se osjećaš danas?</CardDescription>
+              <CardTitle>{editingId ? "Uredi zapis" : "Novi unos"}</CardTitle>
+              <CardDescription>{editingId ? "Ažuriraj svoj zapis" : "Kako se osjećaš danas?"}</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleCreate} className="space-y-4">
@@ -131,9 +158,9 @@ export default function JournalPage() {
                 </div>
 
                 <div className="flex justify-end gap-3 pt-2">
-                    <Button type="button" variant="outline" onClick={() => setIsCreating(false)}>Odustani</Button>
+                    <Button type="button" variant="outline" onClick={handleCancel}>Odustani</Button>
                     <Button type="submit" disabled={isSubmitting}>
-                        {isSubmitting ? "Spremanje..." : "Spremi u dnevnik"}
+                        {isSubmitting ? "Spremanje..." : editingId ? "Ažuriraj" : "Spremi u dnevnik"}
                     </Button>
                 </div>
               </form>
@@ -169,14 +196,24 @@ export default function JournalPage() {
                                     )}
                                 </CardDescription>
                             </div>
-                            <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="text-muted-foreground hover:text-red-500"
-                                onClick={() => handleDelete(entry.id)}
-                            >
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <div className="flex gap-1">
+                                <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="text-muted-foreground hover:text-primary"
+                                    onClick={() => handleEdit(entry)}
+                                >
+                                    <Edit2 className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="text-muted-foreground hover:text-red-500"
+                                    onClick={() => handleDelete(entry.id)}
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </div>
                         </div>
                     </CardHeader>
                     <CardContent>
