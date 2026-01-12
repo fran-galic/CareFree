@@ -37,10 +37,22 @@ export function createJournalEntry(data: NewJournalEntry) {
   });
 }
 
-// 3. Obriši zapis (DELETE /api/journal/{id}/) - [7]
+// 3. Obriši zapis (DELETE /api/journal/{id}/)
 export function deleteJournalEntry(id: number) {
     return fetcher<void>(`${BACKEND_API}/api/journal/${id}/`, {
       method: "DELETE",
       credentials: "include",
     });
+}
+
+// 4. Uredi postojeći zapis (PATCH /api/journal/{id}/)
+export function updateJournalEntry(id: number, data: Partial<NewJournalEntry>) {
+  return fetcher<JournalEntry>(`${BACKEND_API}/api/journal/${id}/`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+    credentials: "include",
+  });
 }

@@ -89,11 +89,12 @@ export function LoginForm({
               <Field>
                 <div className="flex items-center">
                   <FieldLabel htmlFor="password">Lozinka</FieldLabel>
-                  <a
-                    href="#"
+                  <Link
+                    href="/auth/forgot-password"
                     className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
                   >
-                  </a> 
+                    Zaboravili ste lozinku?
+                  </Link> 
                 </div>
                 <Input
                   id="password"
