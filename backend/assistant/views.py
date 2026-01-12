@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.conf import settings
 from django.http import StreamingHttpResponse
+from accounts.models import Caretaker, HelpCategory
 import json
 
 from .models import AssistantSession, AssistantMessage, AssistantSessionSummary
@@ -452,6 +453,206 @@ def generate_session_summary(session: AssistantSession) -> str:
 
 
 
+def generate_bot_message(session: AssistantSession) -> json:
+    """Generate a simple textual summary of a session.
+
+    TODO: Zamijeniti pravom AI sumarizacijom.
+    """
+    messages = session.messages.order_by("sequence")
+    total = messages.count()
+    if total == 0:
+        return "Sesija nema poruka."
+    
+
+    client = OpenAI(api_key=settings.OPENAI_API_KEY)
+    prompt = f"""
+        Ti si psihološki asistent za studente koji ti se javljaju s problemima. Šaljem ti sve poruke koje su do sada protekle
+        u ovom razgovoru sa studentom. Tvoja uloga je procijeniti jesi li prikupio dovoljno informacija od studenta da znaš o 
+        kakvom se problemu radi (da ga možeš svrstati u jednu od kategorija). Imaš pristup svim porukama koje su poslane tijekom 
+        ovog razgovora kao i kategorizaciju svih mogućih kategorija:
+
+        ------------------------------------------------------------
+        KATEGORIZACIJA PROBLEMA
+        ------------------------------------------------------------
+        Ako korisnik želi preporuku psihologa, odredi kategoriju i podkategorije.
+
+        GLAVNE KATEGORIJE I NJIHOVE PODKATEGORIJE:
+
+        1. Stres i akademski pritisci
+
+        - strah od ispita i loših ocjena
+        - preopterećenost obavezama
+        - problemi s organizacijom vremena i prokrastinacija
+
+        2. Anksiozni poremećaji
+
+        - Generalizirani anksiozni poremećaj
+        - Socijalna anksioznost (strah od javnog nastupa, kontakta s profesorima/vršnjacima)
+        - Panični napadi
+
+        3. Depresivni simptomi
+
+        - Tuga, gubitak interesa za aktivnosti
+        - Umor i demotivacija
+        - Nisko samopouzdanje i osjećaj bespomoćnosti
+
+        4. Problemi u međuljudskim odnosima
+
+        - Sukobi s kolegama, prijateljima ili partnerima
+        - Problemi s komunikacijom i asertivnošću
+        - Osjećaj izolacije i usamljenosti
+
+        5. Poremećaji spavanja
+
+        - Nesanicu ili nepravilne navike spavanja
+        - Posljedice kroničnog umora na koncentraciju i raspoloženje
+
+        6. Problemi samopouzdanja i identiteta
+
+        - Sumnja u vlastite sposobnosti
+        - Nesigurnost u odabir studija ili karijere
+        - Osobni razvoj i pronalazak smisla
+
+        7. Poremećaji prehrane i tjelesne slike
+
+        - Anoreksija
+        - Bulimija
+        - Prejedanje
+        - Negativna tjelesna slika i poremećena percepcija sebe
+
+        8. Emocionalna regulacija i impulzivno ponašanje
+
+        - Nagli ispadi bijesa ili frustracije
+        - Problemi s kontrolom impulsa
+        - Ovisničko ponašanje (društvene mreže, kockanje, alkohol)
+
+        9. Trauma i stresne životne situacije
+
+        - Gubitak bliske osobe
+        - Obiteljski problemi ili zlostavljanje
+        - Adaptacija na novi životni period (selidba, fakultet u drugom gradu)
+
+        10. Seksualnost 
+
+        - propitivanje vlastite seksualnosti
+        - anksioznost vezana za stupanje u spolne odnose
+
+        11. KRIZNE SITUACIJE (RIZIK)
+
+        - Suicidalne misli
+        - Planovi samoozljeđivanja
+        - Samoozljeđivanje
+        - Namjera naštetiti drugima
+        - Teška disocijacija
+        - Psihotična iskustva
+
+        12. OSTALO:
+        Kategorija bez podkategorija. Za ovu kategoriju potrebno je vratiti praznu listu podkategorija.
+        Ova kategorija se koristi u slučajevima kada se problem ne može svrstati ni u jednu drugu postojeću kategoriju.
+
+        ------------------------------------------------------------
+        KRIZNI MODE — KADA SE AKTIVIRA
+        ------------------------------------------------------------
+        Ako korisnik govori o:
+        - suicidalnim mislima,
+        - planovima ili namjeri samoozljeđivanja,
+        - ozbiljnom riziku,
+        - namjeri da ugrozi druge,
+        - izrazito dezorijentiranom ili psihotičnom stanju,
+
+        → odmah aktiviraj CRISIS MODE.
+
+        U kriznom odgovoru:
+        1. Ostani maksimalno nježan i smirujući.
+        2. Validiraj njihove osjećaje.
+        3. NE obećavaj da će sve biti dobro.
+        4. Puno ranije primijeti i generiraj summary jer nakon generiranje summaryja dolazi do kontaktiranja službene pomoći
+
+
+        =====OBAVEZNO=====
+        VRATI ISKLJUČIVO VALIDAN JSON BEZ IKAKVOG TEKSTA
+         {{
+            "mode": "recommendation",
+            "message": "<tvoja poruka korisniku>",
+            "summary": "<anonimni sažetak problema>",
+            "main_category": "<glavna kategorija>",
+            "subcategories": ["<podkategorija1>", "<podkategorija2>"],
+            "danger_flag": false,
+            "recommendation_ready": true
+        }}
+
+        mode -> određuje u kojem smo dijelu razgovora (je li kritični problem => "crisis", 
+        jesi li prikupio dovoljno informacija => "recommendation",
+        ako nemaš još dovoljno informacija => "converstaion")
+
+        message -> poruka koju vraćaš nazad korisniku 
+        summary -> pišeš isključivo kada si prikupio dovoljno informacija, inače ga ostavi praznim
+        main_category i subcategories -> tu napiši kategorije koje si prepoznao unutar kategorija koje si dobio
+        danger_flag -> true ako smo u kriznom modu, inače false
+        recommendation_ready -> true ako si prikupio dovoljno informacija i spreman si napraviti kvalitetan summary razgovora
+                                u kojem govoriš o problemima s kojima se student susreće, inače false
+
+        summary i recommendation_ready dolaze u paru => ako je recommendation_ready true, onda moraš i izgenerirati summary razgovora
+        inače ako je recommendation_ready false, summary je prazan.
+
+        TVOJ CILJ JE OTKRITI KOJI SU PROBLEMI STUDENTA. TVOJ SUMMARY MORA BITI DOVOLJNO DETALJAN I BAZIRAN NA PORUKAMA KOJE TI JE
+        STUDENT POSLAO. NAJBOLJE BI TI BILO IMATI KRATAK RAZGOVOR S NJIME (OTPRILIKE 10 NJEGOVIH PORUKA) IZ KOJEG ĆEŠ IZVUĆI SVE
+        PROBLEME O KOJIMA TI STUDENT PRIĆA. AKO TI STUDENT ZADA JEDAN PROBLEM; TO NE MORA BITI JEDINI. PROBAJ KROZ RAZGOVOR 
+        SKUŽITI O KOLIKO I KAKVIM PROBLEMIMA SE RADI, NEMOJ BRZATI (PRERANO ZAKLJUČITI O ČEMU TI SE STUDENT ŽALI).
+
+        OBAVEZNO NAZAD VRATI CIJELI JSON OBJEKT PA MAKAR I OSTAVIO PRAZAN STRING AKO NISI USPIO OTKRITI NA PRIMJER GLAVNU
+        KATEGORIJU.
+        
+
+    """
+
+    messages_for_openai = [
+        {
+            "role": "system",
+            "content": prompt,
+        }
+    ]
+
+    for msg in messages:
+                role = "user" if msg.sender == AssistantMessage.SENDER_STUDENT else "assistant"
+                messages_for_openai.append({
+                    "role": role,
+                    "content": msg.content,
+                })
+
+    text = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=messages_for_openai,
+                temperature=0.7,
+                response_format={"type": "json_object"},
+            ).choices[0].message.content
+    
+    #summary = summary.choices[0].message.content
+    parsed = json.loads(text)
+    return parsed
+    # if parsed.get("recommendation_ready", ""):
+    #     summary = parsed.get("summary", "")
+    #     if not summary.strip():
+    #         print("Error, summary nije izgeneriran")
+    #         return
+        
+    #     AssistantSessionSummary.objects.create(
+    #         student=session.student,
+    #         session=session,
+    #         content=summary,
+    #     )
+    #     session.is_active = False
+    #     session.ended_at = timezone.now()
+    #     session.save(update_fields=["is_active", "ended_at", "updated_at"])
+
+    #     first = messages.first().content[:100]
+    #     last = messages.last().content[:100]
+    #     return f"Sesija ima {total} poruka. Prva poruka: '{first}'. Zadnja poruka: '{last}'."
+    # else:
+    #     return f"Došlo je do greške pri parsiranju json-a."
+
+
+
     
 
 
@@ -541,25 +742,106 @@ class SessionMessageView(APIView):
 
         #bot_text = generate_bot_reply(session, user_message)
         
-        bot_message = generate_stream(session)
+        #bot_message = generate_stream(session)
+
+        
+        bot_json = generate_bot_message(session)
+        bot_message = AssistantMessage.objects.create(
+            session=session,
+            sender=AssistantMessage.SENDER_BOT,
+            content=bot_json.get("message", "").strip(),
+        )
+
         user_message_data = AssistantMessageSerializer(user_message).data
         bot_message_data = AssistantMessageSerializer(bot_message).data
 
+        caretakers = []
+
+        if bot_json.get("mode").lower() == "recommendation" and bot_json.get("recommendation_ready"): 
+            if bot_json.get("summary").strip():
+                AssistantSessionSummary.objects.create(
+                    student=session.student,
+                    session=session,
+                    content=bot_json.get("summary"),
+                )
+                session.is_active = False
+                session.ended_at = timezone.now()
+                session.save(update_fields=["is_active", "ended_at", "updated_at"])
+                try:
+                    caretakers_query = Caretaker.objects.filter(help_categories__label=bot_json.get("main_category")).distinct()[:3]
+                    for caretaker in caretakers_query:
+                        caretakers.append({
+                            "first_name": caretaker.user.first_name,
+                            "last_name": caretaker.user.last_name,
+                            "sex": caretaker.user.sex,
+                            "age": caretaker.user.age,
+                            "image": caretaker.image if caretaker.image else False,
+                        })
+                    
+                except Exception as e:
+                    caretakers = []
+
+                # {{
+                #     "mode": "recommendation",
+                #     "message": "<tvoja poruka korisniku>",
+                #     "summary": "<anonimni sažetak problema>",
+                #     "main_category": "<glavna kategorija>",
+                #     "subcategories": ["<podkategorija1>", "<podkategorija2>"],
+                #     "danger_flag": false,
+                #     "recommendation_ready": true
+                # }}
+                # return response
+            else:
+                return Response({"error": "Došlo je do greške prilikom stvaranja summaryja"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
         try:
-            session_done = generate_session_summary(session)
-            if session_done.startswith("Sesija ima "):
-                return Response({'message': 'Sesija je završena, sada slijedi prijedlog psihologa'}, 
-                                status=status.HTTP_200_OK)
-        
+            recommendation_ready = bot_json.get("recommendation_ready")
+            if not recommendation_ready or not recommendation_ready:
+                recommendation_ready = False
+                
+            else:
+                recommendation_ready = True
         except Exception as e:
-            print(f"Došlo je do greške prilikom provjere je li razgovor gotov: {e}")
-            return Response({'error': 'Greška kod stvaranja summaryja: {e}'}, 
-                                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        #potrebna je samo bot poruka
-        return Response(
-            {"user_message": user_message_data, "bot_message": bot_message_data},
+            recommendation_ready = False
+
+
+        try:
+            danger_flag = bot_json.get("danger_flag", "")
+            if not danger_flag or not danger_flag.strip():
+                danger_flag = False
+                
+            else:
+                danger_flag = True
+        except Exception as e:
+            danger_flag = False
+
+        response = Response(
+            {
+                "user_message": user_message_data, 
+                "bot_message": bot_message_data, 
+                "recommendation_ready": recommendation_ready,
+                "danger_flag": danger_flag,
+                "caretakers": caretakers
+            },
             status=status.HTTP_201_CREATED,
         )
+
+        return response
+        # try:
+        #     session_done = generate_session_summary(session)
+        #     if session_done.startswith("Sesija ima "):
+        #         return Response({'message': 'Sesija je završena, sada slijedi prijedlog psihologa'}, 
+        #                         status=status.HTTP_200_OK)
+        
+        # except Exception as e:
+        #     print(f"Došlo je do greške prilikom provjere je li razgovor gotov: {e}")
+        #     return Response({'error': 'Greška kod stvaranja summaryja: {e}'}, 
+        #                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        # #potrebna je samo bot poruka
+        # return Response(
+        #     {"user_message": user_message_data, "bot_message": bot_message_data},
+        #     status=status.HTTP_201_CREATED,
+        # )
         # response = StreamingHttpResponse(
         #     generate_stream(session=session),
         #     content_type="text/event-stream"
