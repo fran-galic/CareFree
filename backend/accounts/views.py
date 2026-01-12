@@ -242,8 +242,8 @@ class CaretakerCompleteRegistrationView(APIView):
 
         req = request.data
         missing = []
-        if not has_value(req.get('image')):
-            missing.append('image')
+        # Note: image, CV, and diplomas are uploaded separately via dedicated endpoints
+        # so we don't check for them in this request
         if not has_value(req.get('tel_num')):
             missing.append('tel_num')
         if not has_value(req.get('about_me')):
@@ -251,40 +251,49 @@ class CaretakerCompleteRegistrationView(APIView):
         if not has_value(req.get('help_categories')):
             missing.append('help_categories')
     
+        if missing:
+            return Response({
+                'error': 'Missing required fields',
+                'missing_fields': missing,
+            }, status=400)
 
         serializer.save()
 
-        # after saving, ensure CV and at least one diploma exist
-        missing_files = []
-        try:
-            has_cv = hasattr(caretaker, 'cv')
-        except Exception:
-            has_cv = False
-        try:
-            has_diplomas = caretaker.diplomas.exists()
-        except Exception:
-            has_diplomas = False
-
-        if not has_cv:
-            missing_files.append('cv')
-        if not has_diplomas:
-            missing_files.append('diplomas')
-
-        if missing or missing_files:
-            return Response({
-                'error': 'Missing required fields or uploads',
-                'missing_fields': missing,
-                'missing_files': missing_files
-            }, status=400)
-
         # evaluate profile completeness using model helper and save
+        # this will check for image, CV, and diplomas
         try:
             caretaker.is_profile_complete = caretaker.is_complete()
         except Exception:
             caretaker.is_profile_complete = False
         caretaker.save()
 
-        return Response(CaretakerProfileSerializer(caretaker).data)
+        # Return helpful feedback if profile is incomplete
+        response_data = CaretakerProfileSerializer(caretaker).data
+        
+        if not caretaker.is_profile_complete:
+            missing_items = []
+            try:
+                if not (caretaker.image and getattr(caretaker.image, 'name', None)):
+                    missing_items.append('profilna slika')
+            except Exception:
+                missing_items.append('profilna slika')
+            
+            try:
+                if not hasattr(caretaker, 'cv'):
+                    missing_items.append('CV')
+            except Exception:
+                missing_items.append('CV')
+            
+            try:
+                if not caretaker.diplomas.exists():
+                    missing_items.append('diploma')
+            except Exception:
+                missing_items.append('diploma')
+            
+            if missing_items:
+                response_data['incomplete_reason'] = f"Nedostaje: {', '.join(missing_items)}"
+
+        return Response(response_data)
     
     # def patch(self, request):
     #     caretaker = request.user.caretaker

@@ -5,3 +5,7 @@ __pycache__/
 db.sqlite3
 *.sqlite3
 venv/
+
+# Uploaded files (user content)
+caretakers/
+media/
