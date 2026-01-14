@@ -6,12 +6,12 @@ from .views import (
     AssistantSummaryListView,
     EndSesssionView,
     SessionMessageView,
-    StartSesssionView,
+    StartSessionView,
 )
 
 
 urlpatterns = [
-    path("session/start", StartSesssionView.as_view(), name="assistant-start-session"),
+    path("session/start", StartSessionView.as_view(), name="assistant-start-session"),
     path("session/message", SessionMessageView.as_view(), name="assistant-session-message"),
     path("session/end", EndSesssionView.as_view(), name="assistant-end-session"),
     path("summaries", AssistantSummaryListView.as_view(), name="assistant-summary-list"),
