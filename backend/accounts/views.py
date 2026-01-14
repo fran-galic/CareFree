@@ -42,7 +42,8 @@ from .serializers import (
     CaretakerProfileSerializer,
     CaretakerImageSerializer,
 )
-from .models import CaretakerCV, Diploma, HelpCategory
+from .models import CaretakerCV, Diploma, HelpCategory, Certificate
+from .serializers import CertificateSerializer
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.generics import ListAPIView
 
@@ -316,6 +317,12 @@ class CaretakerCompleteRegistrationView(APIView):
         data = serializer.data
 
         try:
+            image_url = getattr(caretaker.image, 'url', None)
+        except Exception:
+            image_url = None
+        image_mime = getattr(caretaker, 'image_mime_type', None)
+
+        try:
             cv = caretaker.cv
             cv_name = cv.original_filename or getattr(cv.file, 'name', None)
         except Exception:
@@ -328,8 +335,18 @@ class CaretakerCompleteRegistrationView(APIView):
         except Exception:
             diploma_names = []
 
+        certificate_names = []
+        try:
+            for c in caretaker.certificates.all():
+                certificate_names.append(c.original_filename or getattr(c.file, 'name', None))
+        except Exception:
+            certificate_names = []
+
+        data['image'] = image_url
+        data['image_mime_type'] = image_mime
         data['cv_filename'] = cv_name
         data['diploma_filenames'] = diploma_names
+        data['certificate_filenames'] = certificate_names
 
         return Response(data)
 
@@ -382,6 +399,38 @@ class CaretakerCompleteRegistrationView(APIView):
 
         # Return helpful feedback if profile is incomplete
         response_data = CaretakerProfileSerializer(caretaker).data
+        # include uploaded filenames and image metadata for client convenience
+        # try:
+        #     cv = caretaker.cv
+        #     cv_name = cv.original_filename or getattr(cv.file, 'name', None)
+        # except Exception:
+        #     cv_name = None
+
+        # diploma_names = []
+        # try:
+        #     for d in caretaker.diplomas.all():
+        #         diploma_names.append(d.original_filename or getattr(d.file, 'name', None))
+        # except Exception:
+        #     diploma_names = []
+
+        # certificate_names = []
+        # try:
+        #     for c in caretaker.certificates.all():
+        #         certificate_names.append(c.original_filename or getattr(c.file, 'name', None))
+        # except Exception:
+        #     certificate_names = []
+
+        # try:
+        #     image_url = getattr(caretaker.image, 'url', None)
+        # except Exception:
+        #     image_url = None
+        # image_mime = getattr(caretaker, 'image_mime_type', None)
+
+        # response_data['cv_filename'] = cv_name
+        # response_data['diploma_filenames'] = diploma_names
+        # response_data['certificate_filenames'] = certificate_names
+        # response_data['image'] = image_url
+        # response_data['image_mime_type'] = image_mime
         
         if not caretaker.is_profile_complete:
             missing_items = []
@@ -408,21 +457,15 @@ class CaretakerCompleteRegistrationView(APIView):
 
         return Response(response_data)
     
-    # def patch(self, request):
-    #     caretaker = request.user.caretaker
-    #     serializer = self.serializer_class(caretaker, data=request.data, partial=True)
-    #     if not serializer.is_valid():
-    #         return Response(serializer.errors, status=400)
-    #     serializer.save()
+    def patch(self, request):
+        caretaker = request.user.caretaker
+        serializer = self.serializer_class(caretaker, data=request.data, partial=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+        serializer.save()
+        caretaker.save()
 
-    #     # evaluate profile completeness using model helper
-    #     try:
-    #         caretaker.is_profile_complete = caretaker.is_complete()
-    #     except Exception:
-    #         caretaker.is_profile_complete = False
-    #     caretaker.save()
-
-    #     return Response(CaretakerProfileSerializer(caretaker).data)
+        return Response(CaretakerProfileSerializer(caretaker).data)
 
 from drf_spectacular.utils import extend_schema
 
@@ -488,6 +531,36 @@ class DiplomaCreateView(APIView):
         obj = serializer.save()
 
         return Response({'message': 'Diploma uploaded successfully'})
+
+
+@extend_schema(
+    request={
+        'multipart/form-data': {
+            'type': 'object',
+            'properties': {
+                'file': {
+                    'type': 'string',
+                    'format': 'binary',
+                },
+            },
+            'required': ['file'],
+        }
+    }
+)
+class CertificateCreateView(APIView):
+    permission_classes = [IsAuthenticated, IsCaretaker]
+    serializer_class = CertificateSerializer
+    parser_classes = (MultiPartParser, FormParser)
+
+    def post(self, request):
+        caretaker = request.user.caretaker
+
+        serializer = self.serializer_class(data=request.data, context={'caretaker': caretaker})
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+        obj = serializer.save()
+
+        return Response({'message': 'Certificate uploaded successfully'})
 
 
 @extend_schema(
