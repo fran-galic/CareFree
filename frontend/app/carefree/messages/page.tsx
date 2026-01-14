@@ -37,16 +37,34 @@ export default function ChatPage() {
   useEffect(() => {
     const initSession = async () => {
       try {
-        await startSession();
+        const res = await startSession();
         setIsSessionActive(true);
-        setMessages([
-          {
-            id: 0,
-            sender: "bot",
-            content: "Bok! Ja sam tvoj AI asistent. Kako se osjećaš danas? Ovdje sam da te saslušam.",
-            created_at: new Date().toISOString()
-          }
-        ]);
+
+        const introMsg = {
+              id: 0,
+              sender: "bot",
+              content: "Bok! Ja sam tvoj AI asistent. Kako se osjećaš danas? Ovdje sam da te saslušam.",
+              created_at: new Date().toISOString()
+            };
+
+        if(res.created){
+
+          setMessages([introMsg]);
+          return;
+
+        } else if (!res.created){
+
+          const previousMessages = Array.isArray(res.messages) ? res.messages : [];
+          const mapped = previousMessages.map((m, idx) => ({
+            id: m.id ?? idx + 1,
+            sender: m.sender ?? "bot",
+            content: m.content ?? "",
+            created_at: m.created_at ?? new Date().toISOString(),
+          }));
+
+          setMessages([introMsg, ...mapped]);
+          return;
+        }
       } catch (error) {
         console.error("Greška pri pokretanju sesije:", error);
       }
@@ -81,13 +99,22 @@ export default function ChatPage() {
     setMessages((prev) => [...prev, tempUserMessage]);
 
     try {
+      //TODO:
+      //Ovdje sada treba dodati kod u kojem ovisno o tome je li summary napravljen prikazujes psihologe ili ne
+      //Ako je summary napravljen, session se sam automatski zatvori tako da ne treba slati nikakav fetch na backend
+
+
+      
+
       // KORAK B: Šaljemo na backend i čekamo delay
       const minDelay = new Promise(resolve => setTimeout(resolve, 2000));
       const apiCall = sendMessage(tempContent);
-
       // Čekamo da prođu minimalno 2 sekunde I da backend odgovori
       const [_, response] = await Promise.all([minDelay, apiCall]);
-      
+
+
+      console.log(apiCall);
+      console.log(response);
       // KORAK C: Ažuriramo stanje s pravim podacima
       setMessages((prev) => {
         // 1. Uklonimo našu privremenu poruku (filtriramo po ID-u)

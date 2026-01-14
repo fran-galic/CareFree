@@ -15,6 +15,7 @@ from .serializers import (
     AssistantSessionSummarySerializer,
     ChatMessageRequestSerializer,
 )
+from users.serializers import CaretakerLongSerializer
 
 from openai import OpenAI
 
@@ -658,7 +659,7 @@ def generate_bot_message(session: AssistantSession) -> json:
 
 
 
-class StartSesssionView(APIView):
+class StartSessionView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
@@ -667,14 +668,25 @@ class StartSesssionView(APIView):
             return Response({"message": "Korisnik nije student."}, status=status.HTTP_403_FORBIDDEN)
 
         session = AssistantSession.objects.filter(student=student, is_active=True).first()
+        print(session)
         created = False
+        session_messages=[]
         if session is None:
             session = AssistantSession.objects.create(student=student)
             created = True
+        else:
+            messages = AssistantMessage.objects.filter(session=session).order_by("sequence").all()
+            for message in messages:
+                serialized_message = AssistantMessageSerializer(message)
+                session_messages.append(serialized_message.data)
 
-        serializer = AssistantSessionSerializer(session)
+        session_serialized = AssistantSessionSerializer(session)
         return Response(
-            serializer.data,
+            {
+                "session": session_serialized.data,
+                "messages": session_messages,
+                "created": created,
+            },
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
         )
 
@@ -768,16 +780,21 @@ class SessionMessageView(APIView):
                 session.ended_at = timezone.now()
                 session.save(update_fields=["is_active", "ended_at", "updated_at"])
                 try:
-                    caretakers_query = Caretaker.objects.filter(help_categories__label=bot_json.get("main_category")).distinct()[:3]
+                    caretakers_query = Caretaker.objects.filter(
+                         help_categories__label=bot_json.get("main_category"),
+                         is_approved = True,
+                         ).distinct()[:15]
                     for caretaker in caretakers_query:
-                        caretakers.append({
-                            "first_name": caretaker.user.first_name,
-                            "last_name": caretaker.user.last_name,
-                            "sex": caretaker.user.sex,
-                            "age": caretaker.user.age,
-                            "image": caretaker.image if caretaker.image else False,
-                        })
-                    
+                        # caretakers.append({
+                        #     "first_name": caretaker.user.first_name,
+                        #     "last_name": caretaker.user.last_name,
+                        #     "sex": caretaker.user.sex,
+                        #     "age": caretaker.user.age,
+                        #     "image": caretaker.image if caretaker.image else False,
+                        # })
+
+                        serialized_caretaker = CaretakerLongSerializer(caretaker)
+                        caretakers.append(serialized_caretaker.data)
                 except Exception as e:
                     caretakers = []
 
