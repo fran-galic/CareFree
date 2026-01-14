@@ -43,6 +43,8 @@ class User(AbstractUser):
     email = models.EmailField(unique=True, max_length=200)
     username = models.CharField(max_length=200, null=True, blank=True)
 
+    google_sub = models.CharField(max_length=255, unique=True, null=True, blank=True)
+
     SEX_CHOICES = [
         ("M", "MALE"),
         ("F", "FEMALE"),
@@ -58,7 +60,7 @@ class User(AbstractUser):
         ("caretaker", "Caretaker"),
         ("student", "Student"),
     )
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, blank=True, null=True)
 
 
     USERNAME_FIELD = "email"

@@ -30,6 +30,12 @@ from datetime import timedelta
 from django.contrib.auth import get_user_model
 from .serializers import EmailOnlySerializer, RegistrationConfirmSerializer
 from django.db import transaction
+
+#Imports za google oauth
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+
+
 from .serializers import (
     CaretakerCVSerializer,
     DiplomaSerializer,
@@ -150,28 +156,58 @@ class ConfirmRegistrationView(APIView):
             return Response({"error": "Token ne sadrzi email."}, status=status.HTTP_400_BAD_REQUEST)
 
         User = get_user_model()
-        if User.objects.filter(email__iexact=email).exists():
-            return Response({"error": "Mail je vec registriran"}, status=status.HTTP_400_BAD_REQUEST)
+        user = User.objects.filter(email__iexact=email).first()
+        if user is None:
+            password = data.get("password")
+            if not password:
+                return Response({"error": "Lozinka je obavezna."}, status=status.HTTP_400_BAD_REQUEST)
+                        
+            try:
+                with transaction.atomic():
+                    user = User.objects.create_user(
+                        email=email,
+                        password=data['password'],
+                        first_name=data['first_name'],
+                        last_name=data['last_name'],
+                        role=data['role'],
+                    )
 
+                    if data['role'] == 'caretaker':
+                        Caretaker.objects.create(user=user)
+                    else:
+                        Student.objects.create(user=user)
+
+            except Exception as e:
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+            return Response({"detail": "Registracija uspješna."}, status=status.HTTP_201_CREATED)
+        
+
+        if user.google_sub is None:
+            return Response({"error": "Mail je vec registriran."}, status=status.HTTP_400_BAD_REQUEST)
+        
         try:
             with transaction.atomic():
-                user = User.objects.create_user(
-                    email=email,
-                    password=data['password'],
-                    first_name=data['first_name'],
-                    last_name=data['last_name'],
-                    role=data['role'],
-                )
+                # upiši podatke (ako želiš: samo ako su prazni)
+                user.first_name = data["first_name"]
+                user.last_name = data["last_name"]
+                user.role = data["role"]
+                user.save()
 
-                if data['role'] == 'caretaker':
+                # osiguraj da postoji profil
+                if data["role"] == "caretaker":
                     Caretaker.objects.create(user=user)
                 else:
                     Student.objects.create(user=user)
+                
+                response = build_auth_response(user)
+                return response
+                #return Response({"detail": "Profil dovršen."}, status=200)
+
 
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": str(e)}, status=400)
 
-        return Response({"detail": "Registracija uspješna."}, status=status.HTTP_201_CREATED)
 
 
     
@@ -191,6 +227,83 @@ class LoginView(generics.CreateAPIView):
         
         return build_auth_response(user)
     
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def loginOrRegisterWithWGogleView(request):
+    token = request.data.get("id_token")
+    print(settings.GOOGLE_CLIENT_ID)
+    if not token:
+        return Response(
+            {"error": "id_token dobiven od Google-a nije poslan"},
+            status=status.HTTP_400_BAD_REQUEST
+            )
+    
+    try:
+        payload = id_token.verify_oauth2_token(
+            token,
+            google_requests.Request(),
+            settings.GOOGLE_CLIENT_ID,
+        )
+
+        google_sub = payload["sub"]
+        email = payload.get("email")
+        name = payload.get("name", "")
+
+    except Exception as e:
+        return Response(
+            {"error": "Neispravan google id_token!"},
+            status=status.HTTP_401_UNAUTHORIZED
+            )
+    
+    user, created = User.objects.get_or_create(
+        google_sub=google_sub,
+        defaults={"email": email or "", "first_name": name},
+    )
+
+    if created or user.role is None:
+        email = EmailOnlySerializer.validated_data['email'].strip()
+
+        now = timezone.now()
+        expiry_seconds = getattr(settings, 'REGISTRATION_TOKEN_EXP_SECONDS', 900)
+        payload = {
+            'email': email,
+            'iat': int(now.timestamp()),
+            'exp': int((now + timedelta(seconds=expiry_seconds)).timestamp())
+        }
+        token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
+
+        registration_link = f"{settings.FRONTEND_URL.rstrip('/')}{COMPLETE_REGISTER_PATH}?token={token}"
+        #print u konzoli
+        print(f"[registration link for {email}]: {registration_link}")
+
+        subject = "Dovršite registraciju na CareFree"
+        message = f"Za dovršetak registracije kliknite na sljedeći link:\n{registration_link}. Token istice nakon {int(expiry_seconds/3600)} sata."
+        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or getattr(settings, 'EMAIL_HOST_USER', None)
+        try:
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=from_email,
+                recipient_list=[email],
+                fail_silently=False,
+            )
+        except Exception as e:
+            return Response({"error": "Slanje emaila nije uspjelo."}, status=500)
+
+        return Response({"detail": "Poslali smo link za dovršetak registracije na Vaš email."})
+    else:
+        response = build_auth_response(user)
+
+    updated = False
+    if email and user.email != email:
+        user.email = email
+        updated = True
+    if name and getattr(user, "first_name", "") != name:
+        user.first_name = name
+        updated = True
+    if updated:
+        user.save()
+
 
 
 class CaretakerCompleteRegistrationView(APIView):

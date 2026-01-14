@@ -668,7 +668,6 @@ class StartSessionView(APIView):
             return Response({"message": "Korisnik nije student."}, status=status.HTTP_403_FORBIDDEN)
 
         session = AssistantSession.objects.filter(student=student, is_active=True).first()
-        print(session)
         created = False
         session_messages=[]
         if session is None:
