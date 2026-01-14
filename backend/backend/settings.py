@@ -32,6 +32,9 @@ REGISTRATION_TOKEN_EXP_SECONDS = int(os.environ.get("REGISTRATION_TOKEN_EXP_SECO
 DEBUG = os.environ.get("DEBUG", "True") == "True"
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 
+#Google id za register/login
+GOOGLE_CLIENT_ID=os.environ.get("GOOGLE_CLIENT_ID", "")
+
 ALLOWED_HOSTS = [
     ".railway.app",
     "programsko-inzenjerstvo-production-9d1d4up.railway.app",

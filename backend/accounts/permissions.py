@@ -6,7 +6,13 @@ class IsStudent(BasePermission):
 
     def has_permission(self, request, view):
         user = getattr(request, 'user', None)
-        return bool(user and user.is_authenticated and getattr(user, 'role', None) == 'student')
+        if not user or not user.is_authenticated:
+            return False
+        
+        if getattr(user, 'role', None) is None:
+            self.message = "ROLE_REQUIRED"
+            return False
+        return bool(getattr(user, 'role', None) == 'student')
 
 
 class IsCaretaker(BasePermission):
@@ -14,7 +20,13 @@ class IsCaretaker(BasePermission):
 
     def has_permission(self, request, view):
         user = getattr(request, 'user', None)
-        return bool(user and user.is_authenticated and getattr(user, 'role', None) == 'caretaker')
+        if not user or not user.is_authenticated:
+            return False
+        
+        if getattr(user, 'role', None) is None:
+            self.message = "ROLE_REQUIRED"
+            return False
+        return bool(getattr(user, 'role', None) == 'caretaker')
 
 
 class IsApprovedCaretaker(BasePermission):
@@ -25,7 +37,14 @@ class IsApprovedCaretaker(BasePermission):
 
     def has_permission(self, request, view):
         user = getattr(request, 'user', None)
-        if not (user and user.is_authenticated and getattr(user, 'role', None) == 'caretaker'):
+        if not user or not user.is_authenticated:
+            return False
+        
+        if getattr(user, 'role', None) is None:
+            self.message = "ROLE_REQUIRED"
+            return False
+
+        if not getattr(user, 'role', None) == 'caretaker':
             return False
         caretaker = getattr(user, 'caretaker', None)
         if not caretaker:
