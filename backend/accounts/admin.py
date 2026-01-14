@@ -3,6 +3,40 @@ from .models import Certificate, User, Student, Caretaker, HelpCategory, Caretak
 from django.core.mail import send_mail
 from django.conf import settings
 from django.utils.html import format_html
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+
+
+def _send_caretaker_status_email(caretaker, approved: bool):
+    """Send approval or denial email to a caretaker.
+
+    The function determines subject and message based on `approved` and
+    uses project email settings. Exceptions during send are swallowed to
+    avoid breaking admin actions.
+    """
+    if not getattr(caretaker, 'user', None) or not getattr(caretaker.user, 'email', None):
+        return
+
+    if approved:
+        subject = 'CareFree - korisnički račun je odobren'
+        message_text = 'Vaš račun njegovatelja je odobren. Sada možete koristiti aplikaciju.'
+    else:
+        subject = 'CareFree - korisnički račun je odbijen'
+        message_text = 'Vaš račun njegovatelja je odbijen. Obratite se administratoru za detalje.'
+
+    ctx = {
+        'title': 'CareFree',
+        'recipient_name': getattr(caretaker.user, 'first_name', '') or caretaker.user.email,
+        'message': message_text,
+    }
+
+    try:
+        html = render_to_string('emails/caretaker_status.html', ctx)
+        plain = strip_tags(html)
+        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or getattr(settings, 'EMAIL_HOST_USER', None)
+        send_mail(subject, plain, from_email, [caretaker.user.email], html_message=html)
+    except Exception:
+        pass
 
 
 class DiplomaInline(admin.TabularInline):
@@ -73,21 +107,12 @@ class CaretakerAdmin(admin.ModelAdmin):
         updated = 0
         for ct in queryset:
             if getattr(ct, 'approval_status', None) != getattr(ct, 'APPROVAL_APPROVED', 'APPROVED'):
-                # set approval_status; `sync_caretaker_approval` signal will update `is_approved`
                 try:
                     ct.approval_status = ct.APPROVAL_APPROVED
                 except Exception:
                     pass
                 ct.save()
-                
-                # fallback to synchronous send_mail
-                subject = 'CareFree - account approved'
-                message = 'Vaš račun njegovatelja je odobren. Sada možete koristiti aplikaciju.'
-                from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or getattr(settings, 'EMAIL_HOST_USER', None)
-                try:
-                    send_mail(subject, message, from_email, [ct.user.email])
-                except Exception:
-                    pass
+                _send_caretaker_status_email(ct, approved=True)
                 updated += 1
         self.message_user(request, f"Approved {updated} caretakers.")
     approve_caretakers.short_description = 'Approve selected caretakers and notify them'
@@ -96,20 +121,12 @@ class CaretakerAdmin(admin.ModelAdmin):
         updated = 0
         for ct in queryset:
             if getattr(ct, 'approval_status', None) != getattr(ct, 'APPROVAL_DENIED', 'DENIED'):
-                # set approval_status; signal will clear `is_approved`
                 try:
                     ct.approval_status = ct.APPROVAL_DENIED
                 except Exception:
                     pass
                 ct.save()
-                # notify user of denial (synchronous fallback)
-                subject = 'CareFree - account denied'
-                message = 'Vaš račun njegovatelja je odbijen. Obratite se administratoru za detalje.'
-                from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or getattr(settings, 'EMAIL_HOST_USER', None)
-                try:
-                    send_mail(subject, message, from_email, [ct.user.email])
-                except Exception:
-                    pass
+                _send_caretaker_status_email(ct, approved=False)
                 updated += 1
         self.message_user(request, f"Denied {updated} caretakers.")
     deny_caretakers.short_description = 'Deny selected caretakers and notify them'

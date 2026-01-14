@@ -23,6 +23,8 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes
 from django.conf import settings
 from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
 import jwt
 from django.conf import settings
 from django.utils import timezone
@@ -104,6 +106,7 @@ class RequestRegistrationTokenView(APIView):
 
         now = timezone.now()
         expiry_seconds = getattr(settings, 'REGISTRATION_TOKEN_EXP_SECONDS', 900)
+        expiry_hours = int(expiry_seconds) // 3600 
         payload = {
             'email': email,
             'iat': int(now.timestamp()),
@@ -115,15 +118,21 @@ class RequestRegistrationTokenView(APIView):
         #print u konzoli
         print(f"[registration link for {email}]: {registration_link}")
 
-        subject = "Dovršite registraciju na CareFree"
-        message = f"Za dovršetak registracije kliknite na sljedeći link:\n{registration_link}. Token istice nakon {int(expiry_seconds/3600)} sata."
-        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or getattr(settings, 'EMAIL_HOST_USER', None)
+        ctx = {
+            'registration_link': registration_link,
+            'expiry_hours': expiry_hours,
+        }
+        html_message = render_to_string('emails/confirm_registration.html', ctx)
+        plain_message = strip_tags(html_message)
+
+        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or getattr(settings, 'EMAIL_HOST_USER', None) or 'carefree@support.hr'
         try:
             send_mail(
-                subject=subject,
-                message=message,
+                subject="Dovršite registraciju na CareFree",
+                message=plain_message,
                 from_email=from_email,
                 recipient_list=[email],
+                html_message=html_message,
                 fail_silently=False,
             )
         except Exception as e:
@@ -272,20 +281,26 @@ def loginOrRegisterWithWGogleView(request):
             'exp': int((now + timedelta(seconds=expiry_seconds)).timestamp())
         }
         token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
-
         registration_link = f"{settings.FRONTEND_URL.rstrip('/')}{COMPLETE_REGISTER_PATH}?token={token}"
         #print u konzoli
         print(f"[registration link for {email}]: {registration_link}")
 
-        subject = "Dovršite registraciju na CareFree"
-        message = f"Za dovršetak registracije kliknite na sljedeći link:\n{registration_link}. Token istice nakon {int(expiry_seconds/3600)} sata."
-        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or getattr(settings, 'EMAIL_HOST_USER', None)
+        expiry_hours = int(expiry_seconds) // 3600
+        ctx = {
+            'registration_link': registration_link,
+            'expiry_hours': expiry_hours,
+        }
+        html_message = render_to_string('emails/confirm_registration.html', ctx)
+        plain_message = strip_tags(html_message)
+
+        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or getattr(settings, 'EMAIL_HOST_USER', None) or 'carefree@support.hr'
         try:
             send_mail(
-                subject=subject,
-                message=message,
+                subject="Dovršite registraciju na CareFree",
+                message=plain_message,
                 from_email=from_email,
                 recipient_list=[email],
+                html_message=html_message,
                 fail_silently=False,
             )
         except Exception as e:
