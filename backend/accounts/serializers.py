@@ -1,9 +1,7 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
-from rest_framework.validators import UniqueValidator
 
-from accounts.models import Caretaker, Student
-from accounts.models import CaretakerCV, Diploma
+from accounts.models import Caretaker, Student, CaretakerCV, Diploma, Certificate
 from .validators import validate_caretaker_image, validate_file_type_and_size
 from django.core.exceptions import ValidationError as DjangoValidationError
 
@@ -104,14 +102,46 @@ class DiplomaSerializer(serializers.ModelSerializer):
         return obj
 
 
+class CertificateSerializer(serializers.ModelSerializer):
+    file = serializers.FileField(write_only=True)
+
+    class Meta:
+        model = Certificate
+        fields = ['id', 'file', 'original_filename', 'mime_type', 'uploaded_at']
+        read_only_fields = ['id', 'original_filename', 'mime_type', 'uploaded_at']
+
+    def create(self, validated_data):
+        uploaded = validated_data.pop('file')
+        caretaker = self.context.get('caretaker')
+        if not caretaker:
+            raise serializers.ValidationError('Caretaker context required')
+
+        # validate file (type and size)
+        try:
+            validate_file_type_and_size(uploaded)
+        except DjangoValidationError as e:
+            raise serializers.ValidationError({'file': e.messages})
+        except Exception as e:
+            raise serializers.ValidationError({'file': str(e)})
+
+        obj = Certificate.objects.create(
+            caretaker=caretaker,
+            file=uploaded,
+            original_filename=getattr(uploaded, 'name', ''),
+            mime_type=getattr(uploaded, 'content_type', ''),
+            **validated_data,
+        )
+        return obj
+
+
 class CaretakerProfileSerializer(serializers.ModelSerializer):
     help_categories = serializers.PrimaryKeyRelatedField(many=True, queryset=Caretaker.help_categories.field.related_model.objects.all(), required=False)
-    image = serializers.ImageField(required=False, allow_null=True)
-    image_mime_type = serializers.CharField(read_only=True)
+    # image = serializers.ImageField(required=False, allow_null=True)
+    # image_mime_type = serializers.CharField(read_only=True)
 
     class Meta:
         model = Caretaker
-        fields = ['about_me', 'tel_num', 'image', 'image_mime_type', 'grad_year', 'help_categories', 'is_profile_complete', 'is_approved', 'approval_status']
+        fields = ['about_me', 'tel_num', 'grad_year', 'help_categories', 'is_profile_complete', 'is_approved', 'approval_status']
         read_only_fields = ['is_profile_complete', 'is_approved', 'approval_status', 'image_mime_type']
 
 
