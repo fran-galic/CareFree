@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import EmailRequestForm from "@/components/email-request-form";
 import { ConfirmRegistrationForm } from "@/components/confirm-registration-form";
 import {
@@ -15,10 +15,34 @@ import { Mail, Clock } from "lucide-react";
 
 export default function SignupPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const token = searchParams.get("token");
   const [email, setEmail] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState<number>(0);
   const [isResending, setIsResending] = useState<boolean>(false);
+  const [isChecking, setIsChecking] = useState(true);
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users/me/`, {
+          credentials: "include",
+        });
+        
+        if (response.ok) {
+          // User is already logged in, redirect to main page
+          router.replace("/carefree/main");
+        } else {
+          setIsChecking(false);
+        }
+      } catch {
+        setIsChecking(false);
+      }
+    };
+
+    checkAuth();
+  }, [router]);
 
   useEffect(() => {
     if (resendCooldown > 0) {
@@ -51,6 +75,18 @@ export default function SignupPage() {
       setIsResending(false);
     }
   };
+
+  // Show loading while checking auth
+  if (isChecking) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Provjera prijave...</p>
+        </div>
+      </div>
+    );
+  }
 
   // If token is present, show confirmation form
   if (token) {

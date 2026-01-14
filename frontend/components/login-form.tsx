@@ -37,8 +37,6 @@ export function LoginForm({
     setError("");
     setLoading(true);
 
-
-    
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/login/`, {
         method: "POST",
@@ -50,14 +48,15 @@ export function LoginForm({
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.detail || "Login failed");
-        
-      } 
+      }
 
-      router.push("/carefree/main");
+      // Successfully logged in - wait a moment for cookies to be set
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Use window.location for a full page reload to ensure cookies are properly set
+      window.location.href = "/carefree/main";
     } catch (error) {
       setError((error as Error).message || "Login failed");
-      alert("Login failed: " + ((error as Error).message || "Network error"));
-    } finally {
       setLoading(false);
     }
   };
