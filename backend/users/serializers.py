@@ -10,7 +10,7 @@ User = get_user_model()
 class CaretakerShortSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField(source='user.first_name', read_only=True)
     last_name = serializers.CharField(source='user.last_name', read_only=True)
-    help_categories = serializers.SlugRelatedField(many=True, read_only=True, slug_field='slug')
+    help_categories = serializers.SlugRelatedField(many=True, read_only=True, slug_field='label')
 
     class Meta:
         model = Caretaker
@@ -19,7 +19,7 @@ class CaretakerShortSerializer(serializers.ModelSerializer):
 class CaretakerLongSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField(source='user.first_name', read_only=True)
     last_name = serializers.CharField(source='user.last_name', read_only=True)
-    help_categories = serializers.SlugRelatedField(many=True, read_only=True, slug_field='slug')
+    help_categories = serializers.SlugRelatedField(many=True, read_only=True, slug_field='label')
 
     class Meta:
         model = Caretaker
