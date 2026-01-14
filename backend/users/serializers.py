@@ -76,16 +76,15 @@ class CaretakerUpdateSerializer(serializers.ModelSerializer):
 class StudentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
-        fields = ["user_id", "studying_at", "year_of_study", "about_me"]
+        fields = ["user_id", "studying_at", "year_of_study"]
 
 
 class StudentUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
-        fields = ["studying_at", "year_of_study", "about_me"]
+        fields = ["studying_at", "year_of_study"]
 
 
-# Serializers for help categories output
 from accounts.models import HelpCategory
 
 

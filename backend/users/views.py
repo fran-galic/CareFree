@@ -1,7 +1,8 @@
 from django.db.models import Q, Value, CharField
 from django.db.models.functions import Concat
 from accounts.models import Caretaker, Student, HelpCategory
-from .serializers import CaretakerLongSerializer, CaretakerShortSerializer, CategoryWithSubcategoriesSerializer
+from accounts.permissions import IsApprovedCaretaker, IsStudent
+from .serializers import StudentSerializer, CaretakerLongSerializer, CaretakerShortSerializer, CategoryWithSubcategoriesSerializer
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from rest_framework.decorators import permission_classes
@@ -14,6 +15,7 @@ from .serializers import (
     UpdateUserSerializer,
     ChangePasswordSerializer,
     CaretakerUpdateSerializer,
+    StudentUpdateSerializer
 )
 
 @api_view(["GET"])
@@ -134,7 +136,7 @@ def change_password(request):
 
 
 @api_view(["GET", "PUT", "PATCH"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsApprovedCaretaker])
 def my_caretaker_profile(request):
     try:
         caretaker = request.user.caretaker
@@ -153,7 +155,7 @@ def my_caretaker_profile(request):
 
 
 @api_view(["GET", "PUT", "PATCH"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsStudent])
 def my_student_profile(request):
     try:
         student = request.user.student
@@ -161,15 +163,12 @@ def my_student_profile(request):
         return Response({"detail": "Korisnik nije student."}, status=status.HTTP_404_NOT_FOUND)
 
     if request.method == "GET":
-        from .serializers import StudentSerializer
         return Response(StudentSerializer(student).data)
 
     partial = request.method == "PATCH"
-    from .serializers import StudentUpdateSerializer
     serializer = StudentUpdateSerializer(student, data=request.data, partial=partial)
     if serializer.is_valid():
         serializer.save()
-        from .serializers import StudentSerializer
         return Response(StudentSerializer(student).data)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
