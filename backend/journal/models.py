@@ -38,7 +38,7 @@ class JournalEntry(models.Model):
             raise RuntimeError("ENCRYPTION_KEY is not set. Refusing to store plaintext content.")
         f = Fernet(key.encode())
         self.content_encrypted = f.encrypt(value.encode()) if value is not None else None
-    mood = models.CharField(max_length=32, blank=True, null=True)
+    mood = models.CharField(max_length=200, blank=True, null=True)
 
     #kasnije ako ćemo implementirati AI analizu
     analysis_summary = models.TextField(blank=True, null=True)
