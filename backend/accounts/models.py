@@ -4,6 +4,7 @@ from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.base_user import BaseUserManager
 from django.core.validators import MaxValueValidator
 from django.utils.text import slugify
+from .upload_paths import caretaker_image_upload_to, cv_upload_to, diploma_upload_to
 from django.core.exceptions import ValidationError
 
 # file validators
@@ -33,6 +34,9 @@ class CustomUserManager(BaseUserManager):
             raise ValueError("Superuser mora biti superuser")
         
         return self.create_user(email, password, **extra_fields)
+
+
+ 
 
 
 class User(AbstractUser):
@@ -91,6 +95,7 @@ class Student(models.Model):
         return f"{self.user.first_name} {self.user.last_name}"
 
 
+
 class Caretaker(models.Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
@@ -100,7 +105,7 @@ class Caretaker(models.Model):
     )
 
     tel_num = models.CharField(max_length=15, blank=True, null=True)
-    image = models.ImageField(upload_to='caretakers/images/', blank=True, null=True, validators=[validate_caretaker_image])
+    image = models.ImageField(upload_to=caretaker_image_upload_to, blank=True, null=True, validators=[validate_caretaker_image])
     image_mime_type = models.CharField(max_length=100, blank=True, null=True)
     about_me = models.TextField(blank=True, max_length=800)
     grad_year = models.PositiveIntegerField(blank=True, null=True, help_text="The year in which the person graduated as a psychologist.")
@@ -181,7 +186,7 @@ class CaretakerCV(models.Model):
     caretaker = models.OneToOneField(
         'Caretaker', on_delete=models.CASCADE, related_name='cv'
     )
-    file = models.FileField(upload_to='caretakers/cvs/', validators=[validate_file_type_and_size])
+    file = models.FileField(upload_to=cv_upload_to, validators=[validate_file_type_and_size])
     original_filename = models.CharField(max_length=255, blank=True, null=True)
     mime_type = models.CharField(max_length=100, blank=True, null=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
@@ -213,7 +218,7 @@ class Diploma(models.Model):
     # ) 
 
     caretaker = models.ForeignKey('Caretaker', on_delete=models.CASCADE, related_name='diplomas')
-    file = models.FileField(upload_to='caretakers/diplomas/', validators=[validate_file_type_and_size])
+    file = models.FileField(upload_to=diploma_upload_to, validators=[validate_file_type_and_size])
     # diploma_type = models.CharField(max_length=20, choices=DIPLOMA_TYPE_CHOICES)
     original_filename = models.CharField(max_length=255, blank=True, null=True)
     mime_type = models.CharField(max_length=100, blank=True, null=True)
