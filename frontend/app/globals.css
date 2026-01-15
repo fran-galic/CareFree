@@ -389,3 +389,18 @@
   
   --sidebar-primary: oklch(0.65 0.20 50) !important;
 }
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slideDown {
+  animation: slideDown 1.2s ease-out;
+}
