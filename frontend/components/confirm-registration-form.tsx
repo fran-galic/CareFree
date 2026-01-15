@@ -253,35 +253,37 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
               </div>
             </div>
 
-            {formData.role === "student" && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="age">Dob</Label>
-                  <Input
-                    id="age"
-                    type="number"
-                    min="1"
-                    max="100"
-                    value={formData.age}
-                    onChange={(e) => setFormData({ ...formData, age: e.target.value })}
-                    required
-                    disabled={loading}
-                  />
-                </div>
+            <div className="transition-all duration-500 ease-in-out overflow-hidden">
+              {formData.role === "student" && (
+                <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-500">
+                  <div className="space-y-2">
+                    <Label htmlFor="age">Dob</Label>
+                    <Input
+                      id="age"
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={formData.age}
+                      onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                      required
+                      disabled={loading}
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="studying_at">Sveučilište / Fakultet (Opcionalno)</Label>
-                  <Input
-                    id="studying_at"
-                    type="text"
-                    value={formData.studying_at}
-                    onChange={(e) => setFormData({ ...formData, studying_at: e.target.value })}
-                    placeholder="npr. FER, PMF..."
-                    disabled={loading}
-                  />
+                  <div className="space-y-2">
+                    <Label htmlFor="studying_at">Sveučilište / Fakultet (Opcionalno)</Label>
+                    <Input
+                      id="studying_at"
+                      type="text"
+                      value={formData.studying_at}
+                      onChange={(e) => setFormData({ ...formData, studying_at: e.target.value })}
+                      placeholder="npr. FER, PMF..."
+                      disabled={loading}
+                    />
+                  </div>
                 </div>
-              </>
-            )}
+              )}
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="password">Lozinka</Label>
@@ -315,10 +317,12 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
 
             <Button 
               type="submit" 
-              className={`w-full ${
-                formData.role === "caretaker" 
-                  ? "bg-orange-500 hover:bg-orange-600" 
-                  : ""
+              className={`w-full transition-all duration-300 ${
+                formData.role === "student" 
+                  ? "bg-[oklch(0.783_0.1136_182.2)] hover:bg-[oklch(0.783_0.1136_182.2)]/90 text-white shadow-lg" 
+                  : formData.role === "caretaker"
+                  ? "bg-[oklch(0.68_0.20_45)] hover:bg-[oklch(0.68_0.20_45)]/90 text-white shadow-lg"
+                  : "bg-gradient-to-r from-[oklch(0.783_0.1136_182.2)] to-[oklch(0.68_0.20_45)] hover:opacity-90"
               }`}
               disabled={loading}
             >
