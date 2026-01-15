@@ -72,6 +72,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'drf_spectacular',
+    'storages',
     'accounts',
     'users',
     'journal',
@@ -274,6 +275,27 @@ else:
 GOOGLE_CALENDAR_ID = os.environ.get("GOOGLE_CALENDAR_ID", "primary")
 CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
 
+#Blackblaze B2 Cloud Storage
+AWS_ACCESS_KEY_ID = os.getenv("B2_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.getenv("B2_APPLICATION_KEY")
+
+AWS_STORAGE_BUCKET_NAME = os.getenv("B2_BUCKET_NAME")
+AWS_S3_ENDPOINT_URL = os.getenv("B2_ENDPOINT")
+
+AWS_DEFAULT_ACL = None
+AWS_QUERYSTRING_AUTH = True
+AWS_S3_FILE_OVERWRITE = False
+AWS_S3_SIGNATURE_VERSION = "s3v4"
+
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+
 #enkripcija: ključ za enkripciju na strani servera (Fernet base64 ključ)
 #u produkciji će trebati postaviti `ENCRYPTION_KEY` env var na base64 urlsafe kljuc (32 url-safe bajta enkodirana)
 try:
@@ -290,3 +312,4 @@ if not ENCRYPTION_KEY:
         ENCRYPTION_KEY = Fernet.generate_key().decode()
     else:
         ENCRYPTION_KEY = None
+
