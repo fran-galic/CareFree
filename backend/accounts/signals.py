@@ -1,10 +1,10 @@
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_delete, pre_save
 from django.db.models.signals import post_delete, m2m_changed
 from django.dispatch import receiver
 from django.conf import settings
 
 from django.contrib.auth import get_user_model
-from .models import Caretaker, CaretakerCV, Diploma
+from .models import Caretaker, CaretakerCV, Diploma, Certificate
 
 User = get_user_model()
 
@@ -98,5 +98,97 @@ def cv_changed_update_completeness(sender, instance, created, **kwargs):
 def diploma_changed_update_completeness(sender, instance, **kwargs):
     try:
         evaluate_profile_complete(instance.caretaker.pk)
+    except Exception:
+        pass
+
+
+# File deletion handlers for cloud storage cleanup
+
+@receiver(pre_save, sender=Caretaker)
+def delete_old_caretaker_image_on_update(sender, instance, **kwargs):
+    """Delete old profile image from storage when a new one is uploaded."""
+    if not instance.pk:
+        # New instance, no old image to delete
+        return
+    
+    try:
+        old_instance = Caretaker.objects.filter(pk=instance.pk).first()
+        if not old_instance:
+            return
+        
+        old_image = old_instance.image
+        new_image = instance.image
+        
+        # Check if image has changed
+        if old_image and old_image != new_image:
+            # Delete the old image file from storage
+            old_image.delete(save=False)
+    except Exception:
+        # Don't fail save if old file deletion fails
+        pass
+
+
+@receiver(pre_save, sender=CaretakerCV)
+def delete_old_cv_on_update(sender, instance, **kwargs):
+    """Delete old CV file from storage when a new one is uploaded."""
+    if not instance.pk:
+        # New instance, no old file to delete
+        return
+    
+    try:
+        old_instance = CaretakerCV.objects.filter(pk=instance.pk).first()
+        if not old_instance:
+            return
+        
+        old_file = old_instance.file
+        new_file = instance.file
+        
+        # Check if file has changed
+        if old_file and old_file != new_file:
+            # Delete the old file from storage
+            old_file.delete(save=False)
+    except Exception:
+        # Don't fail save if old file deletion fails
+        pass
+
+
+@receiver(pre_delete, sender=Caretaker)
+def delete_caretaker_image(sender, instance, **kwargs):
+    """Delete caretaker profile image from storage when caretaker is deleted."""
+    try:
+        if instance.image:
+            # Delete the file from storage (local or cloud)
+            instance.image.delete(save=False)
+    except Exception:
+        # Don't fail deletion if file removal fails
+        pass
+
+
+@receiver(pre_delete, sender=CaretakerCV)
+def delete_cv_file(sender, instance, **kwargs):
+    """Delete CV file from storage when CaretakerCV is deleted."""
+    try:
+        if instance.file:
+            instance.file.delete(save=False)
+    except Exception:
+        pass
+
+
+@receiver(pre_delete, sender=Diploma)
+def delete_diploma_file(sender, instance, **kwargs):
+    """Delete diploma file from storage when Diploma is deleted."""
+    try:
+        if instance.file:
+            instance.file.delete(save=False)
+    except Exception:
+        pass
+
+
+@receiver(pre_delete, sender=Certificate)
+def delete_certificate_file(sender, instance, **kwargs):
+    """Delete certificate file from storage when Certificate is deleted."""
+    try:
+        if instance.file:
+            instance.file.delete(save=False)
     except Exception:
         pass
