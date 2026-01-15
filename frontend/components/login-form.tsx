@@ -105,7 +105,7 @@ export function LoginForm({
                 />
               </Field>
               <Field>
-                <Button type="submit" disabled={loading}>Prijavi se</Button>
+                <Button type="submit" disabled={loading} className="bg-gradient-to-r from-[oklch(0.783_0.1136_182.2)] to-[oklch(0.68_0.20_45)] hover:opacity-90 transition-opacity">Prijavi se</Button>
                 {error && <p className="text-red-500 text-sm">{error}</p>}
                 <FieldDescription className="text-center">
                   Nemate račun? <Link href="./signup" className="underline">Registrirajte se</Link>

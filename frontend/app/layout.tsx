@@ -2,6 +2,12 @@
 
 import "./globals.css";
 import { SessionProvider } from "next-auth/react"
+import { Inter } from "next/font/google"
+
+const inter = Inter({ 
+  subsets: ["latin"],
+  variable: "--font-inter",
+})
 
 export default function RootLayout({
   children,
@@ -19,7 +25,7 @@ export default function RootLayout({
           src="https://tweakcn.com/live-preview.min.js"
         />
       </head>
-      <body>
+      <body className={`${inter.variable} font-sans antialiased`}>
         <SessionProvider>
           {children}
         </SessionProvider>
