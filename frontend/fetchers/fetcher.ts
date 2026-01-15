@@ -12,7 +12,7 @@ async function refreshAccessToken(): Promise<boolean> {
     isRefreshing = true;
     refreshPromise = (async () => {
         try {
-            const response = await fetch(`${API_URL}/accounts/refresh/`, {
+            const response = await fetch(`${API_URL}/auth/refresh/`, {
                 method: 'POST',
                 credentials: 'include',
                 headers: {

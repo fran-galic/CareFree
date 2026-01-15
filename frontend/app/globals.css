@@ -311,12 +311,12 @@
   }
 
   .container-centered {
-    @apply container mx-auto px-4 py-16 md:py-24;
+    @apply container mx-auto px-4 py-8 md:py-12;
   }
 
   .content-wrapper {
-    @apply flex flex-col items-center text-center space-y-8 max-w-4xl mx-auto;
-    @apply bg-white/60 backdrop-blur-sm rounded-3xl p-12 shadow-sm border border-gray-100;
+    @apply flex flex-col items-center text-center space-y-6 max-w-4xl mx-auto;
+    @apply bg-white/60 backdrop-blur-sm rounded-3xl p-8 md:p-10 shadow-sm border border-gray-100;
   }
 
   .logo-box {
