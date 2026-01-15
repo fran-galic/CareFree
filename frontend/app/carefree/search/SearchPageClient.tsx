@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { useEffect } from "react";
 import useSWR from "swr";
 import SearchBar from "@/components/search-bar";
 import { searchCaretakers, getHelpCategories } from "@/fetchers/users";
@@ -65,17 +66,17 @@ export default function SearchPageClient() {
   };
 
   return (
-    <div className="container mx-auto py-10 min-h-screen px-4 max-w-7xl">
+    <div className="container mx-auto py-10 min-h-screen pr-4 max-w-7xl">
       
       {/* HEADER SEKCIJA */}
-      <div className="mb-10 text-center md:text-left space-y-4">
-        <h1 className="text-4xl font-extrabold tracking-tight text-primary">
+      <div className="mb-12 text-center space-y-6">
+        <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight text-primary">
             Pronađi svog stručnjaka
         </h1>
-        <p className="text-muted-foreground text-lg max-w-2xl">
+        <p className="text-muted-foreground text-lg max-w-3xl mx-auto">
             Pretražite našu bazu licenciranih psihologa i pronađite osobu s kojom se osjećate sigurno.
         </p>
-        <div className="max-w-xl pt-2">
+        <div className="max-w-2xl mx-auto pt-4">
              <SearchBar initial={q} />
         </div>
       </div>
@@ -83,18 +84,18 @@ export default function SearchPageClient() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
         {/* SIDEBAR FILTERI - STICKY POZICIJA */}
-        <div className="lg:col-span-3 space-y-6 lg:sticky lg:top-8 h-fit">
-            <div className="bg-card border rounded-xl shadow-sm p-5">
+        <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-2 h-fit">
+            <div className="bg-card border rounded-xl shadow-sm p-6">
                 <div className="flex items-center gap-2 mb-4 text-primary font-semibold">
-                    <Filter className="w-5 h-5" /> 
-                    <span className="text-lg">Filtriraj po problemu</span>
+                    <Filter className="w-4 h-4" /> 
+                    <span className="text-base">Filtriraj po problemu</span>
                 </div>
                 <Separator className="mb-4" />
                 
-                <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
+                <div className="space-y-6 max-h-[80vh] overflow-y-auto pr-2 custom-scrollbar">
                     {categoriesData?.categories.map((cat) => (
                         <div key={cat.id}>
-                            <h4 className="font-bold text-sm mb-3 text-foreground/80 uppercase tracking-wide">
+                            <h4 className="font-bold text-xs mb-3 text-foreground/80 uppercase tracking-wide">
                                 {cat.label}
                             </h4>
                             <div className="space-y-2.5">
@@ -129,7 +130,7 @@ export default function SearchPageClient() {
         </div>
 
         {/* LISTA REZULTATA */}
-        <div className="lg:col-span-9">
+        <div className="lg:col-span-7">
             {isLoading ? (
                 <div className="flex flex-col items-center justify-center py-20 space-y-4">
                     <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
