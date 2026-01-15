@@ -17,6 +17,7 @@ import {
   Inbox
 } from "lucide-react";
 import Image from "next/image";
+import { Footer } from "@/components/footer";
 
 const BACKEND_API = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -185,10 +186,13 @@ export default function CarefreeLayout({
         </div>
       </header>
 
-      
+      {/* Main Content */}
       <main className="flex-1 w-full">
         {children}
       </main>
+
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }

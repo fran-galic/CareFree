@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { Footer } from "@/components/footer";
 
 type UserRole = "student" | "psiholog" | null;
 
@@ -192,6 +193,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+      
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }

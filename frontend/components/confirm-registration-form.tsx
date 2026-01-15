@@ -317,7 +317,13 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
 
             <Button 
               type="submit" 
-              className="w-full bg-gradient-to-r from-[oklch(0.783_0.1136_182.2)] to-[oklch(0.68_0.20_45)] hover:opacity-90 transition-opacity"
+              className={`w-full transition-all duration-300 ${
+                formData.role === "student" 
+                  ? "bg-[oklch(0.783_0.1136_182.2)] hover:bg-[oklch(0.783_0.1136_182.2)]/90 text-white shadow-lg" 
+                  : formData.role === "caretaker"
+                  ? "bg-[oklch(0.68_0.20_45)] hover:bg-[oklch(0.68_0.20_45)]/90 text-white shadow-lg"
+                  : "bg-gradient-to-r from-[oklch(0.783_0.1136_182.2)] to-[oklch(0.68_0.20_45)] hover:opacity-90"
+              }`}
               disabled={loading}
             >
               {loading ? "Kreiranje računa..." : "Dovršite registraciju"}
