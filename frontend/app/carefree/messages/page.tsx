@@ -219,57 +219,55 @@ export default function ChatPage() {
       
       {/* SESSION ENDED - RECOMMENDATIONS */}
       {sessionEnded && (
-        <Card className="m-4 border-green-200 bg-green-50/50 animate-slideDown h-[calc(100vh-8rem)] flex flex-col">
-          <CardHeader className="pb-4 flex-shrink-0">
+        <Card className="m-4 border-green-200 bg-green-50/50 animate-slideDown max-h-[calc(100vh-8rem)] flex flex-col">
+          <CardHeader className="pb-2 flex-shrink-0">
             <div className="flex items-start gap-3">
-              <div className="bg-green-600 text-white p-3 rounded-full">
-                <CheckCircle className="w-6 h-6" />
+              <div className="bg-green-600 text-white p-2 rounded-full">
+                <CheckCircle className="w-5 h-5" />
               </div>
               <div className="flex-1">
-                <CardTitle className="text-2xl mb-2">Razgovor je završen</CardTitle>
-                <CardDescription className="text-base text-green-700">
+                <CardTitle className="text-xl mb-1">Razgovor je završen</CardTitle>
+                <CardDescription className="text-sm text-green-700">
                   Hvala što si podijelio/la svoje misli sa mnom. Na temelju našeg razgovora, pripremio sam popis psihologa 
                   koji se specijaliziraju za probleme o kojima smo razgovarali i mogu ti pružiti profesionalnu pomoć.
                 </CardDescription>
                 <CardDescription className="text-sm text-green-600 mt-2 italic">
-                  💡 Na profilu svakog psihologa možeš zatražiti termin za razgovor.
+                  Na profilu svakog psihologa možeš zatražiti termin za razgovor.
                 </CardDescription>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4 h-[48vh] overflow-y-auto flex-shrink-0">
+          <CardContent className="py-3 flex-shrink-0">
             {recommendedCaretakers.length > 0 ? (
               <>
-                <div className="grid gap-4">
+                <div className="grid grid-cols-3 gap-3">
                   {currentCaretakers.map((caretaker) => (
-                    <Card key={caretaker.user_id} className="hover:shadow-md transition-shadow">
-                      <CardContent className="p-4">
-                        <div className="flex items-start gap-4">
-                          <Avatar className="w-12 h-12">
+                    <Card key={caretaker.user_id} className="hover:shadow-md transition-shadow h-full">
+                      <CardContent className="p-3 flex flex-col items-center text-center h-full justify-between">
+                        <div className="flex flex-col items-center">
+                          <Avatar className="w-12 h-12 mb-2">
                             {caretaker.user_image_url ? (
                               <AvatarImage src={caretaker.user_image_url} />
                             ) : null}
-                            <AvatarFallback>
+                            <AvatarFallback className="text-sm">
                               {caretaker.first_name[0]}{caretaker.last_name[0]}
                             </AvatarFallback>
                           </Avatar>
-                          <div className="flex-1">
-                            <h4 className="font-semibold">
-                              {caretaker.academic_title} {caretaker.first_name} {caretaker.last_name}
-                            </h4>
-                            <p className="text-sm text-muted-foreground">{caretaker.specialisation}</p>
-                            <div className="flex gap-2 mt-2">
-                              {caretaker.help_categories.slice(0, 3).map((cat, idx) => (
-                                <span key={idx} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
-                                  {cat}
-                                </span>
-                              ))}
-                            </div>
+                          <h4 className="font-semibold text-sm line-clamp-1">
+                            {caretaker.academic_title} {caretaker.first_name} {caretaker.last_name}
+                          </h4>
+                          <p className="text-xs text-muted-foreground line-clamp-1 mb-2">{caretaker.specialisation}</p>
+                          <div className="flex gap-1 flex-wrap justify-center">
+                            {caretaker.help_categories.slice(0, 2).map((cat, idx) => (
+                              <span key={idx} className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full h-fit">
+                                {cat}
+                              </span>
+                            ))}
                           </div>
-                          <Link href={`/carefree/search/${caretaker.user_id}`}>
-                            <Button size="sm">Vidi profil</Button>
-                          </Link>
                         </div>
+                        <Link href={`/carefree/caretaker/${caretaker.user_id}`} className="w-full mt-auto pt-4">
+                          <Button size="sm" className="h-7 text-xs w-full">Vidi profil</Button>
+                        </Link>
                       </CardContent>
                     </Card>
                   ))}
@@ -280,9 +278,8 @@ export default function ChatPage() {
             )}
           </CardContent>
           
-          {}
           {recommendedCaretakers.length > 0 && (
-            <CardFooter className="flex-col gap-4 flex-shrink-0 border-t bg-background">
+            <CardFooter className="flex-col gap-2 pt-3 flex-shrink-0 border-t bg-background">
               {}
               {totalPages > 1 && (
                 <div className="flex items-center justify-between w-full">
