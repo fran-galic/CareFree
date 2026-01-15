@@ -11,14 +11,30 @@ export interface AssistantMessage {
 }
 
 export interface SessionResponse {
-  id: number;
-  is_active: boolean;
-  created_at: string;
+  session: {
+    id: number;
+    is_active: boolean;
+    created_at: string;
+  };
+  messages: AssistantMessage[];
+  created: boolean;
 }
 
 export interface MessageResponse {
   user_message: AssistantMessage;
   bot_message: AssistantMessage;
+  recommendation_ready: boolean;
+  danger_flag: boolean;
+  caretakers: Array<{
+    user_id: string;
+    first_name: string;
+    last_name: string;
+    academic_title: string;
+    help_categories: string[];
+    user_image_url: string | null;
+    specialisation: string;
+    working_since: string;
+  }>;
 }
 
 // 1. Pokreni ili dohvati aktivnu sesiju

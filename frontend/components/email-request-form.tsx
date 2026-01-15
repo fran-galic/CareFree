@@ -78,7 +78,7 @@ export default function EmailRequestForm({ onSuccess }: EmailRequestFormProps) {
             )}
 
             <Field>
-              <Button type="submit" disabled={isLoading} className="w-full">
+              <Button type="submit" disabled={isLoading} className="w-full bg-gradient-to-r from-[oklch(0.783_0.1136_182.2)] to-[oklch(0.68_0.20_45)] hover:opacity-90 transition-opacity">
                 {isLoading ? "Šalje se..." : "Nastavi"}
               </Button>
 
