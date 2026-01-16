@@ -71,6 +71,7 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify({
           token,
           first_name: formData.first_name,
@@ -87,7 +88,35 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
         return;
       }
 
+      // Check if this was a Google user - backend sets cookies and returns user data
+      const isGoogleUser = registerData.user && registerData.access;
       
+      if (isGoogleUser) {
+        // Tokens already set in cookies by backend
+        if (formData.role === "student") {
+          // Update additional student info if provided
+          if (formData.age || formData.studying_at) {
+            const updatePayload: any = {};
+            if (formData.age) updatePayload.age = parseInt(formData.age);
+            if (formData.studying_at) updatePayload.studying_at = formData.studying_at;
+
+            await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users/me/`, {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              credentials: "include",
+              body: JSON.stringify(updatePayload),
+            });
+          }
+          router.push("/carefree/main");
+        } else {
+          router.push("/carefree/profile/caretaker");
+        }
+        return;
+      }
+
+      // Regular email/password user - need to login
       if (formData.role === "student") {
         
         const loginResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/login/`, {
@@ -103,41 +132,24 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
         });
 
         if (!loginResponse.ok) {
-          setError("Registration successful but auto-login failed. Please login manually.");
+          setError("Registracija uspješna, ali automatska prijava nije uspjela. Prijavite se ručno.");
           router.push("/accounts/login");
           return;
         }
 
-        const loginData = await loginResponse.json();
-        const accessToken = loginData.access;
-
         
-        if (formData.age) {
+        if (formData.age || formData.studying_at) {
+          const updatePayload: any = {};
+          if (formData.age) updatePayload.age = parseInt(formData.age);
+          if (formData.studying_at) updatePayload.studying_at = formData.studying_at;
+
           await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users/me/`, {
             method: "PATCH",
             headers: {
               "Content-Type": "application/json",
-              "Authorization": `Bearer ${accessToken}`,
             },
             credentials: "include",
-            body: JSON.stringify({
-              age: parseInt(formData.age),
-            }),
-          });
-        }
-
-        
-        if (formData.studying_at) {
-          await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users/me/student/`, {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${accessToken}`,
-            },
-            credentials: "include",
-            body: JSON.stringify({
-              studying_at: formData.studying_at,
-            }),
+            body: JSON.stringify(updatePayload),
           });
         }
 

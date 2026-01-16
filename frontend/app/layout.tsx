@@ -1,13 +1,15 @@
 "use client"
 
 import "./globals.css";
-import { SessionProvider } from "next-auth/react"
+import { GoogleOAuthProvider } from '@react-oauth/google'
 import { Inter } from "next/font/google"
 
 const inter = Inter({ 
   subsets: ["latin"],
   variable: "--font-inter",
 })
+
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ""
 
 export default function RootLayout({
   children,
@@ -26,9 +28,9 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.variable} font-sans antialiased`}>
-        <SessionProvider>
+        <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
           {children}
-        </SessionProvider>
+        </GoogleOAuthProvider>
       </body>
     </html>
   )

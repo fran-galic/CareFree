@@ -45,6 +45,13 @@ export default function ChatPage() {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const sessionInitialized = useRef(false); // Flag za spriječavanje duplih poziva
+  const hasScrolledToBottom = useRef(false); // Flag za praćenje je li već scrollano na dno
+
+  
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    hasScrolledToBottom.current = false;
+  }, []);
 
   
   const CARETAKERS_PER_PAGE = 3;
@@ -96,23 +103,26 @@ export default function ChatPage() {
   }, []); 
 
   // Automatsko skrolanje na dno (uključujući i kad se pojavi indikator pisanja)
-  
+  // Ali samo nakon što je sesija inicijalizirana i korisnik je poslao poruku
   useEffect(() => {
-    if (!sessionEnded) {
+    if (!sessionEnded && hasScrolledToBottom.current) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages, isLoading, sessionEnded]); // Dodali smo sessionEnded u dependency array
+  }, [messages, isLoading, sessionEnded]);
 
-  // 2. Funkcija za slanje poruke (OPTIMISTIC UPDATE)
+  
   const handleSendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!inputValue.trim() || isLoading) return;
+
+    
+    hasScrolledToBottom.current = true;
 
     const tempContent = inputValue;
     setInputValue(""); // Odmah očisti input
     setIsLoading(true);
 
-    // KORAK A: Odmah prikaži tvoju poruku (Optimistic UI)
+    
     // Kreiramo privremeni objekt poruke s lažnim ID-em
     const tempUserMessage: AssistantMessage = {
       id: Date.now(), // Privremeni ID (timestamp)
@@ -135,10 +145,10 @@ export default function ChatPage() {
       
       // KORAK C: Ažuriramo stanje s pravim podacima
       setMessages((prev) => {
-        // 1. Uklonimo našu privremenu poruku (filtriramo po ID-u)
+        
         const filtered = prev.filter(msg => msg.id !== tempUserMessage.id);
         
-        // 2. Dodamo pravu poruku studenta (iz baze) i odgovor bota
+        
         const newMessages = [response.user_message, response.bot_message].filter(Boolean);
         return [...filtered, ...newMessages];
       });
@@ -165,7 +175,7 @@ export default function ChatPage() {
       console.error("Greška pri slanju:", error);
       alert("Došlo je do greške. Pokušaj ponovno.");
       
-      // Ako pukne, moramo maknuti onu privremenu poruku jer nije prošla
+      
       setMessages((prev) => prev.filter(msg => msg.id !== tempUserMessage.id));
       setInputValue(tempContent); // Vratimo tekst u input
     } finally {

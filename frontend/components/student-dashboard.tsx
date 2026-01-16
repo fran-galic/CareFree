@@ -135,46 +135,6 @@ export function StudentDashboard({ firstName }: StudentDashboardProps) {
           </Card>
         </div>
       </div>
-
-      {/* 4. DONJA SEKCIJA: POVIJEST RAZGOVORA (Summaries) */}
-      <div className="pt-4">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            <Zap className="w-5 h-5 text-yellow-500" />
-            Nedavni uvidi
-          </h2>
-          <Link href="/carefree/messages" className="text-sm text-primary hover:underline">
-            Povijest razgovora &rarr;
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {summariesLoading ? (
-             [1, 2, 3].map((i) => <Skeleton key={i} className="h-32 rounded-xl" />)
-          ) : summaries && summaries.length > 0 ? (
-            summaries.slice(0, 3).map((summary) => (
-              <Card key={summary.id} className="hover:shadow-md transition-shadow">
-                <CardHeader className="pb-2">
-                  <CardDescription className="text-xs font-mono">
-                    {formatDate(summary.created_at)}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground line-clamp-3">
-                    {summary.content}
-                  </p>
-                </CardContent>
-              </Card>
-            ))
-          ) : (
-            <Card className="col-span-full border-dashed p-8 text-center text-muted-foreground bg-muted/20">
-              <Smile className="w-10 h-10 mx-auto mb-2 opacity-20" />
-              <p>Još nemaš spremljenih sažetaka razgovora.</p>
-              <p className="text-sm">Razgovaraj s AI asistentom da bi dobio uvide.</p>
-            </Card>
-          )}
-        </div>
-      </div>
     </div>
   );
 }

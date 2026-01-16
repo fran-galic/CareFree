@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel, FieldDescription } from "@/components/ui/field";
 import Link from "next/link";
+import GoogleAuthButton from "@/components/google-auth-button";
 
 interface EmailRequestFormProps {
   onSuccess: (email: string) => void;
@@ -66,7 +67,7 @@ export default function EmailRequestForm({ onSuccess }: EmailRequestFormProps) {
                 id="email"
                 name="email"
                 type="email"
-                placeholder="student@primjer.com"
+                placeholder="ime@primjer.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -88,6 +89,24 @@ export default function EmailRequestForm({ onSuccess }: EmailRequestFormProps) {
                   Prijavite se
                 </Link>
               </FieldDescription>
+            </Field>
+
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  ili
+                </span>
+              </div>
+            </div>
+
+            <Field>
+              <GoogleAuthButton 
+                text="Registriraj se s Google-om" 
+                onRegistrationEmailSent={onSuccess}
+              />
             </Field>
           </FieldGroup>
         </form>
