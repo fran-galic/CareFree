@@ -240,39 +240,54 @@ class LoginView(generics.CreateAPIView):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def loginOrRegisterWithWGogleView(request):
-    token = request.data.get("id_token")
-    print(settings.GOOGLE_CLIENT_ID)
-    if not token:
+    access_token = request.data.get("access_token")
+    
+    if not access_token:
         return Response(
-            {"error": "id_token dobiven od Google-a nije poslan"},
+            {"error": "access_token nije poslan"},
             status=status.HTTP_400_BAD_REQUEST
-            )
+        )
     
     try:
-        payload = id_token.verify_oauth2_token(
-            token,
-            google_requests.Request(),
-            settings.GOOGLE_CLIENT_ID,
+        
+        import requests as python_requests
+        userinfo_response = python_requests.get(
+            'https://www.googleapis.com/oauth2/v2/userinfo',
+            headers={'Authorization': f'Bearer {access_token}'}
         )
+        
+        if userinfo_response.status_code != 200:
+            return Response(
+                {"error": "Neuspješna verifikacija Google tokena"},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
+        userinfo = userinfo_response.json()
+        google_sub = userinfo.get("id")
+        email = userinfo.get("email")
+        name = userinfo.get("name", "")
 
-        google_sub = payload["sub"]
-        email = payload.get("email")
-        name = payload.get("name", "")
+        if not google_sub:
+            return Response(
+                {"error": "Google ID nije pronađen"},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
 
     except Exception as e:
+        print(f"Google OAuth error: {e}")
         return Response(
-            {"error": "Neispravan google id_token!"},
+            {"error": "Greška pri verifikaciji Google tokena"},
             status=status.HTTP_401_UNAUTHORIZED
-            )
+        )
+    
     
     user, created = User.objects.get_or_create(
         google_sub=google_sub,
         defaults={"email": email or "", "first_name": name},
     )
 
+    # novi user bez rolea
     if created or user.role is None:
-        email = EmailOnlySerializer.validated_data['email'].strip()
-
         now = timezone.now()
         expiry_seconds = getattr(settings, 'REGISTRATION_TOKEN_EXP_SECONDS', 900)
         payload = {
@@ -282,7 +297,6 @@ def loginOrRegisterWithWGogleView(request):
         }
         token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
         registration_link = f"{settings.FRONTEND_URL.rstrip('/')}{COMPLETE_REGISTER_PATH}?token={token}"
-        #print u konzoli
         print(f"[registration link for {email}]: {registration_link}")
 
         expiry_hours = int(expiry_seconds) // 3600
@@ -304,12 +318,18 @@ def loginOrRegisterWithWGogleView(request):
                 fail_silently=False,
             )
         except Exception as e:
+            print(f"Email sending error: {e}")
             return Response({"error": "Slanje emaila nije uspjelo."}, status=500)
 
-        return Response({"detail": "Poslali smo link za dovršetak registracije na Vaš email."})
-    else:
-        response = build_auth_response(user)
-
+        return Response({
+            "detail": "Poslali smo link za dovršetak registracije na Vaš email.",
+            "email": email
+        })
+    
+    
+    response = build_auth_response(user)
+    
+    
     updated = False
     if email and user.email != email:
         user.email = email
@@ -319,6 +339,8 @@ def loginOrRegisterWithWGogleView(request):
         updated = True
     if updated:
         user.save()
+    
+    return response
 
 
 

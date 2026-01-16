@@ -14,7 +14,7 @@ urlpatterns = [
 
     path('register/request-email/', RequestRegistrationTokenView.as_view(), name='request_registration_token'),
     path('register/confirm/', ConfirmRegistrationView.as_view(), name='confirm_registration'),
-    path('google-login-register/', loginOrRegisterWithWGogleView, name="register-or-login-with-google"),
+    path('google/', loginOrRegisterWithWGogleView, name="register-or-login-with-google"),
     # caretaker profile and uploads
     path('caretaker/register/', CaretakerCompleteRegistrationView.as_view(), name='caretaker-profile'),
     path('caretaker/cv/', CaretakerCVUploadView.as_view(), name='caretaker-cv-upload'),

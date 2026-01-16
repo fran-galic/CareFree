@@ -140,7 +140,7 @@ export default function CarefreeLayout({
                 className="object-contain"
               />
             </div>
-            <span className="text-2xl font-bold tracking-tight" style={{ color: 'oklch(0.783 0.1136 182.2)' }}>CareFree</span>
+            <span className="text-2xl font-bold tracking-tight bg-gradient-to-r from-[oklch(0.783_0.1136_182.2)] to-[oklch(0.68_0.20_45)] bg-clip-text text-transparent">CareFree</span>
           </Link>
 
           
