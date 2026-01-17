@@ -36,7 +36,7 @@ export interface PaginatedCaretakerResponse {
 
 // 1. Nova funkcija za dohvat kategorija (za filtere)
 export function getHelpCategories() {
-    return fetcher<{ categories: HelpCategory[] }>(`${BACKEND_API}/users/caretakers/help-categories`, {
+    return fetcher<{ categories: HelpCategory[] }>(`${BACKEND_API}/users/caretakers/help-categories/`, {
         credentials: "include"
     });
 }

@@ -1,9 +1,10 @@
 "use client";
 
 import * as React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import useSWR from "swr";
 import { searchCaretakerById } from "@/fetchers/users";
+import { getCaretakerSlots, createAppointmentRequest, Slot } from "@/fetchers/appointments";
 import {
   Card,
   CardContent,
@@ -15,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import { 
   MapPin, 
   Phone, 
@@ -22,32 +24,15 @@ import {
   Clock, 
   CalendarCheck, 
   CheckCircle2, 
-  AlertCircle 
+  AlertCircle,
+  Loader2
 } from "lucide-react";
 
-// --- MOCK LOGIKA ZA KALENDAR ---
-// Generiramo termine za iduća 3 dana, od 08:00 do 18:00
-const generateMockSlots = () => {
-  const days = [];
-  const today = new Date();
-  
-  for (let i = 1; i <= 3; i++) {
-    const date = new Date(today);
-    date.setDate(today.getDate() + i);
-    
-    const slots = [];
-    for (let hour = 8; hour < 18; hour++) {
-      // Nasumično odluči je li termin slobodan (70% šanse da je slobodan radi demo-a)
-      const isFree = Math.random() > 0.3;
-      slots.push({
-        time: `${hour.toString().padStart(2, '0')}:00`,
-        isFree: isFree
-      });
-    }
-    days.push({ date: date, slots: slots });
-  }
-  return days;
-};
+interface SlotsByDay {
+  date: Date;
+  dateStr: string;
+  slots: Slot[];
+}
 
 export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: string }> }) {
   // Otpakiravanje parametara (Next.js 15 pattern)
@@ -56,14 +41,43 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
   // Dohvat podataka o psihologu s backenda
   const { data: caretaker, error, isLoading } = useSWR(id || null, (id) => searchCaretakerById(id));
   
-  // State za kalendar i formu
-  const [mockSchedule] = useState(generateMockSlots());
-  const [selectedSlot, setSelectedSlot] = useState<{date: Date, time: string} | null>(null);
+  // Dohvat dostupnih slotova
+  const { data: slotsData, error: slotsError, isLoading: slotsLoading } = useSWR(
+    caretaker ? `slots-${id}` : null,
+    () => getCaretakerSlots(Number(id), 7)
+  );
+  
+  // State za formu
+  const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
   const [bookingNote, setBookingNote] = useState("");
   
   // State za loading i uspjeh
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isBookingSuccess, setIsBookingSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Grupiraj slotove po danima
+  const slotsByDay: SlotsByDay[] = React.useMemo(() => {
+    if (!slotsData) return [];
+    
+    const grouped = new Map<string, Slot[]>();
+    
+    slotsData.forEach((slot: Slot) => {
+      const date = new Date(slot.start);
+      const dateStr = date.toISOString().split('T')[0];
+      
+      if (!grouped.has(dateStr)) {
+        grouped.set(dateStr, []);
+      }
+      grouped.get(dateStr)!.push(slot);
+    });
+    
+    return Array.from(grouped.entries()).map(([dateStr, slots]) => ({
+      date: new Date(dateStr),
+      dateStr,
+      slots: slots.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
+    }));
+  }, [slotsData]);
 
   // --- RUKOVANJE GREŠKAMA I LOADINGOM ---
   if (error) return (
@@ -84,60 +98,38 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
     </div>
   );
 
-  // --- FUNKCIJA REZERVACIJE (Smart Facade) ---
+  // --- FUNKCIJA REZERVACIJE ---
   const handleBooking = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSlot) return;
     
     setIsSubmitting(true);
+    setErrorMessage(null);
 
     try {
-      // 1. Priprema podataka
+      const slotDate = new Date(selectedSlot.start);
       const requestBody = {
-        caretaker_id: id,
-        start_time: selectedSlot.date.toISOString(), // pojednostavljeni datum
+        caretaker_id: Number(id),
+        start_time: slotDate.toISOString().split('T')[0], // YYYY-MM-DD
         slot_time: selectedSlot.time,
         note: bookingNote,
       };
 
-      console.log("Slanje zahtjeva na backend:", requestBody);
+      await createAppointmentRequest(requestBody);
 
-      // 2. Pokušaj slanja na (vjerojatno nepostojeći) endpoint
-      // Ovo služi da backend tim vidi što točno šalješ
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/appointments/request/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include", // Šalje auth kolačiće
-        body: JSON.stringify(requestBody),
-      });
-
-      // 3. SIMULACIJA USPJEHA (FALLBACK)
-      // Ako endpoint vrati 404 (jer backend tim još nije gotov), mi glumimo da je prošlo
-      if (!response.ok && response.status !== 404) {
-         throw new Error("Stvarna greška na serveru.");
-      }
-      
-      if (response.status === 404) {
-          console.warn("Endpoint '/api/appointments/request/' ne postoji. Simuliram uspjeh radi UX demoa.");
-          // Simuliramo mrežni delay od 1.5 sekunde
-          await new Promise(resolve => setTimeout(resolve, 1500));
-      }
-
-      // 4. Prikaz UI-a za uspjeh
+      // Prikaz UI-a za uspjeh
       setIsBookingSuccess(true);
       
-      // Reset forme nakon 4 sekunde
+      // Reset forme nakon 5 sekundi
       setTimeout(() => {
         setIsBookingSuccess(false);
         setSelectedSlot(null);
         setBookingNote("");
-      }, 4000);
+      }, 5000);
 
     } catch (err) {
       console.error("Greška:", err);
-      alert("Došlo je do greške prilikom slanja zahtjeva.");
+      setErrorMessage(err instanceof Error ? err.message : "Došlo je do greške");
     } finally {
       setIsSubmitting(false);
     }
@@ -271,11 +263,11 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
           </div>
         </TabsContent>
 
-        {/* TAB 2: REZERVACIJA (SIMULACIJA ZAHTJEVA) */}
+        {/* TAB 2: REZERVACIJA */}
         <TabsContent value="booking" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="grid md:grid-cols-3 gap-6">
             
-            {/* LIJEVA STRANA: KALENDAR (Mock) */}
+            {/* LIJEVA STRANA: KALENDAR */}
             <div className="md:col-span-2">
               <Card>
                 <CardHeader>
@@ -288,33 +280,60 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    {mockSchedule.map((day, dayIdx) => (
-                      <div key={dayIdx} className="space-y-3">
-                        <h4 className="font-semibold text-center py-2 bg-muted rounded-md text-sm">
-                          {day.date.toLocaleDateString('hr-HR', { weekday: 'short', day: 'numeric', month: 'numeric' })}
-                        </h4>
-                        <div className="grid grid-cols-1 gap-2">
-                          {day.slots.map((slot, slotIdx) => (
-                            <Button
-                              key={slotIdx}
-                              variant={slot.isFree ? "outline" : "ghost"}
-                              disabled={!slot.isFree}
-                              className={`w-full ${slot.isFree 
-                                ? selectedSlot?.date === day.date && selectedSlot?.time === slot.time 
-                                    ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary' 
-                                    : 'hover:border-primary hover:text-primary' 
-                                : 'opacity-40 cursor-not-allowed bg-muted/50'
-                              }`}
-                              onClick={() => setSelectedSlot({ date: day.date, time: slot.time })}
-                            >
-                              {slot.time}
-                            </Button>
-                          ))}
+                  {slotsError && (
+                    <div className="flex items-center gap-2 p-4 bg-red-50 text-red-700 rounded-lg">
+                      <AlertCircle className="w-5 h-5" />
+                      <p>Greška pri učitavanju termina</p>
+                    </div>
+                  )}
+
+                  {slotsLoading && (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      {[1, 2, 3].map(i => (
+                        <div key={i} className="space-y-2">
+                          <Skeleton className="h-10 w-full" />
+                          <Skeleton className="h-32 w-full" />
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {!slotsLoading && !slotsError && slotsByDay.length === 0 && (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <Clock className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                      <p>Trenutno nema dostupnih termina</p>
+                    </div>
+                  )}
+
+                  {!slotsLoading && !slotsError && slotsByDay.length > 0 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {slotsByDay.map((day, dayIdx) => (
+                        <div key={dayIdx} className="space-y-3">
+                          <h4 className="font-semibold text-center py-2 bg-muted rounded-md text-sm">
+                            {day.date.toLocaleDateString('hr-HR', { weekday: 'short', day: 'numeric', month: 'numeric' })}
+                          </h4>
+                          <div className="grid grid-cols-1 gap-2">
+                            {day.slots.map((slot, slotIdx) => (
+                              <Button
+                                key={slotIdx}
+                                variant={slot.is_available ? "outline" : "ghost"}
+                                disabled={!slot.is_available}
+                                className={`w-full ${slot.is_available 
+                                  ? selectedSlot?.start === slot.start
+                                      ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary' 
+                                      : 'hover:border-primary hover:text-primary' 
+                                  : 'opacity-40 cursor-not-allowed bg-muted/50'
+                                }`}
+                                onClick={() => setSelectedSlot(slot)}
+                              >
+                                {slot.time}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -346,13 +365,20 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
                     </div>
                   ) : (
                     <form onSubmit={handleBooking} className="space-y-5 animate-in slide-in-from-right-4 duration-300">
+                      {errorMessage && (
+                        <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-md text-sm flex items-start gap-2">
+                          <AlertCircle className="w-4 h-4 mt-0.5" />
+                          <p>{errorMessage}</p>
+                        </div>
+                      )}
+
                       <div className="bg-primary/5 p-5 rounded-xl border border-primary/10 space-y-1">
                         <p className="text-xs font-bold text-primary uppercase tracking-wide">Odabrani Termin</p>
                         <p className="font-semibold text-xl">
-                          {selectedSlot.date.toLocaleDateString('hr-HR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                          {new Date(selectedSlot.start).toLocaleDateString('hr-HR', { weekday: 'long', day: 'numeric', month: 'long' })}
                         </p>
                         <p className="text-3xl font-bold text-primary">
-                          {selectedSlot.time} h
+                          {selectedSlot.time}
                         </p>
                       </div>
 
@@ -371,15 +397,19 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
                         />
                         <p className="text-[11px] text-muted-foreground flex items-center gap-1">
                            <AlertCircle className="w-3 h-3"/> 
-                           Ovaj opis vidljiv je samo psihologu i AI asistentu za sažimanje.
+                           Ovaj opis vidljiv je samo psihologu.
                         </p>
                       </div>
 
                       <div className="flex gap-3 pt-2">
-                        <Button type="button" variant="outline" className="flex-1" onClick={() => setSelectedSlot(null)}>
+                        <Button type="button" variant="outline" className="flex-1" onClick={() => {
+                          setSelectedSlot(null);
+                          setErrorMessage(null);
+                        }}>
                           Odustani
                         </Button>
-                        <Button type="submit" className="flex-1" disabled={isSubmitting}>
+                        <Button type="submit" className="flex-1 gap-2" disabled={isSubmitting}>
+                          {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
                           {isSubmitting ? "Slanje..." : "Pošalji zahtjev"}
                         </Button>
                       </div>
