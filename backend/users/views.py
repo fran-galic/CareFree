@@ -44,7 +44,8 @@ def search_caretakers(request):
     query = request.GET.get("name", "").strip()
     categories_list = request.GET.getlist("categories")
 
-    qs = Caretaker.objects.all()
+    # Only show approved caretakers in search results
+    qs = Caretaker.objects.filter(is_approved=True)
 
     if query:
         qs = qs.annotate(

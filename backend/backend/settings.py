@@ -78,6 +78,7 @@ INSTALLED_APPS = [
     'journal',
     'calendar_integration',
     'assistant',
+    'appointments',
 ]
 
 MIDDLEWARE = [
@@ -273,6 +274,12 @@ else:
     GOOGLE_SERVICE_ACCOUNT_INFO = None
 
 GOOGLE_CALENDAR_ID = os.environ.get("GOOGLE_CALENDAR_ID", "primary")
+
+# Google OAuth settings for per-user calendar access
+GOOGLE_OAUTH_CLIENT_ID = os.environ.get("GOOGLE_OAUTH_CLIENT_ID")
+GOOGLE_OAUTH_CLIENT_SECRET = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET")
+GOOGLE_OAUTH_REDIRECT_URI = os.environ.get("GOOGLE_OAUTH_REDIRECT_URI")
+
 CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
 
 #Blackblaze B2 Cloud Storage
@@ -295,6 +302,14 @@ STORAGES = {
         "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
     },
 }
+# Development convenience: when DEBUG=True run Celery tasks eagerly (synchronously)
+# so you don't need a broker/worker for local development. This executes tasks
+# immediately in-process when you call `.delay()` or `.apply_async()`.
+# IMPORTANT: This is only for local/dev use. For staging/production use a real
+# broker (Redis/RabbitMQ) and workers.
+if DEBUG:
+    CELERY_TASK_ALWAYS_EAGER = True
+    CELERY_TASK_EAGER_PROPAGATES_EXCEPTIONS = True
 
 #enkripcija: ključ za enkripciju na strani servera (Fernet base64 ključ)
 #u produkciji će trebati postaviti `ENCRYPTION_KEY` env var na base64 urlsafe kljuc (32 url-safe bajta enkodirana)

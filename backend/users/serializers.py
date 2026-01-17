@@ -70,7 +70,7 @@ class ChangePasswordSerializer(serializers.Serializer):
 class CaretakerUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Caretaker
-        fields = ["about_me", "specialisation", "tel_num"]
+        fields = ["about_me", "tel_num"]
 
 
 class StudentSerializer(serializers.ModelSerializer):

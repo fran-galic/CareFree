@@ -20,6 +20,76 @@ from rest_framework.views import APIView
 from .google_client import create_event
 from .models import Calendar, CalendarEvent
 from .serializers import CalendarEventSerializer
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from django.conf import settings
+from django.utils import timezone
+import json
+
+try:
+    from google_auth_oauthlib.flow import Flow
+except Exception:
+    Flow = None
+
+from .models import GoogleCredential
+
+
+class GoogleCalendarStatusView(APIView):
+    """Check if the authenticated caretaker has connected their Google Calendar."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if not hasattr(request.user, 'caretaker'):
+            return Response({'detail': 'Only caretakers can check Google Calendar status'}, status=403)
+
+        try:
+            gc = GoogleCredential.objects.filter(user=request.user).first()
+            if gc and gc.access_token:
+                return Response({
+                    'connected': True,
+                    'expires_at': gc.expires_at.isoformat() if gc.expires_at else None,
+                })
+        except Exception:
+            pass
+
+        return Response({'connected': False})
+
+
+class GoogleDisconnectView(APIView):
+    """Disconnect the authenticated caretaker's Google account and (best-effort) revoke tokens."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        if not hasattr(request.user, 'caretaker'):
+            return Response({'detail': 'Only caretakers can disconnect Google Calendar'}, status=403)
+
+        try:
+            gc = GoogleCredential.objects.filter(user=request.user).first()
+        except Exception:
+            gc = None
+
+        if not gc:
+            return Response({'status': 'no_credentials'}, status=200)
+
+        # attempt to revoke token at Google's endpoint (best-effort)
+        try:
+            info = gc.get_authorized_user_info()
+            token = info.get('token')
+            if token:
+                import requests
+                resp = requests.post('https://oauth2.googleapis.com/revoke', params={'token': token})
+                # ignore response status; best-effort
+        except Exception:
+            pass
+
+        # delete stored credentials
+        try:
+            gc.delete()
+        except Exception:
+            return Response({'status': 'error', 'detail': 'failed to remove credentials'}, status=500)
+
+        return Response({'status': 'disconnected'})
 
 
 #prikaz nedavnih događaja pohranjenih u lokalnoj bazi
@@ -100,3 +170,105 @@ class CreateEventView(APIView):
 
         serializer = CalendarEventSerializer(obj)
         return Response({"created": created, "event": serializer.data})
+
+
+class GoogleConnectView(APIView):
+    """Return Google OAuth consent URL for the authenticated caretaker."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # require caretaker
+        if not hasattr(request.user, 'caretaker'):
+            return Response({'detail': 'Only caretakers can connect Google Calendar'}, status=403)
+
+        client_id = getattr(settings, 'GOOGLE_OAUTH_CLIENT_ID', None)
+        client_secret = getattr(settings, 'GOOGLE_OAUTH_CLIENT_SECRET', None)
+        redirect_uri = getattr(settings, 'GOOGLE_OAUTH_REDIRECT_URI', None)
+        if not client_id or not client_secret or not redirect_uri or Flow is None:
+            return Response({'detail': 'OAuth not configured on this server'}, status=500)
+
+        client_config = {
+            'web': {
+                'client_id': client_id,
+                'client_secret': client_secret,
+                'auth_uri': 'https://accounts.google.com/o/oauth2/auth',
+                'token_uri': 'https://oauth2.googleapis.com/token',
+            }
+        }
+        scopes = [
+            'https://www.googleapis.com/auth/calendar.events',
+            'https://www.googleapis.com/auth/calendar.readonly',
+            'https://www.googleapis.com/auth/calendar.freebusy',
+        ]
+
+        flow = Flow.from_client_config(client_config, scopes=scopes, redirect_uri=redirect_uri)
+        auth_url, state = flow.authorization_url(access_type='offline', include_granted_scopes='true', prompt='consent')
+        # store state in session for CSRF-like check (best-effort)
+        try:
+            request.session['google_oauth_state'] = state
+        except Exception:
+            pass
+        return Response({'auth_url': auth_url})
+
+
+class GoogleOAuthCallbackView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # handle OAuth callback with ?code=...
+        if not hasattr(request.user, 'caretaker'):
+            return Response({'detail': 'Only caretakers can connect Google Calendar'}, status=403)
+
+        if Flow is None:
+            return Response({'detail': 'google-auth-oauthlib not installed on server'}, status=500)
+
+        code = request.query_params.get('code')
+        state = request.query_params.get('state')
+        client_id = getattr(settings, 'GOOGLE_OAUTH_CLIENT_ID', None)
+        client_secret = getattr(settings, 'GOOGLE_OAUTH_CLIENT_SECRET', None)
+        redirect_uri = getattr(settings, 'GOOGLE_OAUTH_REDIRECT_URI', None)
+        if not code or not client_id or not client_secret or not redirect_uri:
+            return Response({'detail': 'Missing OAuth parameters'}, status=400)
+
+        client_config = {
+            'web': {
+                'client_id': client_id,
+                'client_secret': client_secret,
+                'auth_uri': 'https://accounts.google.com/o/oauth2/auth',
+                'token_uri': 'https://oauth2.googleapis.com/token',
+            }
+        }
+
+        flow = Flow.from_client_config(client_config, scopes=[], redirect_uri=redirect_uri)
+        # if state present in session, set it
+        try:
+            sess_state = request.session.get('google_oauth_state')
+            if sess_state:
+                flow.state = sess_state
+        except Exception:
+            pass
+
+        try:
+            flow.fetch_token(code=code)
+        except Exception as exc:
+            return Response({'detail': 'Token exchange failed', 'error': str(exc)}, status=400)
+
+        creds = flow.credentials
+        # persist token into GoogleCredential model (scaffold)
+        try:
+            gc, _ = GoogleCredential.objects.update_or_create(
+                user=request.user,
+                defaults={
+                    'access_token': getattr(creds, 'token', None),
+                    'refresh_token': getattr(creds, 'refresh_token', None),
+                    'token_uri': getattr(creds, 'token_uri', None),
+                    'client_id': client_id,
+                    'client_secret': client_secret,
+                    'scopes': json.dumps(getattr(creds, 'scopes', [])),
+                    'expires_at': getattr(creds, 'expiry', None),
+                }
+            )
+        except Exception as exc:
+            return Response({'detail': 'Failed to save credentials', 'error': str(exc)}, status=500)
+
+        return Response({'status': 'connected'})
