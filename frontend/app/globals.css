@@ -600,3 +600,55 @@
 .animate-slideDown {
   animation: slideDown 1.2s ease-out;
 }
+
+/* React Big Calendar Custom Styles */
+.rbc-calendar {
+  font-family: inherit;
+}
+
+.rbc-header {
+  padding: 12px 6px;
+  font-weight: 600;
+  border-bottom: 2px solid hsl(var(--border));
+}
+
+.rbc-today {
+  background-color: hsl(var(--primary) / 0.05);
+}
+
+.rbc-event {
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.rbc-event:focus {
+  outline: 2px solid hsl(var(--ring));
+}
+
+.rbc-toolbar button {
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border));
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.rbc-toolbar button:hover {
+  background-color: hsl(var(--accent));
+}
+
+.rbc-toolbar button.rbc-active {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+.rbc-month-view {
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+}
+
+.rbc-time-view {
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+}

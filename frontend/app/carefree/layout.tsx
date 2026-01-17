@@ -76,16 +76,14 @@ export default function CarefreeLayout({
   const studentLinks = [
     { href: "/carefree/main", label: "Početna", icon: Home },
     { href: "/carefree/messages", label: "Razgovor", icon: MessageCircle },
-    { href: "/carefree/calendar", label: "Kalendar", icon: CalendarDays },
     { href: "/carefree/journal", label: "Dnevnik", icon: BookOpen },
     { href: "/carefree/search", label: "Pretraga", icon: Search },
   ];
 
   const caretakerLinks = [
     { href: "/carefree/main", label: "Početna", icon: Home },
-    { href: "/carefree/availability", label: "Termini (dostupnost)", icon: Clock },
+    { href: "/carefree/availability", label: "Moj kalendar", icon: CalendarDays },
     { href: "/carefree/requests", label: "Zahtjevi studenata", icon: Inbox },
-    { href: "/carefree/calendar", label: "Moj kalendar", icon: CalendarDays },
   ];
 
   

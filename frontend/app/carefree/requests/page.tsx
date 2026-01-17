@@ -1,33 +1,51 @@
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Inbox, ArrowLeft } from "lucide-react";
+import { ArrowLeft, CalendarCheck, Bell } from "lucide-react";
 import Link from "next/link";
+import { AppointmentRequestList } from "@/components/appointments/appointment-request-list";
 
 export default function RequestsPage() {
   return (
-    <div className="container mx-auto p-6 max-w-4xl space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/carefree/main">
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold text-primary">Zahtjevi studenata</h1>
-          <p className="text-muted-foreground">Pregled i upravljanje zahtjevima za rezervaciju termina</p>
+    <div className="container mx-auto p-6 max-w-5xl space-y-6">
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" asChild>
+            <Link href="/carefree/main">
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold text-primary flex items-center gap-3">
+              <CalendarCheck className="w-8 h-8" />
+              Zahtjevi studenata
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Pregledajte i upravljajte zahtjevima za rezervaciju termina
+            </p>
+          </div>
         </div>
       </div>
 
-      <Card className="border-orange-500/20 bg-orange-50/50 dark:bg-orange-950/10">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-orange-600">
-            <Inbox className="w-8 h-8" />
-            Uskoro
-          </CardTitle>
-        </CardHeader>
-      </Card>
+      {/* Info Card */}
+      <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <Bell className="w-5 h-5 text-blue-600 mt-0.5" />
+          <div className="flex-1 text-sm">
+            <p className="font-medium text-blue-900 dark:text-blue-100">
+              Automatske email notifikacije
+            </p>
+            <p className="text-blue-700 dark:text-blue-300 mt-1">
+              Kada student pošalje zahtjev, automatski ćete dobiti email obavijest. 
+              Nakon što prihvatite termin, student će dobiti email s potvrdom i Google Meet linkom.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Lista zahtjeva */}
+      <AppointmentRequestList />
     </div>
   );
 }

@@ -42,17 +42,7 @@ export function CaretakerDashboard({ firstName }: CaretakerDashboardProps) {
       iconColor: "text-orange-600",
       borderColor: "border-l-orange-500",
       href: "/carefree/availability",
-      content: "Postavite svoje slobodne termine kada ste dostupni za razgovore sa studentima. Studenti će moći rezervirati samo termine koje ste označili kao dostupne.",
-      colSpan: "md:col-span-1"
-    },
-    {
-      title: "Moj kalendar",
-      description: "Pregled svih zakazanih termina",
-      icon: CalendarDays,
-      iconColor: "text-orange-600",
-      borderColor: "border-l-orange-500",
-      href: "/carefree/calendar",
-      content: "Kompletan pregled vaših nadolazećih i prošlih termina sa studentima. Pregledajte detalje termina i zabilješke.",
+      content: "Pregled svih zakazanih termina u kalendaru. Postavite svoje slobodne termine i upravljajte susretima sa studentima.",
       colSpan: "md:col-span-1"
     }
   ];

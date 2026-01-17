@@ -3,7 +3,7 @@ from .views import (caretaker_by_id, search_caretakers, my_profile, change_passw
 
 
 urlpatterns = [
-    path('caretakers/help-categories', help_categories, name='help_categories'),
+    path('caretakers/help-categories/', help_categories, name='help_categories'),
     path('caretakers/search/', search_caretakers, name='search_caretakers'),
     path('me/', my_profile, name='my_profile'),
     path('me/change-password/', change_password, name='change_password'),
