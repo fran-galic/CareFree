@@ -1,0 +1,254 @@
+Flow Aplikacije i Specifikacije za Razvojni Tim
+
+------------------------------------------------------------
+DIO 1 — DETALJAN FLOW APLIKACIJE (PO KORISNIČKIM ULOGAMA)
+------------------------------------------------------------
+
+1. STUDENT — KORISNIČKI FLOW
+------------------------------------------------------------
+
+1.1. Početni pristup / prijava
+
+- Student se MORA registrirati (Google ili e-mail + lozinka).
+- Anonimnost znači da se njegovi podaci NE prikazuju psihologu dok ne rezervira termin.
+
+Obvezni podaci pri registraciji:
+- Ime i prezime
+- Email
+- Dob (preporuka)
+Opcionalno:
+- Fakultet / smjer — samo ako student želi
+
+Student može kasnije urediti profil prije prve rezervacije termina.
+
+Dashboard studenta — glavna stranica Studenta:
+
+A) AI razgovor
+- Razgovor je anoniman.
+- AI koristi smirujući ton.
+- AI ne daje dijagnoze.
+- AI može:
+  • napraviti sažetak problema,
+  • kategorizirati problem (glavne + podkategorije),
+  • ponuditi opciju “Želiš li da predložim psihologa?”.
+
+B) Moj dnevnik
+- Privatno mjesto za pisanje misli.
+- Podaci nisu povezani s AI-em.
+- Vidljiv samo studentu.
+- Moguća buduća nadogradnja analitike.
+
+C) Pronađi psihologa
+- Filtriranje psihologa po kategorijama i potkategorijama.
+- Pregled kartica psihologa.
+- Pregled detaljnog profila psihologa.
+- Pregled slobodnih termina.
+
+D) Moj kalendar
+- Prikazuje potvrđene termine i Google Meet linkove.
+- Sinkronizirano s globalnim kalendarom aplikacije.
+
+E) Moji prošli razgovori (opcionalno)
+- Lista prethodnih razgovora.
+- Prikazuje datum, trajanje, ime psihologa.
+- Opcija “Rezerviraj ponovno”.
+
+F) Postavke
+- Uređivanje osobnih podataka (ime, prezime, dob, email).
+- Promjena lozinke.
+- Brisanje računa.
+
+------------------------------------------------------------
+1.3. Flow rezervacije termina
+------------------------------------------------------------
+
+Korak 1 — Student odabire psihologa (tj karticu psihologa s osnovnim informacijama)
+- Kartice se ponude ili putem pretrage ili putem AI preporuke.
+
+Korak 2 — Otvori se pregled dostupnih termina
+- Slotovi su od 08:00 do 18:00.
+- Trajanje jednog termina: 1 sat.
+- Psiholog određuje dostupne slotove.
+
+Korak 3 — Student šalje zahtjev
+U modal prozor student unosi:
+- Ime i prezime (ako nije u profilu)
+- Dob (ako nije unesena)
+- Kratki opis što ga muči ili odabir kategorije
+
+AI zatim:
+- radi sažetak problema,
+- kategorizira problem (ako dolazi preko AI-a, inače se kategorije dohvate preko filtera),
+- sprema sažetak,
+- prosljeđuje zahtjev psihologu.
+
+Korak 4 — Psiholog odobrava termin
+Nakon odobrenja:
+- generira se Google Meet link,
+- termin ulazi u kalendar studenta i psihologa,
+- oboma stiže e-mail obavijest.
+
+------------------------------------------------------------
+1.4. Dodatne funkcionalnosti (opcionalno)
+------------------------------------------------------------
+
+A) Povijest razgovora
+- Student i psiholog vide: datum, trajanje, ime druge strane.
+- Nema transkripata razgovora.
+
+B) Rezerviraj ponovno
+- Student jednim klikom otvara slobodne termine istog psihologa.
+
+C) Feedback (opcionalno)
+- Student može ocijeniti sesiju.
+- Može prijaviti psihologa adminu.
+
+------------------------------------------------------------
+2. PSIHOLOG — KORISNIČKI FLOW
+------------------------------------------------------------
+
+2.1. Registracija
+- Putem e-maila ili Google računa.
+- Nakon registracije bilo preko googla ili običnim putem psiholog je nužno preusmjeren na popunjavanje svog profila.
+
+2.2. Obvezna polja za verifikaciju
+1) Ime i prezime
+2) Email
+3) Broj telefona (vidljiv samo adminu; psiholog može odlučiti prikazati ga studentima)
+4) Upload diplome (PDF/JPG)
+5) Godina diplomiranja
+6) Profesionalni opis (predstavljanje studentima)
+7) Slika psihologa (obavezno)
+8) Kategorije i potkategorije rada (koje bira iz unaprijed odredenih i dogovorenih kategorija)
+9) Postavljanje termina dostupnosti
+
+Admin ručno provjerava sve podatke i odobrava psihologa.
+
+------------------------------------------------------------
+2.3. Dashboard psihologa
+------------------------------------------------------------
+
+A) Moj profil
+- Uređivanje profesionalnog opisa, kategorija i slike.
+
+B) Termini
+- Prikaz slotova 08–18h.
+- Psiholog označava dostupne termine.
+
+C) Zahtjevi studenata
+Prikazuje:
+- ime i prezime studenta,
+- dob,
+- sažetak problema,
+- kategoriju,
+- željeni termin.
+Psiholog može: odobriti / odbiti termin.
+
+D) Moj kalendar
+- Prikazuje potvrđene razgovore + Google Meet link.
+
+------------------------------------------------------------
+3. ADMIN — KORISNIČKI FLOW
+------------------------------------------------------------
+
+3.1. Pregled novih psihologa
+Admin vidi:
+- ime, prezime,
+- diplomu,
+- profesionalni opis,
+- godine diplomiranja,
+- kategorije rada,
+- sliku.
+
+Admin može: odobriti, odbiti, zatražiti dopunu.
+
+3.2. Upravljanje kategorijama
+- Dodavanje novih kategorija i potkategorija.
+- Uređivanje postojeće strukture.
+
+3.3. Krizne situacije (AI danger_flag)
+Kada AI detektira rizik:
+- backend bilježi slučaj,
+- po potrebi šalje obavijest adminu,
+- student dobiva podršku + hitne kontakte.
+
+3.4. Pregled prijava korisnika
+- Student može prijaviti loše iskustvo.
+- Admin pregledava i reagira.
+
+------------------------------------------------------------
+DIO 2 — SPECIFIKACIJE I PITANJA ZA RAZVOJNI TIM
+------------------------------------------------------------
+
+1. TEHNIČKE SPECIFIKACIJE (PREPORUKE)
+
+1.1. Nema internog chata
+- Komunikacija ide e-mailom.
+- Psiholog može opcionalno prikazati broj telefona studentima.
+
+1.2. Google Calendar integracija
+- Preporuka: jedan globalni kalendar.
+- Backend upisuje sve termine u globalni kalendar.
+- Student i psiholog vide termine unutar svog dashboarda.
+
+1.3. Dizajn termina
+- Slotovi: 08–18h, 1h trajanje.
+- Psiholog označava dostupne termine.
+- Student šalje zahtjev, psiholog odobrava.
+
+1.4. Privatnost AI razgovora
+- Razgovori se ne čuvaju trajno.
+- Sažetak se sprema samo ako se koristi za rezervaciju.
+
+1.5. Privatnost dnevnika
+- Enkriptiran.
+- Vidljiv samo studentu.
+
+1.6. Verifikacija psihologa
+- Upload diplome.
+- Ručno odobravanje.
+- Email obavijest nakon odobrenja.
+
+1.7. Krizni protokol AI-a
+- AI šalje danger_flag.
+- Backend logira slučaj.
+- Student dobiva hitne kontakte.
+
+------------------------------------------------------------
+2. PITANJA ZA BACKEND TEAM
+------------------------------------------------------------
+
+1. Kako će izgledati model za termine?
+2. Kako strukturirati kategorije/podkategorije?
+3. Kako spremati diplome psihologa?
+4. Kako implementirati ručno odobravanje psihologa?
+5. Kako enkriptirati dnevnik?
+6. Kako dizajnirati AI danger_flag endpoint?
+7. Kako kontrolirati anonimnost studenata?
+8. Kako generirati Meet linkove?
+9. Kako sinkronizirati globalni Google kalendar?
+10. Kako logirati feedback i prijave?
+
+------------------------------------------------------------
+3. PITANJA ZA FRONTEND / UI / UX TEAM
+------------------------------------------------------------
+
+1. Kako vizualno prikazati dashboard studenta?
+2. Kako prikazati AI chat nenametljivo?
+3. Kako dizajnirati kartice psihologa?
+4. Kako prikazati odabir termina?
+5. Kako prikazati kalendar jednostavno?
+6. Kako prikazati proces verifikacije psihologa?
+7. Kako omogućiti jednostavno označavanje termina psihologa?
+8. Kako prikazati Meet link?
+9. Kako prikazati povijest razgovora bez narušavanja privatnosti?
+10. Kako predvidjeti mjesto za future feature-e?
+
+------------------------------------------------------------
+5. POTENCIJALNE NADOGRADNJE (FUTURE FEATURES)
+------------------------------------------------------------
+
+- Analiza dnevnika (AI, bez pohrane).
+- Matching algoritam psihologa.
+- Napredni feedback model.
+- Notifikacije u stvarnom vremenu.

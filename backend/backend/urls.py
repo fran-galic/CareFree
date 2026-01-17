@@ -16,12 +16,26 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from rest_framework import routers
+from journal.views import JournalEntryViewSet
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+
+#ruter za journal API
+router = routers.DefaultRouter()
+router.register("journal", JournalEntryViewSet, basename='journal')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('auth/', include('accounts.urls')), #mozda rename u accounts
+    path('api/accounts/', include('accounts.urls')),
     path('api/token/', TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path('api/token/refresh/', TokenRefreshView.as_view(), name="token_refresh"),
     path('users/', include('users.urls')),
+    path('assistant/', include('assistant.urls')),
+    path("schema/", SpectacularAPIView.as_view(), name="schema"),
+    path("docs/", SpectacularSwaggerView.as_view(url_name="schema")),
+    path('api/', include((router.urls, 'journal'), namespace='journal')),
+    path('api/calendar/', include('calendar_integration.urls')),
+    path('api/appointments/', include('appointments.urls')),
 ]

@@ -1,0 +1,254 @@
+DOKUMENT ZA PSIHOLOGINJU  
+Tema: Suradnja na razvoju platforme za psihološku podršku studentima
+
+-----------------------------------------------------------------------
+1. KRATKI OPIS PROJEKTA
+-----------------------------------------------------------------------
+Projekt razvija web platformu namijenjenu studentima koja im omogućava:
+- pristup AI podršci za mentalno zdravlje (emocionalna prva pomoć),
+- pronalazak psihologa prema kategorijama problema,
+- jednostavno rezerviranje termina s psiholozima putem Google Meet-a,
+- pristup osnovnim alatima poput dnevnika i pregleda prošlih termina.
+
+Platforma ima tri tipa korisnika:
+1) studenti  
+2) psiholozi  
+3) administratori
+
+Cilj sustava je pružiti studentima siguran prvi korak, smanjenje stigme i brži pristup stručnjacima, dok se psiholozima omogućuje jednostavan način volontiranja ili rada sa studentima.
+
+-----------------------------------------------------------------------
+2. ZAMISLJENI FLOW KORIŠTENJA APLIKACIJE (STUDENT)
+-----------------------------------------------------------------------
+1. Student se registrira putem e-maila ili Google računa.  
+2. Nakon registracije može koristiti:
+   - AI podršku (anonimno prema psihologu),
+   - dnevnik misli,
+   - pretragu psihologa prema kategorijama.
+3. Kada odabere psihologa:
+   - vidi termine,
+   - odabire termin,
+   - ispunjava kratki opis problema.
+4. AI summarization agent pretvara taj opis u profesionalan, anoniman sažetak.
+5. Psiholog dobiva zahtjev → pregledava sažetak → potvrđuje ili odbija termin.
+6. Nakon potvrde šalje se Google Meet link i termin ide u kalendar i studentu i psihologu.
+
+-----------------------------------------------------------------------
+3. PITANJA ZA PSIHOLOGa — VEZANA UZ RAZVOJ APLIKACIJE
+-----------------------------------------------------------------------
+
+-----------------------------------------------------------------------
+3.1. INFORMACIJE ZA REGISTRACIJU I POTVRDU PSIHOLOGA
+-----------------------------------------------------------------------
+Molimo te da nam definiraš što smatraš potrebnim ili nužnim da bi psiholog bio ispravno potvrđen na platformi.
+
+Naš trenutni prijedlog:
+- Ime i prezime
+- E-mail (prikazuje se studentima)
+- Broj mobitela (vidljiv samo administratoru, NE studentima)
+- Slika psihologa (obavezna, radi predstavljanja studentima)
+- Profesionalni opis – kako se želite predstaviti studentima?
+- Upload diplome ili certifikata (PDF/JPG)  
+- Godina diplomiranja (vidljiv samo administratoru, NE studentima)
+- Odabir kategorija i podkategorija s kojima psiholog želi raditi
+
+Pitanja:
+1. Smatraš li da su ove informacije dovoljne?  
+2. Da li bi nešto uklonila ili dodala?  
+3. Je li prihvatljivo da admin ručno odobrava svakog psihologa?  
+4. Smatraš li da je fotografija obavezna ili bi trebala biti opcionalna? (ja bih je ostavio obaveznu jer je po meni bolje da studenti vide koga kontaktiraju nego da idu na slijepo)
+
+-----------------------------------------------------------------------
+3.2. TERMINI — ORGANIZACIJA RADA PSIHOLOGA
+-----------------------------------------------------------------------
+Prijedlog sustava:
+- termin traje 1 sat,
+- intervali su fiksni (08:00–18:00),
+- psiholog sam označava kada je slobodan,
+- student šalje zahtjev, psiholog ga odobrava.
+
+Pitanja:
+1. Je li sat vremena optimalna duljina termina?  
+2. Je li dobar fiksni raspon 08–18h?  
+3. Je li u redu da student šalje zahtjev, a psiholog ga ručno potvrđuje?  
+4. Bi li psiholozi radije imali fleksibilne intervale (npr. 45 min)?  (treba imati na umu da je to dosta teže implementirati)
+
+-----------------------------------------------------------------------
+3.3. INFORMACIJE KOJE PSIHOLOG ŽELI DOBITI OD STUDENTA
+-----------------------------------------------------------------------
+Naš trenutni prijedlog:
+- ime i prezime studenta,
+- dob studenta,
+- kratak anoniman sažetak problema (AI ga generira),
+- odabrana kategorija (ako je student birao kroz filter, ili preložena od strane AI-a),
+- željeni termin.
+
+Pitanja:
+1. Je li ovo dovoljno za uvodni razgovor?  
+2. Biste li htjeli još nešto znati prije prvog susreta?  
+3. Postoji li informacija koju smatraš nepotrebnom ili preosjetljivom da se prikuplja?
+
+-----------------------------------------------------------------------
+3.4. KATEGORIJE PSIHOLOŠKIH PROBLEMA — MOLIMO VALIDACIJU
+-----------------------------------------------------------------------
+Platforma koristi kategorije kako bi studentima olakšala odabir psihologa i kako bi AI agent mogao pružiti podršku.
+
+Molim te pogledaj ove kategorije i kaži nam jesu li dobre, treba li nešto dodati ili ukloniti.
+
+GLAVNE KATEGORIJE:
+1. Anksioznost
+2. Stres i burnout
+3. Depresivni simptomi
+4. Odnosi i interpersonalne teškoće
+5. Samopouzdanje i identitet
+6. Emocionalna regulacija
+7. Akademski izazovi
+8. Trauma i teška iskustva
+9. Krizne situacije
+
+PODKATEGORIJE PO GLAVNIM KATEGORIJAMA nalaze se u primjeru prompta (poseban dokument). Obavezno baci oko na primjer promta koji sam ti poslao. Tamo se međuostalog vidi naša trenutna ideja kategorija i podkategorija.
+
+Pitanja:
+1. Smatraš li da ove kategorije dobro pokrivaju tipične studentske probleme?  
+2. Da li bi promijenila strukturu kategorija i podkategorija?  
+3. Trebaju li psiholozi odmah birati podkategorije kojima se žele baviti? (to bi možda bilo najlakše za implementirati, kasnije mogu lako promijeniti kategorije)  
+4. Što raditi u situaciji kada student odabere podkategoriju za koju nema dostupnih psihologa — preporučiti „najbliže“ ili prikazati bilo koje dostupne?
+
+5. Koje bi bile krizne situacije i kako bi se AI agent trebao ponašati u njima?
+
+Molim te da definiraš koje situacije smatraš kriznima. Naš trenutni prijedlog uključuje:
+- izražene suicidalne misli ili namjere,
+- planiranje samoozljeđivanja,
+- ozbiljnu opasnost prema drugim osobama,
+- vrlo intenzivan emocionalni slom (npr. panični napad),
+- situacije teške traume ili bilo kakva neposredna ugroza.
+
+Molim te da potvrdiš ili prilagodiš ovaj popis.
+
+Također želimo definirati kako AI agent treba reagirati u takvim situacijama. Naš prijedlog:
+- AI treba biti izuzetno blag, smiren i empatičan,
+- pružiti emocionalnu prvu pomoć, ali ne davati dijagnoze,
+- jasno preporučiti hitne linije pomoći (npr. Plavi telefon),
+- po potrebi ponuditi razgovor s psihologom preko platforme,
+- vratiti posebnu zastavicu “crisis_flag” backendu kako bi sustav mogao ispravno reagirati.
+
+Molim te da pogledaš i primjer prompta te daš preporuke što prilagoditi.
+
+-----------------------------------------------------------------------
+3.5. ŠTO JE PRIKLADNO PRIKAZIVATI STUDENTIMA O PSIHOLOGU
+-----------------------------------------------------------------------
+Naš trenutni prijedlog:
+- slika
+- ime i prezime
+- e-mail (za dogovore nakon prvog susreta)
+- profesionalni opis
+
+Ne prikazujemo:
+- broj mobitela,
+- godinu diplomiranja,
+- fakultet,
+- privatne podatke koji mogu stvoriti pristranost.
+
+Pitanja:
+1. Slažeš li se s ovakvim minimalnim, etičkim prikazom psihologa?  
+2. Smatraš li da bi nešto trebalo dodati ili ukloniti?
+
+-----------------------------------------------------------------------
+4. PITANJA VEZANA UZ AI AGENTA
+-----------------------------------------------------------------------
+
+-----------------------------------------------------------------------
+4.1. ŠTO JE AI AGENT?
+-----------------------------------------------------------------------
+AI agent nije terapeut.  
+On NE postavlja dijagnoze, NE daje terapijske protokole, NE zamjenjuje psihologa.
+
+Njegova je uloga:
+- pružiti emocionalnu prvu pomoć,
+- razgovarati smirujućim tonom,
+- pomoći studentu da prepozna što ga brine,
+- kada je prikladno: ponuditi preporuku psihologa,
+- u kriznim situacijama dati smjernice i brojeve hitne pomoći.
+
+-----------------------------------------------------------------------
+4.2. ŠTO AI AGENT MOŽE I NE MOŽE
+-----------------------------------------------------------------------
+AI agent MOŽE:
+- pružiti empatiju,
+- ponuditi tehnike smirivanja,
+- pitati otvorena pitanja,
+- sumirati razgovor,
+- kategorizirati problem (prema dogovorenom sustavu),
+- okinuti “crisis mode” ako je potrebno.
+
+AI agent NE MOŽE:
+- davati dijagnoze,
+- nuditi medicinski ili terapijski tretman,
+- uvoditi nove kategorije koje nisu dogovorene,
+- komunikacijski preuzimati ulogu terapeuta.
+
+-----------------------------------------------------------------------
+4.3. PRAVILA ZA TONA KOMUNIKACIJE
+-----------------------------------------------------------------------
+Molimo da psihologinja definira:
+- kakav ton želi da AI koristi (primjer: topao, profesionalan, vrlo blag)
+- koje vrste rečenica treba izbjegavati  
+- koje tehnike podrške su prihvatljive  
+- kako AI treba odgovoriti u kriznoj situaciji  
+
+Ton, stil i pravila ponašanja AI-ja definiramo kroz PROMPT.
+
+-----------------------------------------------------------------------
+4.4. ŠTO JE PROMPT I KAKO GA KORISTIMO
+-----------------------------------------------------------------------
+Prompt je dokument koji definira kako se AI treba ponašati:
+- ton,
+- granice,
+- kategorije,
+- sigurnosni protokoli,
+- struktura JSON odgovora.
+
+U dokumentima koje si dobila nalaze se:
+1. Primjer glavnog prompta za AI podršku  
+2. Primjer prompta za summarization agenta  
+
+Molimo te da:
+- pregledaš prompt,
+- daš povratnu informaciju što treba promijeniti,
+- dodaš profesionalne preporuke o granicama AI ponašanja.
+
+-----------------------------------------------------------------------
+5. NAJVAŽNIJE ZA PSIHLOGINJU — MOLIMO TVOJ ODGOVOR ŠTO PRIJE , tnx :)
+-----------------------------------------------------------------------
+
+Tvoje mišljenje nam je najvažnije u dvije ključne stvari:
+
+1) ŠTO JE POTREBNO DA SE PSIHOLOG VALIDNO PRIJAVI I POTVRDI NA PLATFORMI  
+Molimo da definirate koje dokumente, podatke i uvjete psiholog treba ispuniti.
+
+2) DEFINITIVNI POPIS KATEGORIJA I PODKATEGORIJA  
+Ovaj dio određuje kako će AI razvrstavati studentske probleme.  
+Molimo Vas da pregledate naš prijedlog i date finalnu verziju.
+
+Tek nakon što ova dva dijela budu potvrđena, prilagođavamo i finaliziramo AI prompt.
+
+-----------------------------------------------------------------------
+6. DODATNA PITANJA KOJA TE MOGU ZANIMATI
+-----------------------------------------------------------------------
+- Što ako student ne želi otkriti puno informacija?  
+- Kako zaštititi privatnost i sigurnost studenata?  
+- Kako postupati s manje tipičnim slučajevima?  
+- Postoji li nešto što psiholog ne želi da AI ikada izgovori?  
+- Trebaju li psiholozi dobivati povratne ocjene od studenata?  
+- Treba li postojati sustav prijave neprimjerenog ponašanja psihologa?  
+- Koliko bi psihologa idealno bilo u sustavu na početku?  
+
+Slobodno podijeli s nama sva mišljenja – projekt se razvija i želimo da sustav bude u potpunosti u skladu sa stručnim standardima.
+
+-----------------------------------------------------------------------
+7. ZAVRŠNA PORUKA
+-----------------------------------------------------------------------
+Zahvaljujemo Ti na vremenu i stručnosti.  
+Tvoje iskustvo ključno je za izgradnju platforme koja će studentima pružiti sigurnu, etičku i kvalitetnu podršku.  
+Slobodno se konzultiraj s kolegama, profesorima (dapače :) ili s nekim drugim stručnjacima – rado ćemo integrirati sve smislene prijedloge.
+

@@ -39,8 +39,9 @@ class UsersProfileTests(TestCase):
 		user = self._create_user(email='care@example.com', username='ana')
 		user.first_name = 'Ana'
 		user.last_name = 'Ivić'
+		user.role = 'caretaker'
 		user.save()
-		caretaker = Caretaker.objects.create(user=user, about_me='Hi', specialisation='CBT', tel_num='0123456789')
+		caretaker = Caretaker.objects.create(user=user, about_me='Hi', tel_num='0123456789', is_approved=True)
 		self.client.force_authenticate(user=user)
 
 		resp = self.client.get('/users/me/caretaker/')
@@ -54,6 +55,8 @@ class UsersProfileTests(TestCase):
 
 	def test_student_profile_get_and_update(self):
 		user = self._create_user(email='stud@example.com')
+		user.role = 'student'
+		user.save()
 		student = Student.objects.create(user=user, studying_at='Faculty X', year_of_study=2)
 		self.client.force_authenticate(user=user)
 
@@ -73,21 +76,20 @@ class UsersProfileTests(TestCase):
 
 	def test_student_bio(self):
 		user = self._create_user(email='stud_bio@example.com')
-		student = Student.objects.create(user=user, studying_at='Faculty Y', year_of_study=1, about_me='')
+		user.role = 'student'
+		user.save()
+		student = Student.objects.create(user=user, studying_at='Faculty Y', year_of_study=1)
 		self.client.force_authenticate(user=user)
-
-		# GET student profile and check about_me field exists
+		# GET student profile and check fields exist
 		resp = self.client.get('/users/me/student/')
 		self.assertEqual(resp.status_code, 200)
-		self.assertIn('about_me', resp.data)
-		self.assertEqual(resp.data['about_me'], '')
+		self.assertIn('studying_at', resp.data)
+		self.assertIn('year_of_study', resp.data)
 
-		# PATCH to update about_me
-		new_bio = 'Hello, I am a student interested in psychology!'
-		resp = self.client.patch('/users/me/student/', {'about_me': new_bio}, format='json')
+		# PATCH to update studying_at
+		new_school = 'New Faculty Updated'
+		resp = self.client.patch('/users/me/student/', {'studying_at': new_school}, format='json')
 		self.assertEqual(resp.status_code, 200)
-		self.assertEqual(resp.data['about_me'], new_bio)
-
 		student.refresh_from_db()
-		self.assertEqual(student.about_me, new_bio)
+		self.assertEqual(student.studying_at, new_school)
 

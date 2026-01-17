@@ -37,8 +37,6 @@ export function LoginForm({
     setError("");
     setLoading(true);
 
-
-    
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/login/`, {
         method: "POST",
@@ -50,14 +48,15 @@ export function LoginForm({
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.detail || "Login failed");
-        
-      } 
+      }
 
-      router.push("/carefree/main");
+      // Successfully logged in - wait a moment for cookies to be set
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Use window.location for a full page reload to ensure cookies are properly set
+      window.location.href = "/carefree/main";
     } catch (error) {
       setError((error as Error).message || "Login failed");
-      alert("Login failed: " + ((error as Error).message || "Network error"));
-    } finally {
       setLoading(false);
     }
   };
@@ -67,9 +66,9 @@ export function LoginForm({
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader>
-          <CardTitle>Login to your account</CardTitle>
+          <CardTitle>Prijavite se na svoj račun</CardTitle>
           <CardDescription>
-            Enter your email below to login to your account
+            Unesite svoj email za prijavu
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -80,7 +79,7 @@ export function LoginForm({
                 <Input
                   id="email"
                   type="email"
-                  placeholder="m@example.com"
+                  placeholder="ime@primjer.com"
                   required
                   value={email}
                   onChange={e => setEmail(e.target.value)}
@@ -88,12 +87,13 @@ export function LoginForm({
               </Field>
               <Field>
                 <div className="flex items-center">
-                  <FieldLabel htmlFor="password">Password</FieldLabel>
-                  <a
-                    href="#"
+                  <FieldLabel htmlFor="password">Lozinka</FieldLabel>
+                  <Link
+                    href="/auth/forgot-password"
                     className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
                   >
-                  </a> 
+                    Zaboravili ste lozinku?
+                  </Link> 
                 </div>
                 <Input
                   id="password"
@@ -105,10 +105,10 @@ export function LoginForm({
                 />
               </Field>
               <Field>
-                <Button type="submit" disabled={loading}>Login</Button>
+                <Button type="submit" disabled={loading} className="bg-gradient-to-r from-[oklch(0.783_0.1136_182.2)] to-[oklch(0.68_0.20_45)] hover:opacity-90 transition-opacity">Prijavi se</Button>
                 {error && <p className="text-red-500 text-sm">{error}</p>}
                 <FieldDescription className="text-center">
-                  Don&apos;t have an account? <Link href="./signup" className="underline">Sign up</Link>
+                  Nemate račun? <Link href="./signup" className="underline">Registrirajte se</Link>
                 </FieldDescription>
               </Field>
               <div className="relative my-4">
