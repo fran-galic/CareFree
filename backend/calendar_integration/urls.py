@@ -2,7 +2,8 @@
 
 from django.urls import path
 
-from .views import CalendarEventList, CreateEventView, SyncNowView
+from .views import CalendarEventList, CreateEventView, SyncNowView, GoogleConnectView, GoogleOAuthCallbackView
+from .views import GoogleDisconnectView, GoogleCalendarStatusView
 
 urlpatterns = [
     path(
@@ -20,4 +21,24 @@ urlpatterns = [
         CreateEventView.as_view(),
         name="calendar-create-event",
     ),  # stvaranje novog eventa
+    path(
+        "connect/",
+        GoogleConnectView.as_view(),
+        name="calendar-google-connect",
+    ),
+    path(
+        "oauth/callback/",
+        GoogleOAuthCallbackView.as_view(),
+        name="calendar-google-callback",
+    ),
+    path(
+        "disconnect/",
+        GoogleDisconnectView.as_view(),
+        name="calendar-google-disconnect",
+    ),
+    path(
+        "status/",
+        GoogleCalendarStatusView.as_view(),
+        name="calendar-google-status",
+    ),
 ]

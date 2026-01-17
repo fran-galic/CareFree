@@ -37,4 +37,5 @@ urlpatterns = [
     path("docs/", SpectacularSwaggerView.as_view(url_name="schema")),
     path('api/', include((router.urls, 'journal'), namespace='journal')),
     path('api/calendar/', include('calendar_integration.urls')),
+    path('api/appointments/', include('appointments.urls')),
 ]
