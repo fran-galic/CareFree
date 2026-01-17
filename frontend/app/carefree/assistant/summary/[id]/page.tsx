@@ -1,0 +1,180 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import React, { useState } from "react";
+import useSWR from "swr";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Loader2, ArrowLeft, MessageCircle, User, Bot, Calendar } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+
+const fetcher = async (url: string) => {
+  const res = await fetch(url, { credentials: "include" });
+  if (!res.ok) throw new Error("Failed to fetch");
+  return res.json();
+};
+
+export default function AssistantSummaryDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = React.use(params);
+  const router = useRouter();
+  const { data: summary, error, isLoading } = useSWR(
+    `${process.env.NEXT_PUBLIC_BACKEND_URL}/assistant/summaries/${id}`,
+    fetcher
+  );
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="animate-spin h-8 w-8" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto py-12 max-w-3xl px-6">
+        <Alert variant="destructive">
+          <AlertDescription>Greška pri dohvaćanju detalja sesije.</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("hr-HR", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  return (
+    <div className="container mx-auto py-12 max-w-4xl px-6">
+      <Button variant="ghost" onClick={() => router.back()} className="mb-6">
+        <ArrowLeft className="mr-2 h-4 w-4" /> Natrag
+      </Button>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-2xl">Detalji sesije</CardTitle>
+              <CardDescription className="mt-2 flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                {summary.created_at && formatDate(summary.created_at)}
+              </CardDescription>
+            </div>
+            {summary.main_category && (
+              <Badge variant="secondary" className="text-sm">
+                {summary.main_category}
+              </Badge>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Sažetak */}
+          {summary.summary_text && (
+            <div>
+              <h3 className="font-semibold text-lg mb-2">Sažetak razgovora</h3>
+              <p className="whitespace-pre-wrap text-foreground/90 leading-relaxed">
+                {summary.summary_text}
+              </p>
+            </div>
+          )}
+
+          <Separator />
+
+          {/* Preporučeni caretakeri */}
+          {summary.recommended_caretakers && summary.recommended_caretakers.length > 0 && (
+            <div>
+              <h3 className="font-semibold text-lg mb-3">Preporučeni psiholozi</h3>
+              <div className="grid gap-3">
+                {summary.recommended_caretakers.map((caretaker: any) => (
+                  <Card key={caretaker.user_id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="pt-4">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h4 className="font-semibold">
+                            {caretaker.academic_title} {caretaker.first_name} {caretaker.last_name}
+                          </h4>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {caretaker.specialisation || "Psiholog"}
+                          </p>
+                          {caretaker.help_categories && caretaker.help_categories.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {caretaker.help_categories.map((cat: string, idx: number) => (
+                                <Badge key={idx} variant="outline" className="text-xs">
+                                  {cat}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() => router.push(`/carefree/caretaker/${caretaker.user_id}`)}
+                        >
+                          Vidi profil
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <Separator />
+
+          {/* Povijest poruka */}
+          {summary.messages && summary.messages.length > 0 && (
+            <div>
+              <h3 className="font-semibold text-lg mb-3">Povijest razgovora</h3>
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {summary.messages.map((message: any, idx: number) => (
+                  <div
+                    key={idx}
+                    className={`flex gap-3 ${
+                      message.sender === "bot" ? "justify-start" : "justify-end"
+                    }`}
+                  >
+                    <div
+                      className={`flex gap-3 max-w-[80%] ${
+                        message.sender === "bot" ? "flex-row" : "flex-row-reverse"
+                      }`}
+                    >
+                      <div className="flex-shrink-0">
+                        {message.sender === "bot" ? (
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Bot className="w-4 h-4 text-primary" />
+                          </div>
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
+                            <User className="w-4 h-4" />
+                          </div>
+                        )}
+                      </div>
+                      <div
+                        className={`rounded-lg p-3 ${
+                          message.sender === "bot"
+                            ? "bg-muted"
+                            : "bg-primary text-primary-foreground"
+                        }`}
+                      >
+                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

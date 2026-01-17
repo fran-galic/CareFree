@@ -14,9 +14,7 @@ class CaretakerShortSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Caretaker
-        # fields = ["user_id", "first_name", "last_name", "about_me", "specialisation", "tel_num"]
-        # fields = ["user_id", "first_name", "last_name", "about_me", "specialisation", "tel_num", "help_categories"]
-        fields = ["user_id", "first_name", "last_name", "academic_title", "help_categories", "user_image_url", "specialisation", "working_since"]
+        fields = ["user_id", "first_name", "last_name", "help_categories", "image", "grad_year"]
 
 class CaretakerLongSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField(source='user.first_name', read_only=True)
@@ -25,7 +23,7 @@ class CaretakerLongSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Caretaker
-        fields = ["user_id", "first_name", "last_name", "academic_title", "help_categories", "user_image_url", "specialisation", "about_me", "working_since", "tel_num", "office_address"]
+        fields = ["user_id", "first_name", "last_name", "help_categories", "image", "about_me", "grad_year"]
 
 
 class MeSerializer(BaseUserSerializer):
@@ -72,19 +70,35 @@ class ChangePasswordSerializer(serializers.Serializer):
 class CaretakerUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Caretaker
-        fields = ["about_me", "specialisation", "tel_num"]
+        fields = ["about_me", "tel_num"]
 
 
 class StudentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
-        fields = ["user_id", "studying_at", "year_of_study", "about_me"]
+        fields = ["user_id", "studying_at", "year_of_study"]
 
 
 class StudentUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
-        fields = ["studying_at", "year_of_study", "about_me"]
-        #fields = ["user_id", "first_name", "last_name", "academic_title", "help_categories", "user_image_url", "specialisation", "working_since"]
+        fields = ["studying_at", "year_of_study"]
+
+
+from accounts.models import HelpCategory
+
+
+class SubCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HelpCategory
+        fields = ("id", "label", "slug")
+
+
+class CategoryWithSubcategoriesSerializer(serializers.ModelSerializer):
+    subcategories = SubCategorySerializer(many=True, read_only=True)
+
+    class Meta:
+        model = HelpCategory
+        fields = ("id", "label", "slug", "subcategories")
 
 

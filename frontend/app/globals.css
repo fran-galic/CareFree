@@ -5,6 +5,8 @@
 
 @theme inline {
 
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
   --radius-sm: calc(var(--radius) - 4px);
 
   --radius-md: calc(var(--radius) - 2px);
@@ -81,7 +83,7 @@
 
   --radius: 0.625rem;
 
-  --background: oklch(0.926 0.0278 185.55);
+  --background: oklch(0.99 0 0);
 
   --foreground: oklch(0.145 0 0);
 
@@ -143,6 +145,50 @@
 
   --sidebar-ring: oklch(0.708 0 0);
 
+}
+
+
+[data-theme="student"] {
+  --background: oklch(0.99 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.783 0.1136 182.2);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.94 0.03 185);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.96 0.02 182);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.75 0.12 180);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.90 0.02 180);
+  --input: oklch(0.92 0.02 180);
+  --ring: oklch(0.783 0.1136 182.2);
+}
+
+
+[data-theme="caretaker"] {
+  --background: oklch(0.99 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.68 0.20 45);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.94 0.04 50);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.96 0.02 48);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.75 0.18 60);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.90 0.02 50);
+  --input: oklch(0.92 0.02 50);
+  --ring: oklch(0.68 0.20 45);
 }
 
 .dark {
@@ -217,8 +263,392 @@
 
   }
   body {
-    @apply bg-background text-foreground;
-
+    @apply text-foreground;
+    background: linear-gradient(to bottom, 
+      oklch(1 0 0) 0%, 
+      oklch(0.985 0 0) 25%,
+      oklch(0.97 0 0) 60%,
+      oklch(0.95 0 0) 100%
+    );
+    background-attachment: fixed;
+    min-height: 100vh;
   }
 
+}
+
+@layer utilities {
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-15px);
+    }
+  }
+
+  .animate-fade-in {
+    animation: fade-in 1s ease-out;
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  .hero-section {
+    @apply min-h-screen relative;
+    background: transparent;
+  }
+
+  .container-centered {
+    @apply container mx-auto px-4 py-8 md:py-12;
+  }
+
+  .content-wrapper {
+    @apply flex flex-col items-center text-center space-y-6 max-w-4xl mx-auto;
+    @apply bg-white/60 backdrop-blur-sm rounded-3xl p-8 md:p-10 shadow-sm border border-gray-100;
+  }
+
+  .logo-box {
+    @apply mb-4;
+  }
+
+  .logo-img {
+    @apply rounded-full shadow-2xl shadow-primary/20;
+    @apply ring-4 ring-primary/10;
+  }
+
+  .title-section {
+    @apply space-y-4;
+  }
+
+  .main-title {
+    @apply text-5xl md:text-7xl font-bold tracking-tight;
+  }
+
+  .color-shift {
+    @apply transition-colors duration-1000 inline-block;
+  }
+
+  .carefree-gradient {
+    background: linear-gradient(135deg, 
+      oklch(0.783 0.1136 182.2) 0%, 
+      oklch(0.68 0.20 45) 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtitle {
+    @apply text-xl md:text-2xl text-muted-foreground font-light max-w-2xl mx-auto;
+  }
+
+  .description {
+    @apply text-lg text-muted-foreground max-w-2xl leading-relaxed;
+  }
+
+  .button-group {
+    @apply flex flex-col sm:flex-row gap-4 pt-4;
+  }
+
+  .cta-button {
+    @apply text-lg px-10 py-6 rounded-full shadow-lg;
+    @apply hover:shadow-2xl hover:shadow-primary/30;
+    @apply hover:scale-105 transition-all duration-300;
+    @apply font-semibold;
+  }
+
+  .cta-outline {
+    @apply text-lg px-10 py-6 rounded-full border-2 border-primary/50;
+    @apply hover:bg-primary/10 hover:border-primary;
+    @apply hover:scale-105 hover:shadow-lg transition-all duration-300;
+    @apply font-semibold;
+  }
+
+  .cta-neutral {
+    @apply text-lg px-10 py-6 rounded-full border-2 border-gray-300;
+    @apply bg-white text-gray-700;
+    @apply hover:bg-gray-50 hover:border-gray-400 hover:shadow-md;
+    @apply hover:scale-105 transition-all duration-300;
+    @apply font-semibold;
+  }
+
+  .cta-ghost {
+    @apply text-lg px-10 py-6 rounded-full;
+    @apply text-gray-600 hover:text-gray-900 hover:bg-gray-100;
+    @apply hover:scale-105 transition-all duration-300;
+    @apply font-semibold;
+  }
+
+  /* Scroll Indicator */
+  .scroll-indicator {
+    @apply flex flex-col items-center gap-2 mt-12 animate-bounce;
+  }
+
+  .scroll-icon {
+    @apply text-3xl text-gray-400;
+  }
+
+  .scroll-text {
+    @apply text-sm text-gray-500 font-medium;
+  }
+
+  .feature-grid {
+    @apply grid md:grid-cols-3 gap-8 pt-8 w-full;
+  }
+
+  .feature-card {
+    @apply p-8 rounded-2xl bg-card border-2 border-border;
+    @apply shadow-md hover:shadow-xl hover:border-primary/40;
+    @apply hover:-translate-y-2 transition-all duration-300;
+    @apply backdrop-blur-sm;
+  }
+
+  .card-icon {
+    @apply text-5xl mb-4 text-primary;
+    @apply drop-shadow-md;
+  }
+
+  .card-title {
+    @apply font-bold text-xl mb-3 text-foreground;
+  }
+
+  .card-text {
+    @apply text-sm text-muted-foreground;
+  }
+
+  .page-footer {
+    @apply border-t py-8 text-center text-sm text-muted-foreground;
+  }
+
+  /* Role Toggle Styles */
+  .role-toggle-container {
+    @apply w-full py-8 flex flex-col items-center gap-6;
+  }
+
+  .role-toggle-heading {
+    @apply text-center space-y-2;
+  }
+
+  .role-toggle-title {
+    @apply text-2xl font-bold text-foreground;
+  }
+
+  .role-toggle-description {
+    @apply text-sm text-muted-foreground;
+  }
+
+  .role-toggle-wrapper {
+    @apply inline-flex items-center gap-1 p-1.5 rounded-full;
+    @apply bg-white border-2 border-gray-200 shadow-sm;
+  }
+
+  .role-toggle-option {
+    @apply px-8 py-3 rounded-full font-semibold text-base;
+    @apply transition-all duration-300 ease-in-out;
+    @apply text-gray-600 hover:text-gray-800;
+    @apply cursor-pointer outline-none;
+  }
+
+  .role-toggle-icon {
+    @apply text-xl;
+  }
+
+  .role-toggle-option.active.student {
+    @apply bg-[oklch(0.783_0.1136_182.2)] text-white shadow-lg shadow-cyan-500/30;
+  }
+
+  .role-toggle-option.active.psiholog {
+    @apply bg-[oklch(0.68_0.20_45)] text-white shadow-lg shadow-amber-500/30;
+  }
+
+  /* Features Section */
+  .features-section {
+    @apply py-12 pb-24;
+  }
+
+  .feature-grid-dynamic {
+    @apply grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto;
+  }
+
+  .feature-card-dynamic {
+    @apply relative p-8 rounded-2xl bg-white border-2;
+    @apply transition-all duration-300 ease-in-out;
+  }
+
+  /* Default/Neutral State */
+  .feature-card-dynamic.neutral {
+    @apply border-gray-200 shadow-md;
+  }
+
+  .feature-card-dynamic.neutral:hover {
+    @apply shadow-lg -translate-y-1;
+  }
+
+  /* Highlighted State - Student */
+  .feature-card-dynamic.highlighted.student {
+    @apply border-cyan-400 shadow-xl shadow-cyan-500/10;
+    @apply -translate-y-1;
+  }
+
+  .feature-card-dynamic.highlighted.student:hover {
+    @apply shadow-2xl shadow-cyan-500/20 -translate-y-2;
+  }
+
+  /* Highlighted State - Psiholog */
+  .feature-card-dynamic.highlighted.psiholog {
+    @apply border-amber-400 shadow-xl shadow-amber-500/10;
+    @apply -translate-y-1;
+  }
+
+  .feature-card-dynamic.highlighted.psiholog:hover {
+    @apply shadow-2xl shadow-amber-500/20 -translate-y-2;
+  }
+
+  /* Dimmed State */
+  .feature-card-dynamic.dimmed {
+    @apply border-gray-200 shadow-sm opacity-50;
+  }
+
+  .feature-card-dynamic.dimmed:hover {
+    @apply opacity-70;
+  }
+
+  /* Role Badge */
+  .role-badge {
+    @apply absolute top-4 right-4 w-8 h-8;
+    @apply flex items-center justify-center rounded-full;
+    @apply text-xs font-bold transition-all duration-300;
+  }
+
+  .feature-card-dynamic.neutral .role-badge {
+    @apply bg-gray-100 text-gray-400 opacity-40;
+  }
+
+  .feature-card-dynamic.highlighted .role-badge.student {
+    @apply bg-cyan-500 text-white opacity-100 scale-110;
+  }
+
+  .feature-card-dynamic.highlighted .role-badge.psiholog {
+    @apply bg-amber-500 text-white opacity-100 scale-110;
+  }
+
+  .feature-card-dynamic.dimmed .role-badge {
+    @apply opacity-20;
+  }
+
+  /* Feature CTA Buttons */
+  .feature-cta {
+    @apply mt-4 w-full rounded-lg font-medium transition-all duration-300;
+  }
+
+  .feature-cta.filled.student {
+    @apply bg-[oklch(0.783_0.1136_182.2)] text-white;
+    @apply hover:shadow-lg hover:shadow-cyan-500/30 hover:scale-105;
+  }
+
+  .feature-cta.filled.psiholog {
+    @apply bg-[oklch(0.68_0.20_45)] text-white;
+    @apply hover:shadow-lg hover:shadow-amber-500/30 hover:scale-105;
+  }
+
+  .feature-cta.outline {
+    @apply border-2 border-gray-300 bg-white text-gray-700;
+    @apply hover:bg-gray-50 hover:border-gray-400;
+  }
+}
+
+
+.theme-caretaker {
+  
+  --primary: oklch(0.65 0.20 50) !important;
+  --primary-foreground: oklch(0.98 0 0) !important; 
+  
+  --secondary: oklch(0.96 0.04 50) !important; 
+  --secondary-foreground: oklch(0.65 0.20 50) !important;
+  
+  --ring: oklch(0.65 0.20 50) !important;
+  
+ 
+  --muted-foreground: oklch(0.55 0.08 50) !important;
+  
+  --sidebar-primary: oklch(0.65 0.20 50) !important;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slideDown {
+  animation: slideDown 1.2s ease-out;
+}
+
+/* React Big Calendar Custom Styles */
+.rbc-calendar {
+  font-family: inherit;
+}
+
+.rbc-header {
+  padding: 12px 6px;
+  font-weight: 600;
+  border-bottom: 2px solid hsl(var(--border));
+}
+
+.rbc-today {
+  background-color: hsl(var(--primary) / 0.05);
+}
+
+.rbc-event {
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.rbc-event:focus {
+  outline: 2px solid hsl(var(--ring));
+}
+
+.rbc-toolbar button {
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border));
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.rbc-toolbar button:hover {
+  background-color: hsl(var(--accent));
+}
+
+.rbc-toolbar button.rbc-active {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+.rbc-month-view {
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+}
+
+.rbc-time-view {
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
 }
