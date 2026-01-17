@@ -1,60 +1,66 @@
-"use client";
-import { useState, useEffect } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import EmailRequestForm from "@/components/email-request-form";
-import { ConfirmRegistrationForm } from "@/components/confirm-registration-form";
+"use client"
+import { useState, useEffect, Suspense } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
+import EmailRequestForm from "@/components/email-request-form"
+import { ConfirmRegistrationForm } from "@/components/confirm-registration-form"
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Mail, Clock } from "lucide-react";
+} from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Mail, Clock } from "lucide-react"
 
-export default function SignupPage() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const token = searchParams.get("token");
-  const [email, setEmail] = useState<string | null>(null);
-  const [resendCooldown, setResendCooldown] = useState<number>(0);
-  const [isResending, setIsResending] = useState<boolean>(false);
-  const [isChecking, setIsChecking] = useState(true);
+function SignupContent() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const token = searchParams.get("token")
+  const [email, setEmail] = useState<string | null>(null)
+  const [resendCooldown, setResendCooldown] = useState<number>(0)
+  const [isResending, setIsResending] = useState<boolean>(false)
+  const [isChecking, setIsChecking] = useState(true)
 
   // Check if user is already logged in
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users/me/`, {
-          credentials: "include",
-        });
-        
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/users/me/`,
+          {
+            credentials: "include",
+          }
+        )
+
         if (response.ok) {
           // User is already logged in, redirect to main page
-          router.replace("/carefree/main");
+          router.replace("/carefree/main")
         } else {
-          setIsChecking(false);
+          setIsChecking(false)
         }
       } catch {
-        setIsChecking(false);
+        setIsChecking(false)
       }
-    };
+    }
 
-    checkAuth();
-  }, [router]);
+    checkAuth()
+  }, [router])
 
   useEffect(() => {
     if (resendCooldown > 0) {
-      const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
-      return () => clearTimeout(timer);
+      const timer = setTimeout(
+        () => setResendCooldown(resendCooldown - 1),
+        1000
+      )
+      return () => clearTimeout(timer)
     }
-  }, [resendCooldown]);
+  }, [resendCooldown])
 
   const handleResend = async () => {
-    if (!email || resendCooldown > 0) return;
+    if (!email || resendCooldown > 0) return
 
-    setIsResending(true);
+    setIsResending(true)
 
     try {
       const response = await fetch(
@@ -64,17 +70,17 @@ export default function SignupPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email: email.trim() }),
         }
-      );
+      )
 
       if (response.ok) {
-        setResendCooldown(60);
+        setResendCooldown(60)
       }
     } catch (err) {
-      console.error("Resend failed:", err);
+      console.error("Resend failed:", err)
     } finally {
-      setIsResending(false);
+      setIsResending(false)
     }
-  };
+  }
 
   // Show loading while checking auth
   if (isChecking) {
@@ -85,12 +91,12 @@ export default function SignupPage() {
           <p className="mt-4 text-muted-foreground">Provjera prijave...</p>
         </div>
       </div>
-    );
+    )
   }
 
   // If token is present, show confirmation form
   if (token) {
-    return <ConfirmRegistrationForm token={token} />;
+    return <ConfirmRegistrationForm token={token} />
   }
 
   if (email) {
@@ -111,9 +117,10 @@ export default function SignupPage() {
 
             <div className="pt-2 space-y-3">
               <p className="text-sm text-center text-muted-foreground">
-                Niste primili email? Provjerite spam folder ili pošaljite ponovno.
+                Niste primili email? Provjerite spam folder ili pošaljite
+                ponovno.
               </p>
-              
+
               <Button
                 onClick={handleResend}
                 disabled={resendCooldown > 0 || isResending}
@@ -141,7 +148,7 @@ export default function SignupPage() {
           </CardContent>
         </Card>
       </div>
-    );
+    )
   }
 
   return (
@@ -150,5 +157,22 @@ export default function SignupPage() {
         <EmailRequestForm onSuccess={setEmail} />
       </div>
     </div>
-  );
+  )
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          <div className="text-center">
+            <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="mt-4 text-muted-foreground">Učitavanje...</p>
+          </div>
+        </div>
+      }
+    >
+      <SignupContent />
+    </Suspense>
+  )
 }
