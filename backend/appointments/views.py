@@ -148,7 +148,7 @@ class AppointmentRequestApproveView(APIView):
 
     def post(self, request, pk, *args, **kwargs):
         # ensure object exists and belongs to caretaker
-        req = get_object_or_404(AppointmentRequest.objects.select_related('caretaker'), pk=pk)
+        req = get_object_or_404(AppointmentRequest.objects.select_related('caretaker', 'student'), pk=pk)
         # object permission check
         perm = OnlyCaretakerCanApprove()
         if not perm.has_object_permission(request, self, req):
