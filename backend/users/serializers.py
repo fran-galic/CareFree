@@ -11,19 +11,37 @@ class CaretakerShortSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField(source='user.first_name', read_only=True)
     last_name = serializers.CharField(source='user.last_name', read_only=True)
     help_categories = serializers.SlugRelatedField(many=True, read_only=True, slug_field='label')
+    image = serializers.SerializerMethodField()
 
     class Meta:
         model = Caretaker
         fields = ["user_id", "first_name", "last_name", "help_categories", "image", "grad_year"]
 
+    def get_image(self, obj):
+        if obj.image:
+            try:
+                return obj.image.url
+            except Exception:
+                return None
+        return None
+
 class CaretakerLongSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField(source='user.first_name', read_only=True)
     last_name = serializers.CharField(source='user.last_name', read_only=True)
     help_categories = serializers.SlugRelatedField(many=True, read_only=True, slug_field='label')
+    image = serializers.SerializerMethodField()
 
     class Meta:
         model = Caretaker
         fields = ["user_id", "first_name", "last_name", "help_categories", "image", "about_me", "grad_year"]
+
+    def get_image(self, obj):
+        if obj.image:
+            try:
+                return obj.image.url
+            except Exception:
+                return None
+        return None
 
 
 class MeSerializer(BaseUserSerializer):
