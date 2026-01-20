@@ -17,6 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
 import { 
   MapPin, 
   Phone, 
@@ -136,131 +137,116 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
   };
 
   return (
-    <div className="container mx-auto py-10 px-4 max-w-5xl">
-      {/* HEADER PROFILA */}
-      <Card className="mb-8 overflow-hidden border-none shadow-md bg-card">
-        <div className="h-16"></div>
-        <div className="px-8 pb-8">
-          <div className="relative flex justify-between items-end -mt-12 mb-6">
-            <Avatar className="w-32 h-32 border-4 border-background shadow-lg">
-              <AvatarImage src={caretaker.user_image_url || ""} className="object-cover" />
-              <AvatarFallback className="text-3xl font-bold bg-muted text-muted-foreground">
-                {caretaker.first_name?.charAt(0)}{caretaker.last_name?.charAt(0)}
-              </AvatarFallback>
-            </Avatar>
-            {/* Status badge */}
-            <div className="hidden md:flex gap-2 mb-2">
-              <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-semibold border border-primary/20 flex items-center gap-1">
-                <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
-                Dostupan za nove klijente
-              </span>
-            </div>
-          </div>
-          
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">{caretaker.first_name} {caretaker.last_name}</h1>
-            <p className="text-lg text-muted-foreground font-medium mt-1">
-              {caretaker.academic_title} • {caretaker.specialisation || "Psiholog"}
+    <div className="container mx-auto py-6 px-4 max-w-6xl">
+      {/* HEADER PROFILA - Kompaktan */}
+      <div className="flex items-center gap-4 mb-8">
+        <Avatar className="w-24 h-24 border-2 border-primary/20 shadow-lg">
+          <AvatarImage src={caretaker.user_image_url || ""} className="object-cover" />
+          <AvatarFallback className="text-3xl font-bold bg-primary/10 text-primary">
+            {caretaker.first_name?.charAt(0)}{caretaker.last_name?.charAt(0)}
+          </AvatarFallback>
+        </Avatar>
+        
+        <div className="flex-1">
+          <h1 className="text-3xl font-bold tracking-tight">
+            {caretaker.first_name} {caretaker.last_name}
+          </h1>
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            <p className="text-muted-foreground">
+              {caretaker.academic_title} {caretaker.specialisation ? `• ${caretaker.specialisation}` : ''}
             </p>
-            
-            <div className="flex flex-wrap gap-4 mt-4 text-sm text-muted-foreground">
-              {caretaker.working_since && (
-                <div className="flex items-center gap-1">
-                  <Briefcase className="w-4 h-4" />
-                  <span>Iskustvo od {caretaker.working_since}.</span>
-                </div>
-              )}
-              {caretaker.office_address && (
-                <div className="flex items-center gap-1">
-                  <MapPin className="w-4 h-4" />
-                  <span>{caretaker.office_address}</span>
-                </div>
-              )}
-            </div>
           </div>
         </div>
-      </Card>
+      </div>
 
       {/* SADRŽAJ: TABS */}
       <Tabs defaultValue="about" className="w-full">
-        <TabsList className="w-full justify-start h-12 bg-transparent border-b rounded-none p-0 space-x-6 mb-6">
-          <TabsTrigger 
-            value="about" 
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:shadow-none px-4 pb-3 pt-2 font-semibold text-base bg-transparent"
-          >
+        <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
+          <TabsTrigger value="about" className="gap-2">
+            <Briefcase className="w-4 h-4" />
             O meni
           </TabsTrigger>
-          <TabsTrigger 
-            value="booking" 
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:shadow-none px-4 pb-3 pt-2 font-semibold text-base bg-transparent"
-          >
+          <TabsTrigger value="booking" className="gap-2">
+            <CalendarCheck className="w-4 h-4" />
             Rezerviraj termin
           </TabsTrigger>
         </TabsList>
 
         {/* TAB 1: O MENI */}
-        <TabsContent value="about" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="md:col-span-2 space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Biografija</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="whitespace-pre-line leading-relaxed text-muted-foreground">
-                    {caretaker.about_me || "Korisnik nije unio detaljan opis."}
-                  </p>
-                </CardContent>
-              </Card>
+        <TabsContent value="about" className="space-y-6 mt-0">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            {/* Osnovne informacije */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-medium">Osnovne informacije</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {caretaker.working_since && (
+                  <>
+                    <DataRow 
+                      icon={<Briefcase className="w-4 h-4" />} 
+                      label="Iskustvo od" 
+                      value={`${caretaker.working_since}. godine`} 
+                    />
+                    <Separator />
+                  </>
+                )}
+                {caretaker.office_address && (
+                  <>
+                    <DataRow 
+                      icon={<MapPin className="w-4 h-4" />} 
+                      label="Lokacija" 
+                      value={caretaker.office_address} 
+                    />
+                    <Separator />
+                  </>
+                )}
+                {caretaker.tel_num && (
+                  <DataRow 
+                    icon={<Phone className="w-4 h-4" />} 
+                    label="Telefon" 
+                    value={caretaker.tel_num} 
+                  />
+                )}
+                {!caretaker.working_since && !caretaker.office_address && !caretaker.tel_num && (
+                  <p className="text-sm text-muted-foreground italic">Nema dostupnih informacija</p>
+                )}
+              </CardContent>
+            </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Područja rada</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-2">
-                    {caretaker.help_categories?.length > 0 ? (
-                      caretaker.help_categories.map((cat: string, i: number) => (
-                        <span key={i} className="px-3 py-1 bg-secondary text-secondary-foreground rounded-md text-sm font-medium">
-                          {cat}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-muted-foreground italic">Nema definiranih kategorija.</span>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Kontakt</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-primary/10 p-2 rounded-full text-primary">
-                      <Phone className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Telefon</p>
-                      <p className="font-medium">{caretaker.tel_num || "Nije dostupno"}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="bg-primary/10 p-2 rounded-full text-primary">
-                      <MapPin className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Lokacija</p>
-                      <p className="font-medium">{caretaker.office_address || "Online / Nije navedeno"}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            {/* Područja rada */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-medium">Područja rada</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {caretaker.help_categories?.length > 0 ? (
+                    caretaker.help_categories.map((cat: string, i: number) => (
+                      <span key={i} className="px-3 py-1.5 bg-primary/10 text-primary rounded-md text-sm font-medium border border-primary/20">
+                        {cat}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-sm text-muted-foreground italic">Nema definiranih kategorija</span>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </div>
+
+          {/* Biografija - puna širina */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-medium">Biografija</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="whitespace-pre-line leading-relaxed text-muted-foreground">
+                {caretaker.about_me || "Korisnik nije unio detaljan opis."}
+              </p>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* TAB 2: REZERVACIJA */}
@@ -421,6 +407,21 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
           </div>
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+// Kompaktna data row komponenta
+function DataRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">{label}</p>
+        <p className="font-medium truncate">{value}</p>
+      </div>
     </div>
   );
 }

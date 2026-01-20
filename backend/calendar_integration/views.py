@@ -196,9 +196,7 @@ class GoogleConnectView(APIView):
             }
         }
         scopes = [
-            'https://www.googleapis.com/auth/calendar.events',
-            'https://www.googleapis.com/auth/calendar.readonly',
-            'https://www.googleapis.com/auth/calendar.freebusy',
+            'https://www.googleapis.com/auth/calendar',
         ]
 
         flow = Flow.from_client_config(client_config, scopes=scopes, redirect_uri=redirect_uri)
@@ -239,7 +237,8 @@ class GoogleOAuthCallbackView(APIView):
             }
         }
 
-        flow = Flow.from_client_config(client_config, scopes=[], redirect_uri=redirect_uri)
+        # Don't specify scopes in callback - accept whatever Google returns
+        flow = Flow.from_client_config(client_config, scopes=None, redirect_uri=redirect_uri)
         # if state present in session, set it
         try:
             sess_state = request.session.get('google_oauth_state')
@@ -271,4 +270,7 @@ class GoogleOAuthCallbackView(APIView):
         except Exception as exc:
             return Response({'detail': 'Failed to save credentials', 'error': str(exc)}, status=500)
 
-        return Response({'status': 'connected'})
+        # Redirect to frontend dashboard after successful connection
+        from django.shortcuts import redirect
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
+        return redirect(f'{frontend_url}/carefree/caretaker?calendar_connected=true')
