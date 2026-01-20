@@ -257,6 +257,10 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3001",
 ]
 
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://programsko-inzenjerstvo.*\.vercel\.app$",
+]
+
 CSRF_TRUSTED_ORIGINS = [
     "https://programsko-inzenjerstvo.vercel.app",
     "https://*.railway.app",

@@ -21,6 +21,7 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
     confirmPassword: "",
     role: "",
     age: "",
+    sex: "",
     studying_at: "",
   });
   const [loading, setLoading] = useState(false);
@@ -47,8 +48,8 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
     }
 
     
-    if (formData.role === "student" && !formData.age) {
-      setError("Dob je obavezna za studente");
+    if (formData.role === "student" && (!formData.age || !formData.sex)) {
+      setError("Dob i spol su obavezni za studente");
       return;
     }
 
@@ -78,6 +79,7 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
           last_name: formData.last_name,
           password: formData.password,
           role: formData.role,
+          ...(formData.role === "student" && { age: parseInt(formData.age), sex: formData.sex }),
         }),
       });
 
@@ -187,7 +189,7 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
 
   return (
     <div className="flex min-h-screen items-center justify-center p-6">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-lg">
         <CardHeader>
           <CardTitle className="text-2xl">Dovršite registraciju</CardTitle>
           <CardDescription>
@@ -268,18 +270,37 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
             <div className="transition-all duration-500 ease-in-out overflow-hidden">
               {formData.role === "student" && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-500">
-                  <div className="space-y-2">
-                    <Label htmlFor="age">Dob</Label>
-                    <Input
-                      id="age"
-                      type="number"
-                      min="1"
-                      max="100"
-                      value={formData.age}
-                      onChange={(e) => setFormData({ ...formData, age: e.target.value })}
-                      required
-                      disabled={loading}
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="age">Dob</Label>
+                      <Input
+                        id="age"
+                        type="number"
+                        min="1"
+                        max="100"
+                        value={formData.age}
+                        onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                        required
+                        disabled={loading}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="sex">Spol</Label>
+                      <select
+                        id="sex"
+                        value={formData.sex}
+                        onChange={(e) => setFormData({ ...formData, sex: e.target.value })}
+                        required
+                        disabled={loading}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <option value="">Odaberite...</option>
+                        <option value="M">Muški</option>
+                        <option value="F">Ženski</option>
+                        <option value="O">Ne želim reći</option>
+                      </select>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
