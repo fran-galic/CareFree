@@ -10,7 +10,7 @@ User = get_user_model()
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["id", "email", "sex", "age", "username", "role"]
+        fields = ["id", "email", "first_name", "last_name", "sex", "age", "username", "role"]
         read_only_fields = ["id", "email"]
 
 
@@ -143,6 +143,19 @@ class CaretakerProfileSerializer(serializers.ModelSerializer):
         model = Caretaker
         fields = ['about_me', 'tel_num', 'grad_year', 'help_categories', 'is_profile_complete', 'is_approved', 'approval_status']
         read_only_fields = ['is_profile_complete', 'is_approved', 'approval_status', 'image_mime_type']
+
+
+class CaretakerSearchSerializer(serializers.ModelSerializer):
+    """Serializer for caretaker search results"""
+    first_name = serializers.CharField(source='user.first_name', read_only=True)
+    last_name = serializers.CharField(source='user.last_name', read_only=True)
+    email = serializers.EmailField(source='user.email', read_only=True)
+    user_id = serializers.IntegerField(source='user.id', read_only=True)
+
+    class Meta:
+        model = Caretaker
+        fields = ['user_id', 'first_name', 'last_name', 'email', 'about_me', 'grad_year', 'is_approved']
+        read_only_fields = fields
 
 
 class CaretakerImageSerializer(serializers.Serializer):

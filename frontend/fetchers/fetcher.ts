@@ -1,5 +1,5 @@
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
 
 let isRefreshing = false;
 let refreshPromise: Promise<boolean> | null = null;
@@ -24,7 +24,7 @@ async function refreshAccessToken(): Promise<boolean> {
                 console.error('Token refresh failed:', response.status);
                 // Redirect to login if refresh fails
                 if (typeof window !== 'undefined') {
-                    window.location.href = '/auth/login';
+                    window.location.href = '/accounts/login';
                 }
                 return false;
             }
@@ -33,7 +33,7 @@ async function refreshAccessToken(): Promise<boolean> {
         } catch (error) {
             console.error('Token refresh error:', error);
             if (typeof window !== 'undefined') {
-                window.location.href = '/auth/login';
+                window.location.href = '/accounts/login';
             }
             return false;
         } finally {
