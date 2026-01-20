@@ -110,6 +110,19 @@ export default function SignupStudentForm({ userId }: ISignupStudentFormProps) {
                                 required
                             />
                         </Field>
+                        <Field>
+                            <FieldLabel htmlFor="sex">Spol</FieldLabel>
+                            <Select name="sex" required>
+                                <SelectTrigger id="sex">
+                                    <SelectValue placeholder="Odaberite..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="M">Muški</SelectItem>
+                                    <SelectItem value="F">Ženski</SelectItem>
+                                    <SelectItem value="O">Ne želim reći</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </Field>
                         <Label className="hover:bg-accent/50 flex items-start gap-3 rounded-lg border p-3 has-aria-checked:border-primary has-aria-checked:bg-primary/10 dark:has-aria-checked:border-primary dark:has-aria-checked:bg-primary/20">
                             <Checkbox
                                 id="is-anonymus"
