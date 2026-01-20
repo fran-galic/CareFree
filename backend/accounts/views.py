@@ -10,6 +10,7 @@ from .models import Caretaker, Student
 from .serializers import (
     LoginSerializer,
     UserSerializer,
+    CaretakerSearchSerializer,
 )
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken, UntypedToken, BlacklistedToken
@@ -770,3 +771,25 @@ def refresh_access_token_view(request):
         )
 
     return response
+
+
+class CaretakerSearchView(generics.ListAPIView):
+    """
+    View for students to search approved caretakers
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = CaretakerSearchSerializer
+    
+    def get_queryset(self):
+        queryset = Caretaker.objects.filter(is_approved=True, approval_status='APPROVED')
+        
+        # Optional search by name
+        search = self.request.query_params.get('search', None)
+        if search:
+            queryset = queryset.filter(
+                user__first_name__icontains=search
+            ) | queryset.filter(
+                user__last_name__icontains=search
+            )
+        
+        return queryset.select_related('user').order_by('user__first_name')

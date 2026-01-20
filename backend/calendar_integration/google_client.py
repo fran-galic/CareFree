@@ -90,11 +90,11 @@ def create_event(
         }
         created = (
             service.events()
-            .insert(calendarId=calendar_id, body=event, conferenceDataVersion=1)
+            .insert(calendarId=calendar_id, body=event, conferenceDataVersion=1, sendUpdates='none')
             .execute()
         )
     else:
-        created = service.events().insert(calendarId=calendar_id, body=event).execute()
+        created = service.events().insert(calendarId=calendar_id, body=event, sendUpdates='none').execute()
     return created
 
 
