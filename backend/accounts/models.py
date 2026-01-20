@@ -16,7 +16,7 @@ class CustomUserManager(BaseUserManager):
 
     def create_user(self, email, password=None, **extra_fields):
         if not email:
-            return ValueError("Korisnik mora imati e-mail adresu!")
+            raise ValueError("Korisnik mora imati e-mail adresu!")
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
