@@ -2,25 +2,34 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Save, UserCircle, LogOut, Key, Trash } from "lucide-react";
-import { ProfileHeader } from "@/components/profile-header";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  Loader2, 
+  LogOut, 
+  Key, 
+  Trash, 
+  Mail, 
+  Calendar, 
+  GraduationCap, 
+  BookOpen,
+  User,
+  EyeOff,
+  Eye,
+  Shield,
+  Settings
+} from "lucide-react";
 
 export default function StudentProfilePage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
-  const [formData, setFormData] = useState<any>({});
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // 1. DOHVAT PODATAKA
   useEffect(() => {
     async function fetchUser() {
       try {
@@ -36,21 +45,12 @@ export default function StudentProfilePage() {
 
         const data = await res.json();
         
-        // Sigurnosna provjera - ako je zalutao psiholog, prebaci ga
         if (data.role === "caretaker") {
-            router.push("/carefree/profile/caretaker");
-            return;
+          router.push("/carefree/profile/caretaker");
+          return;
         }
 
         setUser(data);
-        if (data.student) {
-          setFormData({
-            studying_at: data.student.studying_at,
-            year_of_study: data.student.year_of_study,
-            is_anonymous: data.student.is_anonymous,
-            about_me: data.student.about_me,
-          });
-        }
       } catch (error) {
         console.error(error);
       } finally {
@@ -60,42 +60,12 @@ export default function StudentProfilePage() {
     fetchUser();
   }, [router]);
 
-  // 2. SPREMANJE
-  const handleSave = async () => {
-    setSaving(true);
-    setMessage(null);
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users/me/student/`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          studying_at: formData.studying_at,
-          year_of_study: formData.year_of_study ? parseInt(formData.year_of_study) : null,
-          about_me: formData.about_me,
-          is_anonymous: formData.is_anonymous,
-        }),
-      });
-
-      if (!res.ok) throw new Error("Update failed");
-      setMessage({ type: "success", text: "Podaci uspješno spremljeni!" });
-      router.refresh();
-    } catch (error) {
-      setMessage({ type: "error", text: "Greška pri spremanju." });
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const handleLogout = async () => {
     await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/logout/`, { method: "POST", credentials: "include" });
     router.push("/accounts/login");
   };
 
   const handleDeleteAccount = async () => {
-    if (!confirm("Jeste li sigurni da želite TRAJNO obrisati svoj račun? Ova akcija se ne može poništiti!")) return;
-    if (!confirm("Posljednje upozorenje: Svi vaši podaci će biti trajno izbrisani. Nastaviti?")) return;
-    
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/delete/`, {
         method: "DELETE",
@@ -103,90 +73,225 @@ export default function StudentProfilePage() {
       });
 
       if (response.ok) {
-        alert("Račun uspješno obrisan.");
         router.push("/accounts/login");
       } else {
-        throw new Error("Greška pri brisanju računa");
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Delete account error:", response.status, errorData);
+        alert(`Greška pri brisanju računa: ${errorData.error || errorData.detail || response.statusText}`);
       }
     } catch (error) {
-      alert("Greška pri brisanju računa. Pokušajte ponovno.");
+      console.error("Delete account exception:", error);
+      alert("Greška pri brisanju računa. Molimo pokušajte ponovno.");
     }
   };
 
-  if (loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin" /></div>;
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="animate-spin w-8 h-8 text-primary" />
+      </div>
+    );
+  }
+  
   if (!user) return null;
 
+  const student = user.student;
+  const initials = `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase() || 'S';
+
   return (
-    <div className="container mx-auto py-12 max-w-5xl px-6" data-theme="student">
-      <ProfileHeader 
-        firstName={user.first_name} 
-        lastName={user.last_name} 
-        email={user.email} 
-        role="student"
-      />
-      <Separator className="mb-10 opacity-50" />
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-        {/* Sidebar */}
-        <div className="space-y-6">
-            <h3 className="font-semibold text-lg">Postavke</h3>
-            <Card>
-                <CardContent className="pt-6 space-y-4">
-                    <div><Label className="text-xs text-muted-foreground uppercase">Email</Label><div className="font-medium truncate">{user.email}</div></div>
-                    <div><Label className="text-xs text-muted-foreground uppercase">Dob</Label><div className="font-medium">{user.age} god.</div></div>
-                </CardContent>
-            </Card>
-            <div className="space-y-3">
-                <Button onClick={handleSave} disabled={saving} className="w-full h-12">
-                    {saving ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2 h-4 w-4" />} Spremi
-                </Button>
-                <Button onClick={() => router.push("/carefree/profile/change-password")} variant="outline" className="w-full h-12">
-                    <Key className="mr-2 h-4 w-4" /> Promijeni lozinku
-                </Button>
-                <Button onClick={handleLogout} variant="outline" className="w-full h-12 text-destructive hover:bg-destructive/10">
-                    <LogOut className="mr-2 h-4 w-4" /> Odjava
-                </Button>
-                <Separator className="my-2" />
-                <Button onClick={handleDeleteAccount} variant="destructive" className="w-full h-12">
-                    <Trash className="mr-2 h-4 w-4" /> Obriši račun
-                </Button>
+    <div className="min-h-screen bg-background" data-theme="student">
+      <div className="container mx-auto py-6 px-4 max-w-6xl pb-8">
+        
+        {/* Kompaktni Header */}
+        <div className="flex items-center gap-4 mb-8">
+          <Avatar className="w-24 h-24 border-2 border-primary/20 shadow-lg">
+            <AvatarFallback className="text-3xl font-bold bg-primary text-primary-foreground">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+          
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold tracking-tight">
+              {user.first_name} {user.last_name}
+            </h1>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant="outline" className="text-xs">
+                <GraduationCap className="w-3 h-3 mr-1" />
+                Student
+              </Badge>
             </div>
-            {message && <div className={`p-3 rounded text-sm text-center ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{message.text}</div>}
+          </div>
         </div>
 
-        {/* Forma */}
-        <div className="md:col-span-2 space-y-6">
-            <div className="space-y-1">
-                <h3 className="font-semibold text-xl flex items-center gap-2"><UserCircle className="w-5 h-5 text-primary" /> O meni</h3>
-                <p className="text-sm text-muted-foreground">Podaci koji pomažu psiholozima da vas bolje razumiju.</p>
-            </div>
-            <Card>
-                <CardContent className="pt-6 space-y-6">
-                    <div className="grid md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <Label>Fakultet</Label>
-                            <Input value={formData.studying_at || ""} onChange={e => setFormData({...formData, studying_at: e.target.value})} />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Godina studija</Label>
-                            <Input type="number" value={formData.year_of_study || ""} onChange={e => setFormData({...formData, year_of_study: e.target.value})} />
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Biografija</Label>
-                        <Textarea rows={5} value={formData.about_me || ""} onChange={e => setFormData({...formData, about_me: e.target.value})} className="resize-none" />
-                    </div>
-                    <Separator />
-                    <div className="flex items-start space-x-3 pt-2">
-                        <Checkbox checked={formData.is_anonymous} onCheckedChange={(c) => setFormData({...formData, is_anonymous: c})} />
-                        <div className="grid gap-1.5">
-                            <Label>Želim ostati anoniman</Label>
-                            <p className="text-sm text-muted-foreground">Psiholozi neće vidjeti vaše ime, samo dob i spol.</p>
-                        </div>
-                    </div>
+        <Tabs defaultValue="info" className="w-full">
+          <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
+            <TabsTrigger value="info" className="gap-2">
+              <User className="w-4 h-4" />
+              Osobni podaci
+            </TabsTrigger>
+            <TabsTrigger value="actions" className="gap-2">
+              <Settings className="w-4 h-4" />
+              Akcije
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="info" className="space-y-6 mt-0">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              
+              {/* Osnovne informacije - kompaktno */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base font-medium">Osnovne informacije</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <DataRow icon={<Mail className="w-4 h-4" />} label="Email" value={user.email} />
+                  <Separator />
+                  <DataRow icon={<Calendar className="w-4 h-4" />} label="Dob" value={user.age ? `${user.age} god.` : "—"} />
+                  <Separator />
+                  <DataRow icon={<User className="w-4 h-4" />} label="Spol" value={user.sex === 'M' ? 'Muški' : user.sex === 'F' ? 'Ženski' : user.sex === 'O' ? 'Ne želim reći' : '—'} />
                 </CardContent>
-            </Card>
-        </div>
+              </Card>
+
+              {/* Akademske informacije */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base font-medium">Akademske informacije</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <DataRow 
+                    icon={<BookOpen className="w-4 h-4" />} 
+                    label="Fakultet" 
+                    value={student?.studying_at || "—"} 
+                  />
+                  <Separator />
+                  <DataRow 
+                    icon={<GraduationCap className="w-4 h-4" />} 
+                    label="Godina studija" 
+                    value={student?.year_of_study ? `${student.year_of_study}. godina` : "—"} 
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="actions" className="space-y-4 mt-0">
+            {!showDeleteConfirm ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg font-semibold">Upravljanje računom</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Ovdje možete upravljati postavkama svog računa, promijeniti lozinku ili se odjaviti.
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Sesija */}
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-medium text-muted-foreground">Sesija</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Odjavom ćete biti preusmjereni na stranicu za prijavu. Vaši podaci ostaju sigurno pohranjeni i možete se vratiti bilo kada.
+                    </p>
+                    <Button 
+                      onClick={handleLogout} 
+                      variant="outline" 
+                      className="w-full justify-start h-11 text-destructive hover:text-destructive hover:bg-destructive/5"
+                    >
+                      <LogOut className="mr-2 h-4 w-4" /> Odjavi se
+                    </Button>
+                  </div>
+
+                  <Separator />
+
+                  {/* Sigurnost */}
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-medium text-muted-foreground">Sigurnost</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Redovito ažuriranje lozinke pomaže u zaštiti vašeg računa. Preporučujemo korištenje snažne lozinke s kombinacijom velikih i malih slova, brojeva i simbola.
+                    </p>
+                    <Button 
+                      onClick={() => router.push("/carefree/profile/change-password")} 
+                      variant="outline" 
+                      className="w-full justify-start h-11"
+                    >
+                      <Key className="mr-2 h-4 w-4" /> Promijeni lozinku
+                    </Button>
+                  </div>
+                  
+                  <Separator />
+                  
+                  {/* Opasna zona */}
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-medium text-destructive">Brisanje računa</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Trajno brisanje vašeg računa znači da će svi vaši podaci, povijest razgovora i informacije biti nepovratno uklonjeni iz naših sustava. Ova akcija se ne može poništiti.
+                    </p>
+                    <Button 
+                      onClick={() => setShowDeleteConfirm(true)} 
+                      variant="outline" 
+                      className="w-full justify-start h-11 text-destructive hover:text-destructive hover:bg-destructive/5"
+                    >
+                      <Trash className="mr-2 h-4 w-4" /> Trajno obriši račun
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="border-destructive">
+                <CardHeader>
+                  <CardTitle className="text-lg font-semibold text-destructive flex items-center gap-2">
+                    <Trash className="w-5 h-5" />
+                    Potvrda brisanja računa
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20">
+                    <p className="text-sm font-medium mb-2">Jeste li apsolutno sigurni?</p>
+                    <p className="text-sm text-muted-foreground">
+                      Ova akcija je trajna i nepovratna. Brisanjem računa:
+                    </p>
+                    <ul className="text-sm text-muted-foreground list-disc list-inside mt-2 space-y-1">
+                      <li>Svi vaši osobni podaci bit će trajno izbrisani</li>
+                      <li>Povijest svih razgovora bit će nepovratno uklonjena</li>
+                      <li>Nećete moći obnoviti ovaj račun</li>
+                      <li>Nećete moći registrirati novi račun s istom email adresom</li>
+                    </ul>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <Button 
+                      onClick={() => setShowDeleteConfirm(false)}
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      Odustani
+                    </Button>
+                    <Button 
+                      onClick={handleDeleteAccount}
+                      variant="destructive"
+                      className="flex-1"
+                    >
+                      Da, trajno obriši račun
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  );
+}
+
+// Kompaktna data row komponenta
+function DataRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">{label}</p>
+        <p className="font-medium truncate">{value}</p>
       </div>
     </div>
   );
