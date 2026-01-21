@@ -3,11 +3,11 @@ CareFree je web aplikacija koja studentima pruža siguran, anoniman i brzo dostu
 
 frontend: https://programsko-inzenjerstvo.vercel.app
 
-backend: programsko-inzenjerstvo-production.up.railway.app
+backend: https://programsko-inzenjerstvo-production.up.railway.app
 
-django admin: programsko-inzenjerstvo-production.up.railway.app/admin
+django admin: https://programsko-inzenjerstvo-production.up.railway.app/admin
 
-django admin user: test.admin@email.com
+django admin user: admin@email.com
 
 password: 12345678
 
