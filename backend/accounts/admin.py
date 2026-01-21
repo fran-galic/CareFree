@@ -79,7 +79,7 @@ class CertificateInline(admin.TabularInline):
 
 # Register your models here.
 class CaretakerAdmin(admin.ModelAdmin):
-    list_display = ('__str__', 'user', 'cv_link', 'diplomas_count', 'certificates_count', 'is_profile_complete', 'is_approved', 'approval_status')
+    list_display = ('__str__', 'user', 'cv_link', 'diplomas_count', 'certificates_count', 'google_calendar_connected', 'is_profile_complete', 'is_approved', 'approval_status')
     search_fields = ('user__email',)
     filter_horizontal = ('help_categories',)
     actions = ['approve_caretakers', 'deny_caretakers']
@@ -103,9 +103,23 @@ class CaretakerAdmin(admin.ModelAdmin):
         return obj.certificates.count()
     certificates_count.short_description = 'Certificates'
 
+    def google_calendar_connected(self, obj):
+        """Check if caretaker has connected their Google Calendar"""
+        from calendar_integration.models import GoogleCredential
+        return GoogleCredential.objects.filter(user=obj.user).exists()
+    google_calendar_connected.boolean = True
+    google_calendar_connected.short_description = 'Google Calendar'
+
     def approve_caretakers(self, request, queryset):
+        from calendar_integration.models import GoogleCredential
         updated = 0
+        skipped = 0
         for ct in queryset:
+            # Check if Google Calendar is connected
+            if not GoogleCredential.objects.filter(user=ct.user).exists():
+                skipped += 1
+                continue
+                
             if getattr(ct, 'approval_status', None) != getattr(ct, 'APPROVAL_APPROVED', 'APPROVED'):
                 try:
                     ct.approval_status = ct.APPROVAL_APPROVED
@@ -114,7 +128,15 @@ class CaretakerAdmin(admin.ModelAdmin):
                 ct.save()
                 _send_caretaker_status_email(ct, approved=True)
                 updated += 1
-        self.message_user(request, f"Approved {updated} caretakers.")
+        
+        if skipped > 0:
+            self.message_user(
+                request, 
+                f"Approved {updated} caretakers. Skipped {skipped} caretakers without Google Calendar connection.",
+                level='warning'
+            )
+        else:
+            self.message_user(request, f"Approved {updated} caretakers.")
     approve_caretakers.short_description = 'Approve selected caretakers and notify them'
 
     def deny_caretakers(self, request, queryset):

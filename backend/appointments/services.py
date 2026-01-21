@@ -69,7 +69,8 @@ def create_appointment_request(student_user, caretaker_obj, requested_start, mes
         from django.conf import settings
         
         if getattr(caretaker_obj, 'user', None) and caretaker_obj.user.email:
-            start_str = requested_start.strftime('%d.%m.%Y u %H:%M')
+            zagreb_tz = ZoneInfo('Europe/Zagreb')
+            start_str = requested_start.astimezone(zagreb_tz).strftime('%d.%m.%Y u %H:%M')
             student_name = "Student"
             if req.student and getattr(req.student, 'user', None):
                 student_name = req.student.user.get_full_name() or req.student.user.username
@@ -193,7 +194,8 @@ def approve_appointment_request(approver_user, request_id):
             from django.conf import settings
             
             if req.student and getattr(req.student, 'user', None) and req.student.user.email:
-                start_str = req.requested_start.strftime('%d.%m.%Y u %H:%M')
+                zagreb_tz = ZoneInfo('Europe/Zagreb')
+                start_str = req.requested_start.astimezone(zagreb_tz).strftime('%d.%m.%Y u %H:%M')
                 caretaker_name = req.caretaker.user.get_full_name() or "Caretaker"
                 
                 body = f"Vaš zahtjev za termin je prihvaćen!\n\n"
@@ -303,7 +305,8 @@ def sync_create_google_event_sync(appointment_id):
                 recipients.append(appt.caretaker.user.email)
         
         if recipients:
-            start_str = appt.start.strftime('%d.%m.%Y u %H:%M')
+            zagreb_tz = ZoneInfo('Europe/Zagreb')
+            start_str = appt.start.astimezone(zagreb_tz).strftime('%d.%m.%Y u %H:%M')
             body = f"Vaš zahtjev za razgovor {start_str} je potvrđen!\n\n"
             if appt.conference_link:
                 body += f"Sastanku možete pristupiti putem ovog linka: {appt.conference_link}"
