@@ -187,8 +187,10 @@ class AppointmentRequestRejectView(APIView):
                     recipients.append(req.caretaker.user.email)
 
             if recipients:
-                start_str = req.requested_start.strftime('%d.%m.%Y u %H:%M')
-                subj = 'Zahtjev za termin odbijen - CareFree'
+                from zoneinfo import ZoneInfo
+                zagreb_tz = ZoneInfo('Europe/Zagreb')
+                start_str = req.requested_start.astimezone(zagreb_tz).strftime('%d.%m.%Y u %H:%M')
+                subj = 'Zahtjev za razgovor je odbijen - CareFree'
                 msg = f"Vaš zahtjev za razgovor {start_str} je odbijen.\n\n"
                 msg += "Molimo da u aplikaciji odaberete neki drugi termin."
                 send_mail(subject=subj, message=msg, from_email=settings.DEFAULT_FROM_EMAIL, recipient_list=recipients, fail_silently=True)

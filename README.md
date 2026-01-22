@@ -1,11 +1,13 @@
 # CareFree - psihološka pomoć na dlanu
 CareFree je web aplikacija koja studentima pruža siguran, anoniman i brzo dostupan kanal za psihološku podršku. Kombinira AI-agenta za inicijalnu procjenu s mogućnošću povezivanja sa licenciranim psihološkim stručnjacima.
 
-deployment: https://programsko-inzenjerstvo.vercel.app
+frontend: https://programsko-inzenjerstvo.vercel.app
 
-backend: https://programsko-inzenjerstvo-production-9d1d.up.railway.app/admin
+backend: https://programsko-inzenjerstvo-production.up.railway.app
 
-django admin user: test.admin@email.com
+django admin: https://programsko-inzenjerstvo-production.up.railway.app/admin
+
+django admin user: admin@email.com
 
 password: 12345678
 

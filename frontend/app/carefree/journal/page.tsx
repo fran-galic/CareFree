@@ -21,6 +21,7 @@ export default function JournalPage() {
   const [editingId, setEditingId] = useState<number | null>(null); // ID zapisa koji se uređuje
   const [newEntry, setNewEntry] = useState({ title: "", content: "", mood: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<{show: boolean, id: number | null}>({ show: false, id: null });
 
   // Funkcija za slanje novog zapisa
   const handleCreate = async (e: React.FormEvent) => {
@@ -46,14 +47,21 @@ export default function JournalPage() {
     }
   };
 
-  // Funkcija za brisanje
-  const handleDelete = async (id: number) => {
-    if (!confirm("Jeste li sigurni da želite obrisati ovaj zapis?")) return;
+  // Funkcija za pokretanje dialoga za brisanje
+  const handleDelete = (id: number) => {
+    setDeleteConfirm({ show: true, id });
+  };
+
+  // Funkcija za potvrdu brisanja
+  const confirmDelete = async () => {
+    if (!deleteConfirm.id) return;
     try {
-      await deleteJournalEntry(id);
+      await deleteJournalEntry(deleteConfirm.id);
       mutate("/api/journal/"); // Osvježi listu
     } catch (err) {
       console.error("Greška pri brisanju:", err);
+    } finally {
+      setDeleteConfirm({ show: false, id: null });
     }
   };
 
@@ -328,6 +336,39 @@ export default function JournalPage() {
             </div>
           )}
         </>
+      )}
+
+      {/* DELETE CONFIRMATION DIALOG */}
+      {deleteConfirm.show && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="max-w-md w-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-destructive">
+                <Trash2 className="h-5 w-5" />
+                Potvrdi brisanje
+              </CardTitle>
+              <CardDescription>
+                Jeste li sigurni da želite obrisati ovaj zapis? Ova radnja se ne može poništiti.
+              </CardDescription>
+            </CardHeader>
+            <CardFooter className="gap-2 flex-col sm:flex-row">
+              <Button 
+                variant="outline" 
+                className="w-full sm:w-auto"
+                onClick={() => setDeleteConfirm({ show: false, id: null })}
+              >
+                Odustani
+              </Button>
+              <Button 
+                variant="destructive" 
+                className="w-full sm:w-auto"
+                onClick={confirmDelete}
+              >
+                Obriši zapis
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
       )}
     </div>
   );
