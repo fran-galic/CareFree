@@ -157,7 +157,7 @@ export default function CarefreeLayout({
               <div className={`flex items-center gap-3 pl-1 pr-4 py-1 rounded-full border transition-all cursor-pointer group ${
                 isActive("/carefree/profile") 
                   ? "border-primary bg-primary/5" 
-                  : "border-transparent hover:bg-accent"
+                  : "border-transparent hover:bg-primary/5 hover:border-primary"
               }`}>
                 <Avatar className="w-9 h-9 border-2 border-background shadow-sm group-hover:border-primary/50 transition-colors">
                   <AvatarImage 

@@ -21,14 +21,31 @@ import {
   EyeOff,
   Eye,
   Shield,
-  Settings
+  Settings,
+  UserPen,
+  Save
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function StudentProfilePage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState<"info" | "actions">("info");
+
+  const [form, setForm] = useState({
+    first_name: "",
+    last_name: "",
+    age: "",
+    sex: "" as "" | "M" | "F" | "O",
+    studying_at: "",
+    year_of_study: "",
+  });
 
   useEffect(() => {
     async function fetchUser() {
@@ -59,6 +76,94 @@ export default function StudentProfilePage() {
     }
     fetchUser();
   }, [router]);
+
+  useEffect(() => {
+    if (!user) return;
+    setForm({
+      first_name: user.first_name ?? "",
+      last_name: user.last_name ?? "",
+      age: user.age ? String(user.age) : "",
+      sex: user.sex ?? "",
+      studying_at: user.student?.studying_at ?? "",
+      year_of_study: user.student?.year_of_study ? String(user.student.year_of_study) : "",
+    });
+  }, [user]);
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    // reset form back to current user state
+    setForm({
+      first_name: user.first_name ?? "",
+      last_name: user.last_name ?? "",
+      age: user.age ? String(user.age) : "",
+      sex: user.sex ?? "",
+      studying_at: user.student?.studying_at ?? "",
+      year_of_study: user.student?.year_of_study ? String(user.student.year_of_study) : "",
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    setSaving(true);
+    try {
+      // Update User fields
+      const userPayload = {
+        first_name: form.first_name.trim(),
+        last_name: form.last_name.trim(),
+        age: form.age ? Number(form.age) : null,
+        sex: form.sex || null,
+      };
+
+      const userRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users/me/`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(userPayload),
+      });
+
+      if (!userRes.ok) {
+        const err = await userRes.json().catch(() => ({}));
+        alert(err.detail || err.error || "Greška pri spremanju korisničkih podataka.");
+        return;
+      }
+
+      // Update Student fields
+      const studentPayload = {
+        studying_at: form.studying_at.trim() || null,
+        year_of_study: form.year_of_study ? Number(form.year_of_study) : null,
+      };
+
+      const studentRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users/me/student/`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(studentPayload),
+      });
+
+      if (!studentRes.ok) {
+        const err = await studentRes.json().catch(() => ({}));
+        alert(err.detail || err.error || "Greška pri spremanju studentskih podataka.");
+        return;
+      }
+
+      // Refresh user data from /users/me/
+      const refreshRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users/me/`, {
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+
+      if (refreshRes.ok) {
+        const updated = await refreshRes.json();
+        setUser(updated);
+      }
+
+      setIsEditing(false);
+    } catch (e) {
+      console.error(e);
+      alert("Greška pri spremanju promjena. Molimo pokušajte ponovno.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleLogout = async () => {
     await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/logout/`, { method: "POST", credentials: "include" });
@@ -123,17 +228,38 @@ export default function StudentProfilePage() {
           </div>
         </div>
 
-        <Tabs defaultValue="info" className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
-            <TabsTrigger value="info" className="gap-2">
-              <User className="w-4 h-4" />
-              Osobni podaci
-            </TabsTrigger>
-            <TabsTrigger value="actions" className="gap-2">
-              <Settings className="w-4 h-4" />
-              Akcije
-            </TabsTrigger>
-          </TabsList>
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "info" | "actions")} className="w-full">
+          <div className="flex items-center justify-between mb-6">
+            <TabsList className="grid w-full max-w-md grid-cols-2">
+              <TabsTrigger value="info" className="gap-2">
+                <User className="w-4 h-4" />
+                Osobni podaci
+              </TabsTrigger>
+              <TabsTrigger value="actions" className="gap-2">
+                <Settings className="w-4 h-4" />
+                Akcije
+              </TabsTrigger>
+            </TabsList>
+
+            {activeTab === "info" && (
+              !isEditing ? (
+                <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                  { "Uredi" }
+                  <UserPen />
+                </Button>
+              ) : (
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={handleCancelEdit} disabled={saving}>
+                    Odustani
+                  </Button>
+                  <Button size="sm" onClick={handleSaveEdit} disabled={saving}>
+                    { "Spremi" }
+                    <Save />
+                  </Button>
+                </div>
+              )
+            )}
+          </div>
 
           <TabsContent value="info" className="space-y-6 mt-0">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -143,12 +269,66 @@ export default function StudentProfilePage() {
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base font-medium">Osnovne informacije</CardTitle>
                 </CardHeader>
+
                 <CardContent className="space-y-3">
-                  <DataRow icon={<Mail className="w-4 h-4" />} label="Email" value={user.email} />
-                  <Separator />
-                  <DataRow icon={<Calendar className="w-4 h-4" />} label="Dob" value={user.age ? `${user.age} god.` : "—"} />
-                  <Separator />
-                  <DataRow icon={<User className="w-4 h-4" />} label="Spol" value={user.sex === 'M' ? 'Muški' : user.sex === 'F' ? 'Ženski' : user.sex === 'O' ? 'Ne želim reći' : '—'} />
+                  {!isEditing ? (
+                    <>
+                      <DataRow icon={<Mail className="w-4 h-4" />} label="Email" value={user.email} />
+                      <Separator />
+                      <DataRow icon={<Calendar className="w-4 h-4" />} label="Dob" value={user.age ? `${user.age} god.` : "—"} />
+                      <Separator />
+                      <DataRow
+                        icon={<User className="w-4 h-4" />}
+                        label="Spol"
+                        value={user.sex === "M" ? "Muški" : user.sex === "F" ? "Ženski" : user.sex === "O" ? "Ne želim reći" : "—"}
+                      />
+                    </>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label>Ime</Label>
+                          <Input
+                            value={form.first_name}
+                            onChange={(e) => setForm((p) => ({ ...p, first_name: e.target.value }))}
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label>Prezime</Label>
+                          <Input
+                            value={form.last_name}
+                            onChange={(e) => setForm((p) => ({ ...p, last_name: e.target.value }))}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label>Dob</Label>
+                          <Input
+                            type="number"
+                            value={form.age}
+                            onChange={(e) => setForm((p) => ({ ...p, age: e.target.value }))}
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label>Spol</Label>
+                          <Select value={form.sex} onValueChange={(v) => setForm((p) => ({ ...p, sex: v as any }))}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Odaberi" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="M">Muški</SelectItem>
+                              <SelectItem value="F">Ženski</SelectItem>
+                              <SelectItem value="O">Ne želim reći</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -157,18 +337,38 @@ export default function StudentProfilePage() {
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base font-medium">Akademske informacije</CardTitle>
                 </CardHeader>
+
                 <CardContent className="space-y-3">
-                  <DataRow 
-                    icon={<BookOpen className="w-4 h-4" />} 
-                    label="Fakultet" 
-                    value={student?.studying_at || "—"} 
-                  />
-                  <Separator />
-                  <DataRow 
-                    icon={<GraduationCap className="w-4 h-4" />} 
-                    label="Godina studija" 
-                    value={student?.year_of_study ? `${student.year_of_study}. godina` : "—"} 
-                  />
+                  {!isEditing ? (
+                    <>
+                      <DataRow icon={<BookOpen className="w-4 h-4" />} label="Fakultet" value={student?.studying_at || "—"} />
+                      <Separator />
+                      <DataRow
+                        icon={<GraduationCap className="w-4 h-4" />}
+                        label="Godina studija"
+                        value={student?.year_of_study ? `${student.year_of_study}. godina` : "—"}
+                      />
+                    </>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="space-y-1">
+                        <Label>Fakultet</Label>
+                        <Input
+                          value={form.studying_at}
+                          onChange={(e) => setForm((p) => ({ ...p, studying_at: e.target.value }))}
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label>Godina studija</Label>
+                        <Input
+                          type="number"
+                          value={form.year_of_study}
+                          onChange={(e) => setForm((p) => ({ ...p, year_of_study: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>

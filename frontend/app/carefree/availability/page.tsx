@@ -1,16 +1,15 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Calendar, dateFnsLocalizer, View } from "react-big-calendar";
+import { Calendar, dateFnsLocalizer, View, ToolbarProps } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay } from "date-fns";
 import { hr } from "date-fns/locale";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Calendar as CalendarIcon, ExternalLink, Video, User, Clock } from "lucide-react";
+import { Loader2, Calendar as CalendarIcon, ExternalLink, Video, User, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { getCaretakerAppointments, type Appointment } from "@/fetchers/appointments";
-
 const locales = {
   hr: hr,
 };
@@ -226,6 +225,93 @@ export default function AvailabilityPage() {
                     noEventsInRange: "Nema događaja u ovom periodu.",
                     showMore: (total) => `+ još ${total}`,
                   }}
+                    components={{
+                      toolbar: (props: ToolbarProps<CalendarEvent, object>) => {
+                        const { view, date, onNavigate, onView } = props;
+
+                        const formatMonthLabel = (d: Date): string =>
+                          new Intl.DateTimeFormat("hr", { month: "long", year: "numeric" }).format(d);
+
+                        const formatDayLabel = (d: Date): string =>
+                          `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
+
+                        const getStartOfWeek = (d: Date): Date => {
+                          const copy = new Date(d);
+                          const day = (copy.getDay() + 6) % 7;
+                          copy.setDate(copy.getDate() - day);
+                          copy.setHours(0, 0, 0, 0);
+                          return copy;
+                        };
+
+                        const getEndOfWeek = (d: Date): Date => {
+                          const start = getStartOfWeek(d);
+                          const end = new Date(start);
+                          end.setDate(start.getDate() + 6);
+                          return end;
+                        };
+
+                        const formatWeekLabel = (d: Date): string => {
+                          const start = getStartOfWeek(d);
+                          const end = getEndOfWeek(d);
+                          return `${start.getDate()}-${end.getDate()}/${end.getMonth() + 1}/${end.getFullYear()}`;
+                        };
+
+                        const label: string =
+                          view === "agenda"
+                            ? ""
+                            : view === "month"
+                              ? formatMonthLabel(date)
+                              : view === "week"
+                                ? formatWeekLabel(date)
+                                : formatDayLabel(date);
+
+                        const ViewBtn = ({
+                          v,
+                          text,
+                        }: {
+                          v: View;
+                          text: string;
+                        }) => (
+                          <button
+                            type="button"
+                            onClick={() => onView(v)}
+                            className={[
+                              "px-3 py-1 rounded border transition",
+                              view === v ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted",
+                            ].join(" ")}
+                          >
+                            {text}
+                          </button>
+                        );
+
+                        return (
+                          <div className="flex items-center justify-between mb-3 gap-3">
+                            <div className="flex gap-2">
+                              <button type="button" className="px-3 py-1 rounded border hover:bg-muted transition" onClick={() => onNavigate("PREV")}>
+                                <ChevronLeft />
+                              </button>
+                              <button type="button" className="px-3 py-1 rounded border hover:bg-muted transition" onClick={() => onNavigate("TODAY")}>
+                                Danas
+                              </button>
+                              <button type="button" className="px-3 py-1 rounded border hover:bg-muted transition" onClick={() => onNavigate("NEXT")}>
+                                <ChevronRight />
+                              </button>
+                            </div>
+
+                            <div className="flex-1 text-center font-semibold">
+                              {label}
+                            </div>
+
+                            <div className="flex gap-2">
+                              <ViewBtn v="month" text="Mjesec" />
+                              <ViewBtn v="week" text="Tjedan" />
+                              <ViewBtn v="day" text="Dan" />
+                              <ViewBtn v="agenda" text="Agenda" />
+                            </div>
+                          </div>
+                        );
+                      },
+                    }}
                   culture="hr"
                 />
               </div>
@@ -237,7 +323,11 @@ export default function AvailabilityPage() {
           <Card>
             <CardHeader>
               <CardTitle>Detalji termina</CardTitle>
-              <CardDescription>
+              <CardDescription
+                className={`${
+                  selectedEvent ? "pb-4 border-b-2" : ""
+                }`}
+              >
                 {selectedEvent
                   ? "Odabrani termin"
                   : "Klikni na termin za detalje"}
