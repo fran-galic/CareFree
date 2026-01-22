@@ -78,7 +78,7 @@ class MeSerializer(BaseUserSerializer):
 class UpdateUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["username", "sex", "age"]
+        fields = ["first_name", "last_name", "username", "sex", "age"]
 
 
 class ChangePasswordSerializer(serializers.Serializer):

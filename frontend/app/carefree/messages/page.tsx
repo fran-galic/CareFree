@@ -230,7 +230,7 @@ export default function ChatPage() {
       {/* SESSION ENDED - RECOMMENDATIONS */}
       {sessionEnded && (
         <Card className="m-4 border-green-200 bg-green-50/50 animate-slideDown max-h-[calc(100vh-8rem)] flex flex-col">
-          <CardHeader className="pb-2 flex-shrink-0">
+          <CardHeader className="pb-0 flex-shrink-0">
             <div className="flex items-start gap-3">
               <div className="bg-green-600 text-white p-2 rounded-full">
                 <CheckCircle className="w-5 h-5" />
@@ -241,13 +241,13 @@ export default function ChatPage() {
                   Hvala što si podijelio/la svoje misli sa mnom. Na temelju našeg razgovora, pripremio sam popis psihologa 
                   koji se specijaliziraju za probleme o kojima smo razgovarali i mogu ti pružiti profesionalnu pomoć.
                 </CardDescription>
-                <CardDescription className="text-sm text-green-600 mt-2 italic">
+                <CardDescription className="text-sm text-green-600 mt-1 italic">
                   Na profilu svakog psihologa možeš zatražiti termin za razgovor.
                 </CardDescription>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="py-3 flex-shrink-0">
+          <CardContent className="py-2 flex-shrink-0">
             {recommendedCaretakers.length > 0 ? (
               <>
                 <div className="grid grid-cols-3 gap-3">
@@ -257,7 +257,7 @@ export default function ChatPage() {
                         <div className="flex flex-col items-center">
                           <Avatar className="w-12 h-12 mb-2">
                             {caretaker.user_image_url ? (
-                              <AvatarImage src={caretaker.user_image_url} />
+                              <AvatarImage src={caretaker.user_image_url} className="object-cover" />
                             ) : null}
                             <AvatarFallback className="text-sm">
                               {caretaker.first_name[0]}{caretaker.last_name[0]}
