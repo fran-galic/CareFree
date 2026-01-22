@@ -11,13 +11,13 @@ class CaretakerShortSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField(source='user.first_name', read_only=True)
     last_name = serializers.CharField(source='user.last_name', read_only=True)
     help_categories = serializers.SlugRelatedField(many=True, read_only=True, slug_field='label')
-    image = serializers.SerializerMethodField()
+    user_image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Caretaker
-        fields = ["user_id", "first_name", "last_name", "help_categories", "image", "grad_year"]
+        fields = ["user_id", "first_name", "last_name", "help_categories", "user_image_url", "grad_year"]
 
-    def get_image(self, obj):
+    def get_user_image_url(self, obj):
         if obj.image:
             try:
                 return obj.image.url
@@ -29,19 +29,31 @@ class CaretakerLongSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField(source='user.first_name', read_only=True)
     last_name = serializers.CharField(source='user.last_name', read_only=True)
     help_categories = serializers.SlugRelatedField(many=True, read_only=True, slug_field='label')
-    image = serializers.SerializerMethodField()
+    user_image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Caretaker
-        fields = ["user_id", "first_name", "last_name", "help_categories", "image", "about_me", "grad_year"]
+        fields = ["user_id", "first_name", "last_name", "help_categories", "user_image_url", "about_me", "grad_year"]
 
-    def get_image(self, obj):
+    def get_user_image_url(self, obj):
         if obj.image:
             try:
                 return obj.image.url
             except Exception:
                 return None
         return None
+
+
+class StudentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Student
+        fields = ["user_id", "studying_at", "year_of_study"]
+
+
+class StudentUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Student
+        fields = ["studying_at", "year_of_study"]
 
 
 class MeSerializer(BaseUserSerializer):
@@ -56,22 +68,17 @@ class MeSerializer(BaseUserSerializer):
 
     def get_student(self, obj):
         try:
-            from accounts.serializers import StudentSerializer as _StudentSerializer
-        except Exception:
-            return None
-
-        try:
             student = obj.student
         except Exception:
             return None
 
-        return _StudentSerializer(student).data
+        return StudentSerializer(student).data
 
 
 class UpdateUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["username", "sex", "age"]
+        fields = ["first_name", "last_name", "username", "sex", "age"]
 
 
 class ChangePasswordSerializer(serializers.Serializer):
@@ -89,18 +96,6 @@ class CaretakerUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Caretaker
         fields = ["about_me", "tel_num"]
-
-
-class StudentSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Student
-        fields = ["user_id", "studying_at", "year_of_study"]
-
-
-class StudentUpdateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Student
-        fields = ["studying_at", "year_of_study"]
 
 
 from accounts.models import HelpCategory

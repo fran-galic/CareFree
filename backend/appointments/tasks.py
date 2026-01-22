@@ -128,7 +128,9 @@ def sync_create_google_event(self, appointment_id):
                 recipients.append(appt.caretaker.user.email)
 
         if recipients:
-            start_str = appt.start.strftime('%d.%m.%Y u %H:%M')
+            from zoneinfo import ZoneInfo
+            zagreb_tz = ZoneInfo('Europe/Zagreb')
+            start_str = appt.start.astimezone(zagreb_tz).strftime('%d.%m.%Y u %H:%M')
             body = f"Vaš zahtjev za razgovor {start_str} je potvrđen!\n\n"
             if appt.conference_link:
                 body += f"Sastanku možete pristupiti putem ovog linka: {appt.conference_link}"
