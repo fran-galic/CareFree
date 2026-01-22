@@ -23,6 +23,7 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
     age: "",
     sex: "",
     studying_at: "",
+    year_of_study: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -96,21 +97,29 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
       if (isGoogleUser) {
         // Tokens already set in cookies by backend
         if (formData.role === "student") {
-          // Update additional student info if provided
-          if (formData.age || formData.studying_at) {
-            const updatePayload: any = {};
-            if (formData.age) updatePayload.age = parseInt(formData.age);
-            if (formData.studying_at) updatePayload.studying_at = formData.studying_at;
+          const studentData: any = {};
+          if (formData.age) studentData.age = parseInt(formData.age);
+          if (formData.sex) studentData.sex = formData.sex;
+          if (formData.studying_at) studentData.studying_at = formData.studying_at;
+          if (formData.year_of_study) studentData.year_of_study = parseInt(formData.year_of_study);
 
-            await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users/me/`, {
-              method: "PATCH",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              credentials: "include",
-              body: JSON.stringify(updatePayload),
-            });
+          if (Object.keys(studentData).length > 0) {
+            try {
+              await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/register/student/`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  user_id: registerData.user.id,
+                  ...studentData
+                }),
+              });
+            } catch (err) {
+              console.error("Failed to update student profile:", err);
+            }
           }
+
           router.push("/carefree/main");
         } else {
           router.push("/carefree/profile/caretaker");
@@ -139,20 +148,30 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
           return;
         }
 
-        
-        if (formData.age || formData.studying_at) {
-          const updatePayload: any = {};
-          if (formData.age) updatePayload.age = parseInt(formData.age);
-          if (formData.studying_at) updatePayload.studying_at = formData.studying_at;
+        const loginData = await loginResponse.json();
 
-          await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users/me/`, {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            credentials: "include",
-            body: JSON.stringify(updatePayload),
-          });
+        // Call the new student registration endpoint
+        const studentData: any = {};
+        if (formData.age) studentData.age = parseInt(formData.age);
+        if (formData.sex) studentData.sex = formData.sex;
+        if (formData.studying_at) studentData.studying_at = formData.studying_at;
+        if (formData.year_of_study) studentData.year_of_study = parseInt(formData.year_of_study);
+
+        if (Object.keys(studentData).length > 0 && loginData.user?.id) {
+          try {
+            await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/register/student/`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                user_id: loginData.user.id,
+                ...studentData
+              }),
+            });
+          } catch (err) {
+            console.error("Failed to update student profile:", err);
+          }
         }
 
         
@@ -303,16 +322,31 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="studying_at">Sveučilište / Fakultet (Opcionalno)</Label>
-                    <Input
-                      id="studying_at"
-                      type="text"
-                      value={formData.studying_at}
-                      onChange={(e) => setFormData({ ...formData, studying_at: e.target.value })}
-                      placeholder="npr. FER, PMF..."
-                      disabled={loading}
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="studying_at">Fakultet (Opcionalno)</Label>
+                      <Input
+                        id="studying_at"
+                        type="text"
+                        value={formData.studying_at}
+                        onChange={(e) => setFormData({ ...formData, studying_at: e.target.value })}
+                        placeholder="npr. FER, PMF..."
+                        disabled={loading}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="year_of_study">Godina studija (Opcionalno)</Label>
+                      <Input
+                        id="year_of_study"
+                        type="number"
+                        min="1"
+                        max="12"
+                        value={formData.year_of_study}
+                        onChange={(e) => setFormData({ ...formData, year_of_study: e.target.value })}
+                        placeholder=""
+                        disabled={loading}
+                      />
+                    </div>
                   </div>
                 </div>
               )}

@@ -2,7 +2,7 @@ from django.urls import path
 from .views import CaretakerCVUploadView, CaretakerCompleteRegistrationView, ConfirmRegistrationView, DiplomaCreateView, LoginView, RequestRegistrationTokenView, deleteUserView, logoutView, refresh_access_token_view, requestPasswordResetView, resetPasswordConfirmView
 from .views import CaretakerImageUploadView, CertificateCreateView
 from .views import loginOrRegisterWithWGogleView
-from .views import CaretakerSearchView
+from .views import CaretakerSearchView, StudentCompleteRegistrationView
 
 
 urlpatterns = [
@@ -15,6 +15,7 @@ urlpatterns = [
 
     path('register/request-email/', RequestRegistrationTokenView.as_view(), name='request_registration_token'),
     path('register/confirm/', ConfirmRegistrationView.as_view(), name='confirm_registration'),
+    path('register/student/', StudentCompleteRegistrationView.as_view(), name='student_complete_registration'),
     path('google/', loginOrRegisterWithWGogleView, name="register-or-login-with-google"),
     # caretaker profile and uploads
     path('caretaker/register/', CaretakerCompleteRegistrationView.as_view(), name='caretaker-profile'),

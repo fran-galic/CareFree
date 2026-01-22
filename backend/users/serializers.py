@@ -44,6 +44,18 @@ class CaretakerLongSerializer(serializers.ModelSerializer):
         return None
 
 
+class StudentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Student
+        fields = ["user_id", "studying_at", "year_of_study"]
+
+
+class StudentUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Student
+        fields = ["studying_at", "year_of_study"]
+
+
 class MeSerializer(BaseUserSerializer):
 
     caretaker = CaretakerShortSerializer(read_only=True)
@@ -56,16 +68,11 @@ class MeSerializer(BaseUserSerializer):
 
     def get_student(self, obj):
         try:
-            from accounts.serializers import StudentSerializer as _StudentSerializer
-        except Exception:
-            return None
-
-        try:
             student = obj.student
         except Exception:
             return None
 
-        return _StudentSerializer(student).data
+        return StudentSerializer(student).data
 
 
 class UpdateUserSerializer(serializers.ModelSerializer):
@@ -89,18 +96,6 @@ class CaretakerUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Caretaker
         fields = ["about_me", "tel_num"]
-
-
-class StudentSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Student
-        fields = ["user_id", "studying_at", "year_of_study"]
-
-
-class StudentUpdateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Student
-        fields = ["studying_at", "year_of_study"]
 
 
 from accounts.models import HelpCategory
