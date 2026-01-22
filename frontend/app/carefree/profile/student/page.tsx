@@ -105,33 +105,57 @@ export default function StudentProfilePage() {
   const handleSaveEdit = async () => {
     setSaving(true);
     try {
-      const payload: any = {
+      // Update User fields
+      const userPayload = {
         first_name: form.first_name.trim(),
         last_name: form.last_name.trim(),
         age: form.age ? Number(form.age) : null,
         sex: form.sex || null,
-        // depending on your backend, student might be nested or a separate endpoint
-        student: {
-          studying_at: form.studying_at.trim() || null,
-          year_of_study: form.year_of_study ? Number(form.year_of_study) : null,
-        },
       };
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users/me/`, {
+      const userRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users/me/`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify(payload),
+        body: JSON.stringify(userPayload),
       });
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        alert(err.detail || err.error || "Greška pri spremanju promjena.");
+      if (!userRes.ok) {
+        const err = await userRes.json().catch(() => ({}));
+        alert(err.detail || err.error || "Greška pri spremanju korisničkih podataka.");
         return;
       }
 
-      const updated = await res.json();
-      setUser(updated);
+      // Update Student fields
+      const studentPayload = {
+        studying_at: form.studying_at.trim() || null,
+        year_of_study: form.year_of_study ? Number(form.year_of_study) : null,
+      };
+
+      const studentRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users/me/student/`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(studentPayload),
+      });
+
+      if (!studentRes.ok) {
+        const err = await studentRes.json().catch(() => ({}));
+        alert(err.detail || err.error || "Greška pri spremanju studentskih podataka.");
+        return;
+      }
+
+      // Refresh user data from /users/me/
+      const refreshRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users/me/`, {
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+
+      if (refreshRes.ok) {
+        const updated = await refreshRes.json();
+        setUser(updated);
+      }
+
       setIsEditing(false);
     } catch (e) {
       console.error(e);
