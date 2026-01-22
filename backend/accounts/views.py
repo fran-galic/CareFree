@@ -69,8 +69,8 @@ def build_auth_response(user):
         key="accessToken",
         value=str(access),
         httponly=True,
-        secure=False,    #True
-        samesite='Lax',
+        secure=False if settings.DEBUG else True,    #True
+        samesite='Lax' if settings.DEBUG else 'None',
         path="/",
     )
 
@@ -78,8 +78,8 @@ def build_auth_response(user):
         key="refreshToken",
         value=str(refresh),
         httponly=True,
-        secure=False,    #True
-        samesite='Lax',
+        secure=False if settings.DEBUG else True,    #True
+        samesite='Lax' if settings.DEBUG else 'None',
         path="/",
     )
 
