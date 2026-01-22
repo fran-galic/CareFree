@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -151,6 +152,12 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
           <h1 className="text-3xl font-bold tracking-tight">
             {caretaker.first_name} {caretaker.last_name}
           </h1>
+          <div className="flex items-center gap-2 mt-1">
+            <Badge variant="outline" className="text-xs">
+              <Briefcase className="w-3 h-3 mr-1" />
+              Psiholog
+            </Badge>
+          </div>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <p className="text-muted-foreground">
               {caretaker.academic_title} {caretaker.specialisation ? `• ${caretaker.specialisation}` : ''}
@@ -173,54 +180,15 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
         </TabsList>
 
         {/* TAB 1: O MENI */}
-        <TabsContent value="about" className="space-y-6 mt-0">
+        <TabsContent value="about" className="mt-0">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
-            {/* Osnovne informacije */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-medium">Osnovne informacije</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {caretaker.working_since && (
-                  <>
-                    <DataRow 
-                      icon={<Briefcase className="w-4 h-4" />} 
-                      label="Iskustvo od" 
-                      value={`${caretaker.working_since}. godine`} 
-                    />
-                    <Separator />
-                  </>
-                )}
-                {caretaker.office_address && (
-                  <>
-                    <DataRow 
-                      icon={<MapPin className="w-4 h-4" />} 
-                      label="Lokacija" 
-                      value={caretaker.office_address} 
-                    />
-                    <Separator />
-                  </>
-                )}
-                {caretaker.tel_num && (
-                  <DataRow 
-                    icon={<Phone className="w-4 h-4" />} 
-                    label="Telefon" 
-                    value={caretaker.tel_num} 
-                  />
-                )}
-                {!caretaker.working_since && !caretaker.office_address && !caretaker.tel_num && (
-                  <p className="text-sm text-muted-foreground italic">Nema dostupnih informacija</p>
-                )}
-              </CardContent>
-            </Card>
-
             {/* Područja rada */}
             <Card>
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-0">
                 <CardTitle className="text-base font-medium">Područja rada</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="py-0">
                 <div className="flex flex-wrap gap-2">
                   {caretaker.help_categories?.length > 0 ? (
                     caretaker.help_categories.map((cat: string, i: number) => (
@@ -234,19 +202,19 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
                 </div>
               </CardContent>
             </Card>
-          </div>
 
-          {/* Biografija - puna širina */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-medium">Biografija</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="whitespace-pre-line leading-relaxed text-muted-foreground">
-                {caretaker.about_me || "Korisnik nije unio detaljan opis."}
-              </p>
-            </CardContent>
-          </Card>
+            {/* O meni */}
+            <Card>
+              <CardHeader className="pb-1">
+                <CardTitle className="text-base font-medium">O meni</CardTitle>
+              </CardHeader>
+              <CardContent className="py-0">
+                <p className="whitespace-pre-line leading-relaxed text-muted-foreground">
+                  {caretaker.about_me || "Korisnik nije unio detaljan opis."}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         {/* TAB 2: REZERVACIJA */}

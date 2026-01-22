@@ -74,7 +74,7 @@ export default function ChatPage() {
         const introMsg: AssistantMessage = {
               id: 0,
               sender: "bot" as const,
-              content: "Bok! Ja sam tvoj AI asistent. Kako se osjećaš danas? Ovdje sam da te saslušam.",
+              content: "Bok! Ja sam Julija, tvoj CareFree AI asistent. Kako se osjećaš danas? Ovdje sam da te saslušam.",
               created_at: new Date().toISOString()
             };
 
@@ -208,7 +208,7 @@ export default function ChatPage() {
       const introMsg: AssistantMessage = {
         id: 0,
         sender: "bot" as const,
-        content: "Bok! Ja sam tvoj AI asistent. Kako se osjećaš danas? Ovdje sam da te saslušam.",
+        content: "Bok! Ja sam Julija, tvoj CareFree AI asistent. Kako se osjećaš danas? Ovdje sam da te saslušam.",
         created_at: new Date().toISOString()
       };
 
@@ -341,7 +341,7 @@ export default function ChatPage() {
                 <Bot className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h1 className="text-lg font-semibold">AI Asistent</h1>
+                <h1 className="text-lg font-semibold">Julija - CareFree AI asistent</h1>
                 <p className="text-xs text-muted-foreground">Siguran razgovor</p>
               </div>
             </div>
