@@ -92,7 +92,7 @@ export function StudentDashboard({ firstName }: StudentDashboardProps) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-2xl text-primary">
               <MessageCircle className="w-8 h-8" />
-              AI Asistent
+              Julija - CareFree AI asistent
             </CardTitle>
             <CardDescription className="text-base">
               Tvoj anonimni sugovornik dostupan 24/7.

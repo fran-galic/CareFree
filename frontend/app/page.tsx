@@ -28,9 +28,9 @@ export default function Home() {
   const studentFeatures = [
     {
       icon: "fi fi-rr-brain",
-      title: "AI asistent 24/7",
+      title: "Julija - CareFree AI asistent 24/7",
       description:
-        "Razgovarajte s AI asistentom u bilo koje doba dana za trenutnu podršku i savjete",
+        "Razgovarajte s Julijom, AI asistentom, u bilo koje doba dana za trenutnu podršku i savjete",
       role: "student" as const,
       badge: "S",
     },
