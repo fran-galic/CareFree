@@ -39,6 +39,7 @@ export default function SignupStudentForm({ userId }: ISignupStudentFormProps) {
 
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false)
+    const [sex, setSex] = useState<string>("")
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
@@ -48,8 +49,10 @@ export default function SignupStudentForm({ userId }: ISignupStudentFormProps) {
         try {
             const formData = new FormData(e.currentTarget)
             const payload = Object.fromEntries(formData.entries())
-
-            console.log("payload: ", payload)
+            
+            if (sex) {
+                payload.sex = sex;
+            }
 
             const endpoint = `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/register/student/`
 
@@ -69,10 +72,8 @@ export default function SignupStudentForm({ userId }: ISignupStudentFormProps) {
             }
 
             const data = await response.json();
-            console.log(data);
 
             // onSignupComplete(payload.role as string, data.id)
-            console.log("success")
             router.push("/accounts/login");
         } catch (err) {
             // setError(err instanceof Error ? err.message : "An error occurred")
@@ -112,7 +113,7 @@ export default function SignupStudentForm({ userId }: ISignupStudentFormProps) {
                         </Field>
                         <Field>
                             <FieldLabel htmlFor="sex">Spol</FieldLabel>
-                            <Select name="sex" required>
+                            <Select name="sex" required value={sex} onValueChange={setSex}>
                                 <SelectTrigger id="sex">
                                     <SelectValue placeholder="Odaberite..." />
                                 </SelectTrigger>
