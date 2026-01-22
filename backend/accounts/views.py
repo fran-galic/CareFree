@@ -793,3 +793,48 @@ class CaretakerSearchView(generics.ListAPIView):
             )
         
         return queryset.select_related('user').order_by('user__first_name')
+
+
+class StudentCompleteRegistrationView(APIView):
+    """
+    Complete student registration by adding studying_at, year_of_study, and sex.
+    This endpoint does not require authentication as it's part of the signup flow.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request, format=None):
+        user_id = request.data.get('user_id')
+        studying_at = request.data.get('studying_at')
+        year_of_study = request.data.get('year_of_study')
+        sex = request.data.get('sex')
+        age = request.data.get('age')
+
+        if not user_id:
+            return Response({'error': 'user_id je obavezan.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({'error': 'Korisnik nije pronađen.'}, status=status.HTTP_404_NOT_FOUND)
+
+        
+        if sex:
+            user.sex = sex
+        if age:
+            user.age = age
+        user.save()
+
+        try:
+            student = user.student
+            if studying_at:
+                student.studying_at = studying_at
+            if year_of_study:
+                student.year_of_study = year_of_study
+            student.save()
+        except Student.DoesNotExist:
+            return Response({'error': 'Student profil ne postoji.'}, status=status.HTTP_404_NOT_FOUND)
+
+        return Response({
+            'detail': 'Student profil uspješno dovršen.',
+            'user_id': user.id
+        }, status=status.HTTP_200_OK)
