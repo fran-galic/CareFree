@@ -164,6 +164,17 @@ def delete_caretaker_image(sender, instance, **kwargs):
         pass
 
 
+@receiver(pre_delete, sender=Caretaker)
+def delete_caretaker_user(sender, instance, **kwargs):
+    """Delete related User when Caretaker is deleted."""
+    try:
+        if instance.user:
+            instance.user.delete()
+    except Exception:
+        # Don't fail deletion if user removal fails
+        pass
+
+
 @receiver(pre_delete, sender=CaretakerCV)
 def delete_cv_file(sender, instance, **kwargs):
     """Delete CV file from storage when CaretakerCV is deleted."""
