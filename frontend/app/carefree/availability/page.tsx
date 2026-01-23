@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { Calendar, dateFnsLocalizer, View, ToolbarProps } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay } from "date-fns";
 import { hr } from "date-fns/locale";
@@ -8,8 +9,10 @@ import "react-big-calendar/lib/css/react-big-calendar.css";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Calendar as CalendarIcon, ExternalLink, Video, User, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, Calendar as CalendarIcon, ExternalLink, Video, User, Clock, ChevronLeft, ChevronRight, AlertTriangle, CalendarCheck } from "lucide-react";
 import { getCaretakerAppointments, type Appointment } from "@/fetchers/appointments";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CheckCircle2 } from "lucide-react";
 const locales = {
   hr: hr,
 };
@@ -31,6 +34,7 @@ interface CalendarEvent {
 }
 
 export default function AvailabilityPage() {
+  const searchParams = useSearchParams();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>("month");
@@ -38,6 +42,30 @@ export default function AvailabilityPage() {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [googleConnected, setGoogleConnected] = useState(false);
   const [checkingGoogle, setCheckingGoogle] = useState(true);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+
+  useEffect(() => {
+    // Check if we were redirected back from Google OAuth
+    if (searchParams.get('calendar_connected') === 'true') {
+      setShowSuccessMessage(true);
+      // Clear the URL parameter after a short delay
+      const timer = setTimeout(() => {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('calendar_connected');
+        window.history.replaceState({}, '', url.pathname);
+      }, 100);
+      
+      // Hide the message after 5 seconds
+      const hideTimer = setTimeout(() => {
+        setShowSuccessMessage(false);
+      }, 5000);
+
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(hideTimer);
+      };
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     async function fetchData() {
@@ -167,9 +195,27 @@ export default function AvailabilityPage() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
+      {showSuccessMessage && (
+        <Alert className="border-green-500 bg-green-50">
+          <CheckCircle2 className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-green-800">
+            Google Calendar uspješno povezan! Sada možete sinkronizirati svoje termine.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {!checkingGoogle && !googleConnected && !showSuccessMessage && (
+        <Alert className="border-accent bg-muted">
+          <AlertTriangle className="h-5 w-5 text-accent" />
+          <AlertDescription className="text-popover-foreground pt-[0.24rem]">
+            Prije zakazivanja termina povežite svoj Google Calendar, inače zakazani termini neće biti prikazani.
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Moj Kalendar</h1>
+          <h1 className="text-3xl text-primary font-bold">Moj Kalendar</h1>
           <p className="text-muted-foreground">
             Pregled svih zakazanih termina
           </p>
@@ -179,10 +225,14 @@ export default function AvailabilityPage() {
             onClick={handleGoogleCalendarSync} 
             className="gap-2"
             variant={googleConnected ? "default" : "outline"}
+            disabled={googleConnected}
           >
-            <ExternalLink className="w-4 h-4" />
+            {!googleConnected
+              ? <ExternalLink className="w-4 h-4" />
+              : <CalendarCheck className="w-4 h-4" />}
+            
             {googleConnected 
-              ? "Sinkroniziraj s Google Calendarom" 
+              ? "Google Calendar povezan" 
               : "Poveži Google Calendar"}
           </Button>
         )}
@@ -192,7 +242,7 @@ export default function AvailabilityPage() {
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center text-lg gap-2">
                 <CalendarIcon className="w-5 h-5" />
                 Kalendar termina
               </CardTitle>
@@ -287,6 +337,17 @@ export default function AvailabilityPage() {
                         return (
                           <div className="flex items-center justify-between mb-3 gap-3">
                             <div className="flex gap-2">
+                              <ViewBtn v="month" text="Mjesec" />
+                              <ViewBtn v="week" text="Tjedan" />
+                              <ViewBtn v="day" text="Dan" />
+                              <ViewBtn v="agenda" text="Agenda" />
+                            </div>
+
+                            <div className="flex-1 text-center font-semibold">
+                              {label}
+                            </div>
+
+                            <div className="flex gap-2">
                               <button type="button" className="px-3 py-1 rounded border hover:bg-muted transition" onClick={() => onNavigate("PREV")}>
                                 <ChevronLeft />
                               </button>
@@ -298,16 +359,6 @@ export default function AvailabilityPage() {
                               </button>
                             </div>
 
-                            <div className="flex-1 text-center font-semibold">
-                              {label}
-                            </div>
-
-                            <div className="flex gap-2">
-                              <ViewBtn v="month" text="Mjesec" />
-                              <ViewBtn v="week" text="Tjedan" />
-                              <ViewBtn v="day" text="Dan" />
-                              <ViewBtn v="agenda" text="Agenda" />
-                            </div>
                           </div>
                         );
                       },
