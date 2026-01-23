@@ -230,7 +230,7 @@ def sync_create_google_event_sync(appointment_id):
         payload = {
             'start': appt.start.isoformat(),
             'end': appt.end.isoformat(),
-            'summary': f"Sastanak sa {appt.caretaker.user.first_name}",
+            'summary': 'Sastanak - CareFree',
             'attendees': [appt.caretaker.user.email] + ([appt.student.user.email] if appt.student else []),
             'description': appt.appointment_request.ai_summary or appt.appointment_request.message or '',
         }
