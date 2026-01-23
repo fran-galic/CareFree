@@ -4,6 +4,7 @@ from django.db import transaction
 from django.core.files.base import ContentFile
 import random
 import requests
+import os
 
 try:
     from faker import Faker
@@ -107,22 +108,37 @@ class Command(BaseCommand):
             # Dodaj sliku ako caretaker nema sliku
             if not caretaker.image:
                 try:
-                    # Koristi pravatar.cc za random avatare (ima ~70 različitih slika)
-                    img_num = (i % 70) + 1
-                    img_url = f"https://i.pravatar.cc/300?img={img_num}"
-                    response = requests.get(img_url, timeout=10)
+                    # Check if S3 storage is properly configured
+                    from django.conf import settings
+                    s3_configured = all([
+                        getattr(settings, 'AWS_ACCESS_KEY_ID', None),
+                        getattr(settings, 'AWS_SECRET_ACCESS_KEY', None),
+                        getattr(settings, 'AWS_STORAGE_BUCKET_NAME', None),
+                        getattr(settings, 'AWS_S3_ENDPOINT_URL', None),
+                    ])
                     
-                    if response.status_code == 200:
-                        # Spremi sliku kao ContentFile
-                        img_content = ContentFile(response.content)
-                        caretaker.image.save(
-                            f"caretaker_{username}_{i}.jpg",
-                            img_content,
-                            save=False
-                        )
-                        self.stdout.write(self.style.SUCCESS(f"  Downloaded image for {username}"))
+                    if not s3_configured:
+                        self.stdout.write(self.style.WARNING(
+                            f"  Skipping image for {username}: S3 not fully configured "
+                            "(missing B2_KEY_ID, B2_APPLICATION_KEY, B2_BUCKET_NAME, or B2_ENDPOINT)"
+                        ))
                     else:
-                        self.stdout.write(self.style.WARNING(f"  Failed to download image for {username}"))
+                        # Koristi pravatar.cc za random avatare (ima ~70 različitih slika)
+                        img_num = (i % 70) + 1
+                        img_url = f"https://i.pravatar.cc/300?img={img_num}"
+                        response = requests.get(img_url, timeout=10)
+                        
+                        if response.status_code == 200:
+                            # Spremi sliku kao ContentFile
+                            img_content = ContentFile(response.content)
+                            caretaker.image.save(
+                                f"caretaker_{username}_{i}.jpg",
+                                img_content,
+                                save=False
+                            )
+                            self.stdout.write(self.style.SUCCESS(f"  Downloaded image for {username}"))
+                        else:
+                            self.stdout.write(self.style.WARNING(f"  Failed to download image for {username}: HTTP {response.status_code}"))
                 except Exception as e:
                     self.stdout.write(self.style.WARNING(f"  Error downloading image for {username}: {e}"))
 
