@@ -270,7 +270,7 @@ class GoogleOAuthCallbackView(APIView):
         except Exception as exc:
             return Response({'detail': 'Failed to save credentials', 'error': str(exc)}, status=500)
 
-        # Redirect to frontend dashboard after successful connection
+        # Redirect to frontend availability page after successful connection
         from django.shortcuts import redirect
-        frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
-        return redirect(f'{frontend_url}/carefree/caretaker?calendar_connected=true')
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3001')
+        return redirect(f'{frontend_url}/carefree/availability?calendar_connected=true')
