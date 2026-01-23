@@ -330,6 +330,58 @@ class CaretakerAvailabilityBulkSaveView(APIView):
         return Response({'updated': updated, 'failed': failed})
 
 
+class CaretakerMyAvailabilityView(APIView):
+    """Return all availability slots for the authenticated caretaker (next 7 days).
+
+    Returns slots with is_available flag and also includes confirmed appointments.
+    """
+    permission_classes = [IsAuthenticated, IsCaretaker]
+
+    def get(self, request, *args, **kwargs):
+        caretaker = getattr(request.user, 'caretaker', None)
+        if not caretaker:
+            return Response({'detail': 'User is not a caretaker'}, status=status.HTTP_403_FORBIDDEN)
+
+        days = int(request.query_params.get('days', 7))
+        from datetime import timezone as dt_tz
+        from .models import AvailabilitySlot
+
+        now = timezone.now()
+        end_date = now + timedelta(days=days)
+
+        # Get all availability slots for this caretaker in the date range
+        slots = AvailabilitySlot.objects.filter(
+            caretaker=caretaker,
+            start__gte=now,
+            start__lt=end_date
+        ).order_by('start')
+
+        # Get confirmed appointments in the same range
+        confirmed_appts = Appointment.objects.filter(
+            caretaker=caretaker,
+            start__gte=now,
+            start__lt=end_date,
+            status__in=[Appointment.STATUS_CONFIRMED, Appointment.STATUS_CONFIRMED_PENDING]
+        ).values_list('start', flat=True)
+
+        confirmed_starts = set(confirmed_appts)
+
+        # Convert to Europe/Zagreb timezone for response
+        local_tz = ZoneInfo('Europe/Zagreb')
+        result = []
+        for slot in slots:
+            local_start = slot.start.astimezone(local_tz)
+            local_end = slot.end.astimezone(local_tz)
+            result.append({
+                'start': local_start.isoformat(),
+                'end': local_end.isoformat(),
+                'is_available': slot.is_available,
+                'has_appointment': slot.start in confirmed_starts,
+            })
+
+        return Response(result)
+
+
 class MyCalendarView(APIView):
     """Return confirmed and completed appointments for the authenticated user (student or caretaker).
 
