@@ -327,7 +327,7 @@ def sync_create_google_event_sync(appointment_id):
         raise
 
 
-def get_caretaker_slots(caretaker_obj, days=3, start_hour=8, end_hour=17, tz_name="Europe/Zagreb"):
+def get_caretaker_slots(caretaker_obj, days=3, start_hour=8, end_hour=16, tz_name="Europe/Zagreb"):
     """Return a list of hour-long slots for the next `days` days between start_hour and end_hour.
 
     Each slot is a dict: {start, end, time, is_available} where start/end/time are ISO strings
@@ -400,7 +400,8 @@ def get_caretaker_slots(caretaker_obj, days=3, start_hour=8, end_hour=17, tz_nam
                 slot_obj = AvailabilitySlot.objects.get(caretaker=caretaker_obj, start=utc_start)
                 is_avail = bool(slot_obj.is_available)
             except AvailabilitySlot.DoesNotExist:
-                is_avail = True
+                # If caretaker hasn't set this slot, it's NOT available by default
+                is_avail = False
 
             if occupied:
                 is_avail = False

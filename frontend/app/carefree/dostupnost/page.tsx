@@ -23,7 +23,7 @@ interface GridSlot {
   isChanged: boolean;
 }
 
-const HOURS = Array.from({ length: 11 }, (_, i) => i + 8); // 8-18 (8:00-17:00, last slot ends at 18:00)
+const HOURS = Array.from({ length: 9 }, (_, i) => i + 8); // 8-16 (8:00-15:00, last slot ends at 16:00)
 const DAYS_TO_SHOW = 7;
 
 export default function DostupnostPage() {
