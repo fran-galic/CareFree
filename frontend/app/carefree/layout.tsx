@@ -77,6 +77,7 @@ export default function CarefreeLayout({
   const studentLinks = [
     { href: "/carefree/main", label: "Početna", icon: Home },
     { href: "/carefree/messages", label: "Razgovor", icon: MessageCircle },
+    { href: "/carefree/calendar", label: "Kalendar", icon: CalendarDays },
     { href: "/carefree/journal", label: "Dnevnik", icon: BookOpen },
     { href: "/carefree/search", label: "Pretraga", icon: Search },
   ];
