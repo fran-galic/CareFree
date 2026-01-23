@@ -862,3 +862,18 @@ class StudentCompleteRegistrationView(APIView):
             'detail': 'Student profil uspješno dovršen.',
             'user_id': user.id
         }, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def debug_s3_config(request):
+    """Debug view to check S3/B2 configuration"""
+    from django.conf import settings
+    
+    return Response({
+        'AWS_ACCESS_KEY_ID': bool(settings.AWS_ACCESS_KEY_ID),
+        'AWS_SECRET_ACCESS_KEY': bool(settings.AWS_SECRET_ACCESS_KEY),
+        'BUCKET': settings.AWS_STORAGE_BUCKET_NAME,
+        'ENDPOINT': settings.AWS_S3_ENDPOINT_URL,
+        'REGION': getattr(settings, 'AWS_S3_REGION_NAME', None),
+    })
