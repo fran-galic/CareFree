@@ -643,8 +643,16 @@ def logoutView(request):
         pass
 
     response = Response({"message": "Uspješno odjavljen"}, status=200)
-    response.delete_cookie("accessToken")
-    response.delete_cookie("refreshToken")
+    response.delete_cookie(
+        key="accessToken",
+        samesite='Lax' if settings.DEBUG else 'None',
+        path="/",
+        )
+    response.delete_cookie(
+        key="refreshToken",
+        samesite='Lax' if settings.DEBUG else 'None',
+        path="/",
+        )
     return response
 
 
@@ -723,8 +731,16 @@ def resetPasswordConfirmView(request, uidb64, token):
     user.save()
 
     response = Response({"message": "Lozinka je uspješno resetirana."}, status=200) 
-    response.delete_cookie("accessToken")
-    response.delete_cookie("refreshToken")
+    response.delete_cookie(
+        key="accessToken",
+        samesite='Lax' if settings.DEBUG else 'None',
+        path="/",
+        )
+    response.delete_cookie(
+        key="refreshToken",
+        samesite='Lax' if settings.DEBUG else 'None',
+        path="/",
+        )
     return response
 
 
@@ -742,8 +758,16 @@ def refresh_access_token_view(request):
 
     except TokenError:
         response = Response({"error": "Neispravan ili istekao refresh token"}, status=401)
-        response.delete_cookie("accessToken")
-        response.delete_cookie("refreshToken")
+        response.delete_cookie(
+            key="accessToken",
+            samesite='Lax' if settings.DEBUG else 'None',
+            path="/",
+        )
+        response.delete_cookie(
+            key="refreshToken",
+            samesite='Lax' if settings.DEBUG else 'None',
+            path="/",
+        )
         return response
     
     new_access = serializer.validated_data.get("access")
@@ -755,8 +779,8 @@ def refresh_access_token_view(request):
         key="accessToken",
         value=new_access,
         httponly=True,
-        secure=False,
-        samesite="Lax",
+        secure=False if settings.DEBUG else True,    #True
+        samesite='Lax' if settings.DEBUG else 'None',
         path="/",
     )
 
@@ -765,8 +789,8 @@ def refresh_access_token_view(request):
             key="refreshToken",
             value=new_refresh,
             httponly=True,
-            secure=False,
-            samesite="Lax",
+            secure=False if settings.DEBUG else True,    #True
+            samesite='Lax' if settings.DEBUG else 'None',
             path="/",
         )
 
