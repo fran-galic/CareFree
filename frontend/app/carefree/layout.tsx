@@ -14,7 +14,8 @@ import {
   BookOpen, 
   Search,
   Clock,
-  Inbox
+  Inbox,
+  CalendarCheck
 } from "lucide-react";
 import Image from "next/image";
 import { Footer } from "@/components/footer";
@@ -83,6 +84,7 @@ export default function CarefreeLayout({
   const caretakerLinks = [
     { href: "/carefree/main", label: "Početna", icon: Home },
     { href: "/carefree/availability", label: "Moj kalendar", icon: CalendarDays },
+    { href: "/carefree/dostupnost", label: "Dostupnost", icon: CalendarCheck },
     { href: "/carefree/requests", label: "Zahtjevi studenata", icon: Inbox },
   ];
 
