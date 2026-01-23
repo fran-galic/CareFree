@@ -43,12 +43,9 @@ ALLOWED_HOSTS = [
     "127.0.0.1"
 ]
 
-
-# Email configuration for Gmail SMTP
-from dotenv import load_dotenv
-
-# Load environment variables from .env file
-load_dotenv(os.path.join(BASE_DIR, '.env'))
+if DEBUG:
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(BASE_DIR, '.env'))
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
@@ -295,6 +292,7 @@ AWS_SECRET_ACCESS_KEY = os.getenv("B2_APPLICATION_KEY")
 
 AWS_STORAGE_BUCKET_NAME = os.getenv("B2_BUCKET_NAME")
 AWS_S3_ENDPOINT_URL = os.getenv("B2_ENDPOINT")
+AWS_S3_REGION_NAME = os.getenv("B2_REGION")
 
 AWS_DEFAULT_ACL = None
 AWS_QUERYSTRING_AUTH = True
@@ -309,6 +307,8 @@ STORAGES = {
         "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
     },
 }
+
+MEDIA_URL = f"{AWS_S3_ENDPOINT_URL}/{AWS_STORAGE_BUCKET_NAME}/"
 # Development convenience: when DEBUG=True run Celery tasks eagerly (synchronously)
 # so you don't need a broker/worker for local development. This executes tasks
 # immediately in-process when you call `.delay()` or `.apply_async()`.

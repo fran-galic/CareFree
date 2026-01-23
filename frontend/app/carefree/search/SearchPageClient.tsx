@@ -185,7 +185,7 @@ export default function SearchPageClient() {
                                         </div>
 
                                         <p className="text-sm text-foreground/70 leading-relaxed line-clamp-2">
-                                            {caretaker.specialisation || "Nema dodatnog opisa specijalizacije."}
+                                            {caretaker.about_me || "Nema opisa."}
                                         </p>
 
                                         <Separator className="my-2 opacity-50" />

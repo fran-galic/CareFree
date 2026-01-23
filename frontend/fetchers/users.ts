@@ -10,6 +10,7 @@ export interface Caretaker {
   help_categories: string[];
   user_image_url: string | null;
   specialisation: string;
+  about_me: string;
   working_since: string;
 }
 
