@@ -14,6 +14,7 @@ import {
   Clock,
   Inbox,
   CalendarDays,
+  CalendarCheck,
   ArrowRight
 } from "lucide-react";
 
@@ -36,13 +37,23 @@ export function CaretakerDashboard({ firstName }: CaretakerDashboardProps) {
       colSpan: "md:col-span-2"
     },
     {
-      title: "Termini (dostupnost)",
-      description: "Upravljanje dostupnim terminima",
-      icon: Clock,
-      iconColor: "text-orange-600",
-      borderColor: "border-l-orange-500",
+      title: "Termini",
+      description: "Pregled zakazanih termina",
+      icon: CalendarDays,
+      iconColor: "text-blue-600",
+      borderColor: "border-l-blue-500",
       href: "/carefree/availability",
-      content: "Pregled svih zakazanih termina u kalendaru. Postavite svoje slobodne termine i upravljajte susretima sa studentima.",
+      content: "Pregled svih zakazanih termina u kalendaru. Upravljajte susretima sa studentima.",
+      colSpan: "md:col-span-1"
+    },
+    {
+      title: "Dostupnost",
+      description: "Postavi dostupne satnice",
+      icon: CalendarCheck,
+      iconColor: "text-green-600",
+      borderColor: "border-l-green-500",
+      href: "/carefree/dostupnost",
+      content: "Postavite svoje dostupne termine. Kliknite na satnice kada ste dostupni za razgovore sa studentima.",
       colSpan: "md:col-span-1"
     }
   ];
