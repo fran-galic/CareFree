@@ -7,9 +7,9 @@ backend: https://programsko-inzenjerstvo-production.up.railway.app
 
 django admin: https://programsko-inzenjerstvo-production.up.railway.app/admin
 
-django admin user: admin@email.com
+django admin user: admin@carefree.com
 
-password: 12345678
+password: admin123
 
 
 ## Motivacija
