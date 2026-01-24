@@ -85,6 +85,13 @@ export default function Home() {
     return [...studentFeatures, ...psihologFeatures]
   }
 
+  const scrollToFeatures = () => {
+    const featuresSection = document.querySelector('.role-toggle-container')
+    if (featuresSection) {
+      featuresSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
+
   return (
     <div className="hero-section">
       <main className="container-centered">
@@ -128,7 +135,19 @@ export default function Home() {
           </div>
 
           {/* Scroll Indicator */}
-          <div className="scroll-indicator">
+          <div 
+            className="scroll-indicator"
+            onClick={scrollToFeatures}
+            style={{ cursor: 'pointer' }}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                scrollToFeatures()
+              }
+            }}
+          >
             <div className="scroll-icon">
               <i className="fi fi-rr-angle-small-down"></i>
             </div>

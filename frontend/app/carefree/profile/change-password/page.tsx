@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Lock, AlertCircle, CheckCircle } from "lucide-react";
+import { Lock, AlertCircle, CheckCircle, Eye, EyeOff } from "lucide-react";
 
 export default function ChangePasswordPage() {
   const router = useRouter();
@@ -16,6 +16,9 @@ export default function ChangePasswordPage() {
     new_password: "",
     new_password2: "",
   });
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -91,41 +94,86 @@ export default function ChangePasswordPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="old_password">Trenutna lozinka</Label>
-              <Input
-                id="old_password"
-                type="password"
-                value={formData.old_password}
-                onChange={(e) => setFormData({ ...formData, old_password: e.target.value })}
-                required
-                disabled={loading}
-              />
+              <div className="relative">
+                <Input
+                  id="old_password"
+                  type={showOldPassword ? "text" : "password"}
+                  value={formData.old_password}
+                  onChange={(e) => setFormData({ ...formData, old_password: e.target.value })}
+                  required
+                  disabled={loading}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowOldPassword(!showOldPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  tabIndex={-1}
+                >
+                  {showOldPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="new_password">Nova lozinka</Label>
-              <Input
-                id="new_password"
-                type="password"
-                value={formData.new_password}
-                onChange={(e) => setFormData({ ...formData, new_password: e.target.value })}
-                required
-                disabled={loading}
-                minLength={6}
-              />
+              <div className="relative">
+                <Input
+                  id="new_password"
+                  type={showNewPassword ? "text" : "password"}
+                  value={formData.new_password}
+                  onChange={(e) => setFormData({ ...formData, new_password: e.target.value })}
+                  required
+                  disabled={loading}
+                  minLength={6}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  tabIndex={-1}
+                >
+                  {showNewPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
               <p className="text-xs text-muted-foreground">Minimalno 6 znakova</p>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="new_password2">Potvrdi novu lozinku</Label>
-              <Input
-                id="new_password2"
-                type="password"
-                value={formData.new_password2}
-                onChange={(e) => setFormData({ ...formData, new_password2: e.target.value })}
-                required
-                disabled={loading}
-                minLength={6}
-              />
+              <div className="relative">
+                <Input
+                  id="new_password2"
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={formData.new_password2}
+                  onChange={(e) => setFormData({ ...formData, new_password2: e.target.value })}
+                  required
+                  disabled={loading}
+                  minLength={6}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  tabIndex={-1}
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
             </div>
 
             {message && (
