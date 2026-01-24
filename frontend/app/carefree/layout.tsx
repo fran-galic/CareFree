@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { fetcher } from "@/fetchers/fetcher";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -15,7 +15,10 @@ import {
   Search,
   Clock,
   Inbox,
-  CalendarCheck
+  CalendarCheck,
+  Menu,
+  X,
+  LogOut
 } from "lucide-react";
 import Image from "next/image";
 import { Footer } from "@/components/footer";
@@ -39,6 +42,7 @@ export default function CarefreeLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   
   const { data: user, isLoading, error } = useSWR<User>(
@@ -56,6 +60,16 @@ export default function CarefreeLayout({
       router.push('/accounts/login');
     }
   }, [error, isLoading, router]);
+
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
+
+  const handleLogout = async () => {
+    await fetch(`${BACKEND_API}/auth/logout/`, { method: "POST", credentials: "include" });
+    router.push("/accounts/login");
+  };
 
   
   const isActive = (path: string) => {
@@ -155,7 +169,21 @@ export default function CarefreeLayout({
           </nav>
 
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            {/* Hamburger Menu Button - Mobile Only */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden p-2 rounded-lg hover:bg-secondary/50 transition-colors"
+              aria-label="Toggle menu"
+            >
+              {isMobileMenuOpen ? (
+                <X className="w-6 h-6" />
+              ) : (
+                <Menu className="w-6 h-6" />
+              )}
+            </button>
+
+            {/* Profile Link */}
             <Link href={isCaretaker ? "/carefree/profile/caretaker" : "/carefree/profile/student"}>
               <div className={`flex items-center gap-3 pl-1 pr-4 py-1 rounded-full border transition-all cursor-pointer group ${
                 isActive("/carefree/profile") 
@@ -183,8 +211,50 @@ export default function CarefreeLayout({
                 </div>
               </div>
             </Link>
+
+            {/* Logout Button */}
+            <button
+              onClick={handleLogout}
+              className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+              title="Odjava"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden lg:inline">Odjava</span>
+            </button>
           </div>
         </div>
+
+        {/* Mobile Navigation Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden border-t bg-card/95 backdrop-blur-md animate-in slide-in-from-top-2 duration-200">
+            <nav className="container mx-auto px-4 py-4 flex flex-col gap-2">
+              {navigationLinks.map((link) => (
+                <Link 
+                  key={link.href} 
+                  href={link.href} 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                    isActive(link.href)
+                      ? "bg-primary text-primary-foreground shadow-md font-bold"
+                      : "text-muted-foreground hover:bg-primary/10 hover:text-primary active:scale-95"
+                  }`}
+                >
+                  <link.icon className="w-5 h-5" />
+                  <span className="font-medium">{link.label}</span>
+                </Link>
+              ))}
+              
+              {/* Mobile Logout Button */}
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all active:scale-95 border-t mt-2 pt-4"
+              >
+                <LogOut className="w-5 h-5" />
+                <span className="font-medium">Odjava</span>
+              </button>
+            </nav>
+          </div>
+        )}
       </header>
 
       {/* Main Content */}
