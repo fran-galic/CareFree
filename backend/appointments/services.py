@@ -11,6 +11,7 @@ from .tasks import summarize_appointment_request, sync_create_google_event
 from .tasks import expire_hold_task
 from .models import ReservationHold
 from django.utils import timezone as dj_timezone
+from backend.emailing import send_transactional_email
 
 
 def create_appointment_request(student_user, caretaker_obj, requested_start, message):
@@ -65,7 +66,6 @@ def create_appointment_request(student_user, caretaker_obj, requested_start, mes
 
     # Send notification email to caretaker about new appointment request
     try:
-        from django.core.mail import send_mail
         from django.conf import settings
         
         if getattr(caretaker_obj, 'user', None) and caretaker_obj.user.email:
@@ -81,7 +81,7 @@ def create_appointment_request(student_user, caretaker_obj, requested_start, mes
             body += f"Poruka: {message or '(bez poruke)'}\n\n"
             body += f"Molimo prijavite se u CareFree aplikaciju za potvrdu/odbijanje zahtjeva."
             
-            send_mail(
+            send_transactional_email(
                 subject='Novi zahtjev za termin - CareFree',
                 message=body,
                 from_email=settings.DEFAULT_FROM_EMAIL,
@@ -190,7 +190,6 @@ def approve_appointment_request(approver_user, request_id):
     except Exception as sync_exc:
         # Send fallback email without Meet link
         try:
-            from django.core.mail import send_mail
             from django.conf import settings
             
             if req.student and getattr(req.student, 'user', None) and req.student.user.email:
@@ -204,7 +203,7 @@ def approve_appointment_request(approver_user, request_id):
                 body += f"Kontaktirajte caretaker-a za detalje sastanka.\n\n"
                 body += f"Vidimo se!"
                 
-                send_mail(
+                send_transactional_email(
                     subject='Zahtjev za termin prihvaćen - CareFree',
                     message=body,
                     from_email=settings.DEFAULT_FROM_EMAIL,
@@ -219,7 +218,6 @@ def approve_appointment_request(approver_user, request_id):
 
 def sync_create_google_event_sync(appointment_id):
     """Synchronous version of sync_create_google_event for when Celery is not available"""
-    from django.core.mail import send_mail
     from django.conf import settings
     from .models import Appointment, CalendarEventLog
     from calendar_integration.google_client import create_event
@@ -314,7 +312,7 @@ def sync_create_google_event_sync(appointment_id):
                 body += "Detalji sastanka bit će poslani uskoro."
             
             try:
-                send_mail(
+                send_transactional_email(
                     subject='Potvrda termina - CareFree',
                     message=body,
                     from_email=settings.DEFAULT_FROM_EMAIL,

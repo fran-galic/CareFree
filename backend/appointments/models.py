@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 from accounts.models import Student, Caretaker
 
@@ -225,3 +226,28 @@ class ReservationHold(models.Model):
 
     def __str__(self):
         return f"ReservationHold({self.caretaker}, {self.start.isoformat()}, status={self.status})"
+
+
+class AppointmentFeedback(models.Model):
+    appointment = models.OneToOneField(Appointment, related_name="feedback", on_delete=models.CASCADE)
+    student = models.ForeignKey(Student, related_name="appointment_feedbacks", on_delete=models.CASCADE)
+    caretaker = models.ForeignKey(Caretaker, related_name="received_feedbacks", on_delete=models.CASCADE)
+    rating = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
+    comment = models.TextField(blank=True, null=True)
+    is_public = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["caretaker", "created_at"]), models.Index(fields=["is_public"])]
+
+    def clean(self):
+        if self.appointment_id:
+            if self.appointment.student_id and self.student_id != self.appointment.student_id:
+                raise ValidationError("Feedback student must match appointment student")
+            if self.appointment.caretaker_id and self.caretaker_id != self.appointment.caretaker_id:
+                raise ValidationError("Feedback caretaker must match appointment caretaker")
+
+    def __str__(self):
+        return f"AppointmentFeedback(appointment={self.appointment_id}, rating={self.rating})"

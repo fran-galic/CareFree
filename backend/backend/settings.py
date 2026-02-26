@@ -55,6 +55,11 @@ EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
 EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
 
+# Optional transactional email provider (Resend API)
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
+RESEND_FROM_EMAIL = os.environ.get('RESEND_FROM_EMAIL', DEFAULT_FROM_EMAIL)
+RESEND_REPLY_TO = os.environ.get('RESEND_REPLY_TO', '')
+
 
 # Application definition
 

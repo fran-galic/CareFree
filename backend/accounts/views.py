@@ -23,7 +23,6 @@ from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes
 from django.conf import settings
-from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 import jwt
@@ -49,6 +48,7 @@ from .models import CaretakerCV, Diploma, HelpCategory, Certificate
 from .serializers import CertificateSerializer
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.generics import ListAPIView
+from backend.emailing import send_transactional_email
 
 
 User = get_user_model()
@@ -128,7 +128,7 @@ class RequestRegistrationTokenView(APIView):
 
         from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or getattr(settings, 'EMAIL_HOST_USER', None) or 'carefree@support.hr'
         try:
-            send_mail(
+            send_transactional_email(
                 subject="Dovršite registraciju na CareFree",
                 message=plain_message,
                 from_email=from_email,
@@ -231,6 +231,15 @@ class LoginView(generics.CreateAPIView):
         email = request.data.get("email")
         password=request.data.get("password")
 
+        user_by_email = User.objects.filter(email__iexact=email).first()
+        if user_by_email and user_by_email.google_sub and not user_by_email.has_usable_password():
+            return Response(
+                {
+                    "error": "Za ovaj račun koristite prijavu putem Googlea. Ako želite prijavu lozinkom, prvo postavite lozinku kroz 'Zaboravili ste lozinku?'."
+                },
+                status=400,
+            )
+
         user = authenticate(request, email=email, password=password)
 
         if not user:
@@ -310,7 +319,7 @@ def loginOrRegisterWithWGogleView(request):
 
         from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or getattr(settings, 'EMAIL_HOST_USER', None) or 'carefree@support.hr'
         try:
-            send_mail(
+            send_transactional_email(
                 subject="Dovršite registraciju na CareFree",
                 message=plain_message,
                 from_email=from_email,
@@ -690,7 +699,7 @@ def requestPasswordResetView(request):
     
     reset_link = f"{settings.FRONTEND_URL}/auth/reset-password/{uid}/{token}/"
 
-    send_mail(
+    send_transactional_email(
         subject="Resetiraj svoju lozinku - CareFree",
         message=f"Klikni na link da promijeniš svoju lozinku:\n{reset_link}",
         from_email="carefree_reset_pass@gmail.com",
