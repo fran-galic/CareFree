@@ -38,3 +38,15 @@ Studentsko mentalno zdravlje u krizi:
 * Anonimnu procjenu - student može otvoreno govoriti o problemu
 * Automatsku detekciju hitnih slučajeva (suicidalne misli → krizne linije)
 * Efikasnu podjelu resursa - psiholozi dobivaju AI sažetke i prioritizirane slučajeve
+
+## Slanje emailova u deployu (Resend API)
+
+Za free deploy (Railway/Vercel/Render...) gdje SMTP često nije dostupan, backend podržava slanje transactional mailova preko Resend API-ja.
+
+Postavite ove varijable okruženja na backendu:
+
+- `RESEND_API_KEY` - API ključ iz Resend dashboarda
+- `RESEND_FROM_EMAIL` - verifikirana adresa/domenska adresa pošiljatelja
+- `RESEND_REPLY_TO` - (opcionalno) reply-to adresa
+
+Ako `RESEND_API_KEY` nije postavljen, backend automatski koristi postojeći Django SMTP (`EMAIL_HOST`, `EMAIL_HOST_USER`, itd.) kao fallback.

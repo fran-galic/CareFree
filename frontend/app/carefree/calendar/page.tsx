@@ -7,9 +7,10 @@ import { hr } from "date-fns/locale";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Calendar as CalendarIcon, Video, User, Clock, ChevronLeft, ChevronRight } from "lucide-react";
-import { getMyAppointments, type Appointment } from "@/fetchers/appointments";
+import { Loader2, Calendar as CalendarIcon, Video, User, Clock, ChevronLeft, ChevronRight, Star } from "lucide-react";
+import { getMyAppointments, submitAppointmentFeedback, type Appointment } from "@/fetchers/appointments";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 
 const locales = {
   hr: hr,
@@ -37,6 +38,11 @@ export default function CalendarPage() {
   const [view, setView] = useState<View>("month");
   const [date, setDate] = useState(new Date());
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [feedbackRating, setFeedbackRating] = useState(0);
+  const [feedbackComment, setFeedbackComment] = useState("");
+  const [feedbackPublic, setFeedbackPublic] = useState(true);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -113,6 +119,10 @@ export default function CalendarPage() {
 
   const handleSelectEvent = useCallback((event: CalendarEvent) => {
     setSelectedEvent(event);
+    setFeedbackMessage(null);
+    setFeedbackRating(event.resource.feedback?.rating || 0);
+    setFeedbackComment(event.resource.feedback?.comment || "");
+    setFeedbackPublic(event.resource.feedback?.is_public ?? true);
   }, []);
 
   const handleNavigate = useCallback((newDate: Date) => {
@@ -123,6 +133,52 @@ export default function CalendarPage() {
     setView(newView);
   }, []);
 
+  const canLeaveFeedback =
+    selectedEvent &&
+    ["completed", "confirmed", "confirmed_pending_sync"].includes(selectedEvent.resource.status);
+
+  const handleFeedbackSubmit = async () => {
+    if (!selectedEvent) return;
+    if (!feedbackRating) {
+      setFeedbackMessage("Odaberite ocjenu od 1 do 5.");
+      return;
+    }
+
+    setFeedbackLoading(true);
+    setFeedbackMessage(null);
+
+    try {
+      await submitAppointmentFeedback({
+        appointment_id: selectedEvent.id,
+        rating: feedbackRating,
+        comment: feedbackComment,
+        is_public: feedbackPublic,
+      });
+
+      const refreshed = await getMyAppointments();
+      setAppointments(refreshed);
+
+      const updated = refreshed.find((apt) => apt.id === selectedEvent.id);
+      if (updated) {
+        setSelectedEvent({
+          id: updated.id,
+          title: updated.caretaker
+            ? `${updated.caretaker.first_name} ${updated.caretaker.last_name}`
+            : "Psiholog",
+          start: new Date(updated.start),
+          end: new Date(updated.end),
+          resource: updated,
+        });
+      }
+
+      setFeedbackMessage("Povratna ocjena je spremljena.");
+    } catch (error) {
+      setFeedbackMessage(error instanceof Error ? error.message : "Spremanje povratne informacije nije uspjelo.");
+    } finally {
+      setFeedbackLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -132,8 +188,8 @@ export default function CalendarPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="container mx-auto max-w-7xl px-4 py-6 sm:px-6 space-y-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-3xl text-primary font-bold">Moj Kalendar</h1>
           <p className="text-muted-foreground">
@@ -142,8 +198,8 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="min-w-0 lg:col-span-2">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-primary font-bold text-lg">
@@ -151,13 +207,21 @@ export default function CalendarPage() {
                 Kalendar termina
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="bg-white rounded-lg p-4" style={{ height: "600px" }}>
+            <CardContent className="p-3 sm:p-6">
+              <div className="overflow-x-auto">
+                <div className="min-w-[760px] lg:min-w-0 bg-white rounded-lg p-3 sm:p-4 h-[520px] sm:h-[600px]">
                 <Calendar
                   localizer={localizer}
                   events={events}
                   startAccessor="start"
                   endAccessor="end"
+                  tooltipAccessor={(event: CalendarEvent) => {
+                    const meeting = event.resource.conference_link
+                      ? `Meet: ${event.resource.conference_link}`
+                      : "Meet link nije dostupan";
+                    return `${event.title}\n${format(event.start, "PPP HH:mm", { locale: hr })}\n${meeting}`;
+                  }}
+                  popup
                   style={{ height: "100%" }}
                   view={view}
                   onView={handleViewChange}
@@ -180,6 +244,12 @@ export default function CalendarPage() {
                     showMore: (total: number) => `+ još ${total}`,
                   }}
                     components={{
+                      event: ({ event }: { event: CalendarEvent }) => (
+                        <div className="flex items-center gap-1.5 truncate" title={event.title}>
+                          <span className="h-1.5 w-1.5 rounded-full bg-white/90" />
+                          <span className="truncate text-xs font-medium">{event.title}</span>
+                        </div>
+                      ),
                       toolbar: (props: ToolbarProps<CalendarEvent, object>) => {
                         const { view, date, onNavigate, onView } = props;
 
@@ -230,7 +300,7 @@ export default function CalendarPage() {
                             type="button"
                             onClick={() => onView(v)}
                             className={[
-                              "px-3 py-1 rounded border transition",
+                              "px-3 py-1 text-sm rounded border transition whitespace-nowrap",
                               view === v ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted",
                             ].join(" ")}
                           >
@@ -239,27 +309,27 @@ export default function CalendarPage() {
                         );
 
                         return (
-                          <div className="flex items-center justify-between mb-3 gap-3">
-                            <div className="flex gap-2">
+                          <div className="flex flex-wrap items-center gap-3 mb-3">
+                            <div className="order-2 md:order-1 flex flex-wrap gap-2">
                               <ViewBtn v="month" text="Mjesec" />
                               <ViewBtn v="week" text="Tjedan" />
                               <ViewBtn v="day" text="Dan" />
                               <ViewBtn v="agenda" text="Agenda" />
                             </div>
 
-                            <div className="flex-1 text-center font-semibold">
+                            <div className="order-1 md:order-2 w-full md:flex-1 text-center font-semibold text-sm sm:text-base">
                               {label}
                             </div>
 
-                            <div className="flex gap-2">
-                              <button type="button" className="px-3 py-1 rounded border hover:bg-muted transition" onClick={() => onNavigate("PREV")}>
-                                <ChevronLeft />
+                            <div className="order-3 ml-auto flex gap-2">
+                              <button type="button" className="px-2.5 py-1 rounded border hover:bg-muted transition" onClick={() => onNavigate("PREV")}>
+                                <ChevronLeft className="h-4 w-4" />
                               </button>
-                              <button type="button" className="px-3 py-1 rounded border hover:bg-muted transition" onClick={() => onNavigate("TODAY")}>
+                              <button type="button" className="px-3 py-1 text-sm rounded border hover:bg-muted transition whitespace-nowrap" onClick={() => onNavigate("TODAY")}>
                                 Danas
                               </button>
-                              <button type="button" className="px-3 py-1 rounded border hover:bg-muted transition" onClick={() => onNavigate("NEXT")}>
-                                <ChevronRight />
+                              <button type="button" className="px-2.5 py-1 rounded border hover:bg-muted transition" onClick={() => onNavigate("NEXT")}>
+                                <ChevronRight className="h-4 w-4" />
                               </button>
                             </div>
 
@@ -269,12 +339,13 @@ export default function CalendarPage() {
                     }}
                   culture="hr"
                 />
+                </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        <div>
+        <div className="min-w-0">
           <Card>
             <CardHeader>
               <CardTitle>Detalji termina</CardTitle>
@@ -346,6 +417,60 @@ export default function CalendarPage() {
                       >
                         <Video className="w-4 h-4" />
                         Pridruži se sastanku
+                      </Button>
+                    </div>
+                  )}
+
+                  {!selectedEvent.resource.conference_link && (
+                    <p className="text-sm text-muted-foreground">
+                      Meet link trenutno nije dostupan za ovaj termin.
+                    </p>
+                  )}
+
+                  {canLeaveFeedback && (
+                    <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
+                      <p className="text-sm font-semibold">Ocijeni termin</p>
+                      <div className="flex gap-1">
+                        {Array.from({ length: 5 }).map((_, idx) => {
+                          const value = idx + 1;
+                          return (
+                            <button
+                              key={value}
+                              type="button"
+                              onClick={() => setFeedbackRating(value)}
+                              className="rounded p-1"
+                              aria-label={`Ocjena ${value}`}
+                            >
+                              <Star
+                                className={`h-5 w-5 ${feedbackRating >= value ? "fill-amber-500 text-amber-500" : "text-muted-foreground"}`}
+                              />
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <Textarea
+                        placeholder="Dodajte komentar (opcionalno)"
+                        value={feedbackComment}
+                        onChange={(e) => setFeedbackComment(e.target.value)}
+                        rows={3}
+                      />
+
+                      <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <input
+                          type="checkbox"
+                          checked={feedbackPublic}
+                          onChange={(e) => setFeedbackPublic(e.target.checked)}
+                        />
+                        Prikaži komentar javno na profilu psihologa
+                      </label>
+
+                      {feedbackMessage && (
+                        <p className="text-sm text-muted-foreground">{feedbackMessage}</p>
+                      )}
+
+                      <Button type="button" onClick={handleFeedbackSubmit} disabled={feedbackLoading}>
+                        {feedbackLoading ? "Spremanje..." : "Spremi ocjenu"}
                       </Button>
                     </div>
                   )}
