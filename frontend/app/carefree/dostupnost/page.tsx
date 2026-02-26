@@ -90,7 +90,6 @@ export default function DostupnostPage() {
     setGridSlots((prev) =>
       prev.map((slot) => {
         if (isSameDay(slot.date, date) && slot.hour === hour) {
-          // Ne možemo mijenjati slotove sa zakazanim appointmentima
           if (slot.hasAppointment) {
             return slot;
           }

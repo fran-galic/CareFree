@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useSearchParams } from "next/navigation";
 import { Calendar, dateFnsLocalizer, View, ToolbarProps } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay } from "date-fns";
 import { hr } from "date-fns/locale";
@@ -33,7 +32,6 @@ interface CalendarEvent {
 }
 
 export default function CalendarPage() {
-  const searchParams = useSearchParams();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>("month");
@@ -54,9 +52,10 @@ export default function CalendarPage() {
     fetchData();
   }, []);
 
-  // Auto-select appointment from URL parameter
+  
   useEffect(() => {
-    const appointmentId = searchParams.get('appointment');
+    const params = new URLSearchParams(window.location.search);
+    const appointmentId = params.get('appointment');
     if (appointmentId && appointments.length > 0) {
       const apt = appointments.find(a => a.id === parseInt(appointmentId));
       if (apt) {
@@ -72,13 +71,13 @@ export default function CalendarPage() {
         setSelectedEvent(event);
         setDate(new Date(apt.start));
         
-        // Clean up URL parameter
+        
         const url = new URL(window.location.href);
         url.searchParams.delete('appointment');
         window.history.replaceState({}, '', url.pathname);
       }
     }
-  }, [searchParams, appointments]);
+  }, [appointments]);
 
   const events: CalendarEvent[] = useMemo(() => {
     return appointments.map((apt) => ({
@@ -178,7 +177,7 @@ export default function CalendarPage() {
                     time: "Vrijeme",
                     event: "Događaj",
                     noEventsInRange: "Nema događaja u ovom periodu.",
-                    showMore: (total) => `+ još ${total}`,
+                    showMore: (total: number) => `+ još ${total}`,
                   }}
                     components={{
                       toolbar: (props: ToolbarProps<CalendarEvent, object>) => {
