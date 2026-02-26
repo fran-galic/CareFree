@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,41 +27,18 @@ const HOURS = Array.from({ length: 9 }, (_, i) => i + 8); // 8-16 (8:00-15:00, l
 const DAYS_TO_SHOW = 7;
 
 export default function DostupnostPage() {
-  const [availabilitySlots, setAvailabilitySlots] = useState<AvailabilitySlot[]>([]);
+  const [, setAvailabilitySlots] = useState<AvailabilitySlot[]>([]);
   const [gridSlots, setGridSlots] = useState<GridSlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
 
-  const days = Array.from({ length: DAYS_TO_SHOW }, (_, i) => addDays(startOfDay(new Date()), i));
+  const days = useMemo(
+    () => Array.from({ length: DAYS_TO_SHOW }, (_, i) => addDays(startOfDay(new Date()), i)),
+    []
+  );
 
-  useEffect(() => {
-    fetchAvailability();
-  }, []);
-
-  const fetchAvailability = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/appointments/caretaker/availability/my/?days=${DAYS_TO_SHOW}`,
-        { credentials: "include" }
-      );
-
-      if (response.ok) {
-        const data: AvailabilitySlot[] = await response.json();
-        setAvailabilitySlots(data);
-        initializeGrid(data);
-      } else {
-        console.error("Greška pri dohvaćanju dostupnosti");
-      }
-    } catch (error) {
-      console.error("Greška:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const initializeGrid = (slots: AvailabilitySlot[]) => {
+  const initializeGrid = useCallback((slots: AvailabilitySlot[]) => {
     const grid: GridSlot[] = [];
 
     days.forEach((day) => {
@@ -84,7 +61,33 @@ export default function DostupnostPage() {
 
     setGridSlots(grid);
     setHasChanges(false);
-  };
+  }, [days]);
+
+  const fetchAvailability = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/appointments/caretaker/availability/my/?days=${DAYS_TO_SHOW}`,
+        { credentials: "include" }
+      );
+
+      if (response.ok) {
+        const data: AvailabilitySlot[] = await response.json();
+        setAvailabilitySlots(data);
+        initializeGrid(data);
+      } else {
+        console.error("Greška pri dohvaćanju dostupnosti");
+      }
+    } catch (error) {
+      console.error("Greška:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [initializeGrid]);
+
+  useEffect(() => {
+    fetchAvailability();
+  }, [fetchAvailability]);
 
   const toggleSlot = (date: Date, hour: number) => {
     setGridSlots((prev) =>
@@ -155,23 +158,23 @@ export default function DostupnostPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="container mx-auto max-w-7xl px-4 py-6 sm:px-6 space-y-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-3xl text-primary font-bold">Dostupnost</h1>
           <p className="text-muted-foreground">
             Postavite svoju dostupnost za sljedećih 7 dana
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={fetchAvailability} variant="outline" className="gap-2">
+        <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+          <Button onClick={fetchAvailability} variant="outline" className="gap-2 flex-1 sm:flex-none">
             <RefreshCw className="w-4 h-4" />
             Osvježi
           </Button>
           <Button
             onClick={saveChanges}
             disabled={!hasChanges || saving}
-            className="gap-2"
+            className="gap-2 flex-1 sm:flex-none"
           >
             {saving ? (
               <>
@@ -235,8 +238,8 @@ export default function DostupnostPage() {
             </div>
 
             {/* Grid */}
-            <div className="overflow-x-auto">
-              <div className="min-w-[800px]">
+              <div className="overflow-x-auto">
+                <div className="min-w-[760px] lg:min-w-0">
                 {/* Header Row */}
                 <div className="grid grid-cols-8 gap-1 mb-2">
                   <div className="font-medium text-sm text-center py-2">Vrijeme</div>

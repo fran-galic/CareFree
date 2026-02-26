@@ -1,10 +1,10 @@
 "use client";
 
 import * as React from 'react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import useSWR from "swr";
 import { searchCaretakerById } from "@/fetchers/users";
-import { getCaretakerSlots, createAppointmentRequest, Slot } from "@/fetchers/appointments";
+import { getCaretakerSlots, createAppointmentRequest, getCaretakerFeedback, Slot } from "@/fetchers/appointments";
 import {
   Card,
   CardContent,
@@ -18,16 +18,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Separator } from "@/components/ui/separator";
 import { 
-  MapPin, 
-  Phone, 
   Briefcase, 
   Clock, 
   CalendarCheck, 
   CheckCircle2, 
   AlertCircle,
-  Loader2
+  Loader2,
+  Star,
+  Check
 } from "lucide-react";
 
 interface SlotsByDay {
@@ -47,6 +46,11 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
   const { data: slotsData, error: slotsError, isLoading: slotsLoading } = useSWR(
     caretaker ? `slots-${id}` : null,
     () => getCaretakerSlots(Number(id), 7)
+  );
+
+  const { data: feedbackData, isLoading: feedbackLoading } = useSWR(
+    caretaker ? `feedback-${id}` : null,
+    () => getCaretakerFeedback(Number(id))
   );
   
   // State za formu
@@ -214,6 +218,50 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
                 </p>
               </CardContent>
             </Card>
+
+            <Card className="md:col-span-2">
+              <CardHeader className="pb-1">
+                <CardTitle className="text-base font-medium">Povratne ocjene studenata</CardTitle>
+                <CardDescription>Prikaz javno podijeljenih ocjena i komentara.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3 pt-2">
+                {feedbackLoading && (
+                  <div className="space-y-2">
+                    <Skeleton className="h-16 w-full" />
+                    <Skeleton className="h-16 w-full" />
+                  </div>
+                )}
+
+                {!feedbackLoading && (!feedbackData || feedbackData.length === 0) && (
+                  <p className="text-sm text-muted-foreground">Još nema javnih komentara.</p>
+                )}
+
+                {!feedbackLoading && feedbackData && feedbackData.length > 0 && (
+                  <div className="space-y-3">
+                    {feedbackData.slice(0, 8).map((entry) => (
+                      <div key={entry.id} className="rounded-lg border bg-muted/30 p-3">
+                        <div className="mb-2 flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1 text-amber-500">
+                            {Array.from({ length: 5 }).map((_, idx) => (
+                              <Star
+                                key={idx}
+                                className={`h-4 w-4 ${idx < entry.rating ? "fill-amber-500" : "text-muted-foreground/40"}`}
+                              />
+                            ))}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(entry.created_at).toLocaleDateString('hr-HR')}
+                          </p>
+                        </div>
+                        <p className="text-sm text-foreground/90">
+                          {entry.comment?.trim() ? entry.comment : "Student nije ostavio komentar."}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 
@@ -234,6 +282,15 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
+                  <div className="mb-4 rounded-lg border bg-muted/40 p-3">
+                    <p className="mb-2 text-sm font-medium">Legenda odabira termina</p>
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      <span className="rounded-md border border-emerald-300 bg-emerald-50 px-2 py-1 text-emerald-700">Dostupno</span>
+                      <span className="rounded-md border border-primary bg-primary/10 px-2 py-1 text-primary">Odabrano</span>
+                      <span className="rounded-md border border-muted-foreground/30 bg-muted px-2 py-1 text-muted-foreground">Nedostupno</span>
+                    </div>
+                  </div>
+
                   {slotsError && (
                     <div className="flex items-center gap-2 p-4 bg-red-50 text-red-700 rounded-lg">
                       <AlertCircle className="w-5 h-5" />
@@ -270,17 +327,18 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
                             {day.slots.map((slot, slotIdx) => (
                               <Button
                                 key={slotIdx}
-                                variant={slot.is_available ? "outline" : "ghost"}
+                                variant="outline"
                                 disabled={!slot.is_available}
-                                className={`w-full ${slot.is_available 
+                                className={`w-full justify-between ${slot.is_available 
                                   ? selectedSlot?.start === slot.start
-                                      ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary' 
-                                      : 'hover:border-primary hover:text-primary' 
-                                  : 'opacity-40 cursor-not-allowed bg-muted/50'
+                                      ? 'border-primary bg-primary text-primary-foreground ring-2 ring-primary/30' 
+                                      : 'border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-400' 
+                                  : 'opacity-45 cursor-not-allowed border-muted-foreground/20 bg-muted/50 text-muted-foreground'
                                 }`}
                                 onClick={() => setSelectedSlot(slot)}
                               >
-                                {slot.time}
+                                <span>{slot.time}</span>
+                                {selectedSlot?.start === slot.start && <Check className="h-4 w-4" />}
                               </Button>
                             ))}
                           </div>
@@ -375,21 +433,6 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
           </div>
         </TabsContent>
       </Tabs>
-    </div>
-  );
-}
-
-// Kompaktna data row komponenta
-function DataRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <div className="flex items-center gap-3">
-      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
-        {icon}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">{label}</p>
-        <p className="font-medium truncate">{value}</p>
-      </div>
     </div>
   );
 }

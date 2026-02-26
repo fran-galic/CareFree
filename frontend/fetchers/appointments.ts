@@ -44,6 +44,23 @@ export interface Appointment {
   status: string;
   conference_link?: string;
   duration_minutes: number;
+  feedback?: AppointmentFeedback;
+}
+
+export interface AppointmentFeedback {
+  id: number;
+  appointment: number;
+  student?: {
+    user_id: number;
+    first_name: string;
+    last_name: string;
+    email: string;
+  };
+  rating: number;
+  comment?: string;
+  is_public: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Slot {
@@ -158,6 +175,33 @@ export async function createAppointmentRequest(data: {
  */
 export async function getMyAppointments(): Promise<Appointment[]> {
   return fetcher(`${BACKEND_API}/api/appointments/`);
+}
+
+export async function submitAppointmentFeedback(data: {
+  appointment_id: number;
+  rating: number;
+  comment?: string;
+  is_public?: boolean;
+}): Promise<AppointmentFeedback> {
+  const response = await fetch(`${BACKEND_API}/api/appointments/feedback/`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: "Failed to submit feedback" }));
+    throw new Error(error.detail || "Failed to submit feedback");
+  }
+
+  return response.json();
+}
+
+export async function getCaretakerFeedback(caretakerId: number): Promise<AppointmentFeedback[]> {
+  return fetcher(`${BACKEND_API}/api/appointments/feedback/caretaker/${caretakerId}/?public_only=true`);
 }
 
 /**

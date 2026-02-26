@@ -39,7 +39,11 @@ export default function EmailRequestForm({ onSuccess }: EmailRequestFormProps) {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to send email");
+        const rawMessage = errorData.error || "Neuspješno slanje emaila";
+        if (typeof rawMessage === "string" && rawMessage.toLowerCase().includes("registriran")) {
+          throw new Error("Email je već registriran. Prijavite se postojećim računom ili koristite Google prijavu ako ste se registrirali putem Googlea.");
+        }
+        throw new Error(rawMessage);
       }
 
       onSuccess(email);

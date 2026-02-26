@@ -9,7 +9,7 @@ import "react-big-calendar/lib/css/react-big-calendar.css";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Calendar as CalendarIcon, ExternalLink, Video, User, Clock, ChevronLeft, ChevronRight, AlertTriangle, CalendarCheck } from "lucide-react";
+import { Loader2, Calendar as CalendarIcon, ExternalLink, Video, User, Clock, ChevronLeft, ChevronRight, CalendarCheck } from "lucide-react";
 import { getCaretakerAppointments, type Appointment } from "@/fetchers/appointments";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle2 } from "lucide-react";
@@ -194,26 +194,25 @@ export default function AvailabilityPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto max-w-7xl px-4 py-6 sm:px-6 space-y-6">
       {showSuccessMessage && (
         <Alert className="border-green-500 bg-green-50">
           <CheckCircle2 className="h-4 w-4 text-green-600" />
           <AlertDescription className="text-green-800">
-            Google Calendar uspješno povezan! Sada možete sinkronizirati svoje termine.
+            Google Calendar je uspješno povezan. Sinkronizacija je spremna kao dodatna opcija.
           </AlertDescription>
         </Alert>
       )}
 
-      {!checkingGoogle && !googleConnected && !showSuccessMessage && (
-        <Alert className="border-accent bg-muted">
-          <AlertTriangle className="h-5 w-5 text-accent" />
-          <AlertDescription className="text-popover-foreground pt-[0.24rem]">
-            Prije zakazivanja termina povežite svoj Google Calendar, inače zakazani termini neće biti prikazani.
+      {!checkingGoogle && !showSuccessMessage && (
+        <Alert className="border-border bg-muted/50">
+          <AlertDescription className="text-popover-foreground">
+            Kalendar i termini rade i bez Google sinkronizacije. Google povezivanje je opcionalno i služi kao dodatna pogodnost.
           </AlertDescription>
         </Alert>
       )}
       
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-3xl text-primary font-bold">Moj Kalendar</h1>
           <p className="text-muted-foreground">
@@ -223,23 +222,22 @@ export default function AvailabilityPage() {
         {!checkingGoogle && (
           <Button 
             onClick={handleGoogleCalendarSync} 
-            className="gap-2"
-            variant={googleConnected ? "default" : "outline"}
-            disabled={googleConnected}
+            className="gap-2 w-full sm:w-auto"
+            variant="outline"
           >
             {!googleConnected
               ? <ExternalLink className="w-4 h-4" />
               : <CalendarCheck className="w-4 h-4" />}
             
             {googleConnected 
-              ? "Google Calendar povezan" 
-              : "Poveži Google Calendar"}
+              ? "Sinkroniziraj Google Calendar" 
+              : "Poveži Google Calendar (opcionalno)"}
           </Button>
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="min-w-0 lg:col-span-2">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center text-lg gap-2">
@@ -247,13 +245,21 @@ export default function AvailabilityPage() {
                 Kalendar termina
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="bg-white rounded-lg p-4" style={{ height: "600px" }}>
+            <CardContent className="p-3 sm:p-6">
+              <div className="overflow-x-auto">
+                <div className="min-w-[760px] lg:min-w-0 bg-white rounded-lg p-3 sm:p-4 h-[520px] sm:h-[600px]">
                 <Calendar
                   localizer={localizer}
                   events={events}
                   startAccessor="start"
                   endAccessor="end"
+                  tooltipAccessor={(event: CalendarEvent) => {
+                    const meeting = event.resource.conference_link
+                      ? `Meet: ${event.resource.conference_link}`
+                      : "Meet link nije dostupan";
+                    return `${event.title}\n${format(event.start, "PPP HH:mm", { locale: hr })}\n${meeting}`;
+                  }}
+                  popup
                   style={{ height: "100%" }}
                   view={view}
                   onView={handleViewChange}
@@ -276,6 +282,12 @@ export default function AvailabilityPage() {
                     showMore: (total) => `+ još ${total}`,
                   }}
                     components={{
+                      event: ({ event }: { event: CalendarEvent }) => (
+                        <div className="flex items-center gap-1.5 truncate" title={event.title}>
+                          <span className="h-1.5 w-1.5 rounded-full bg-white/90" />
+                          <span className="truncate text-xs font-medium">{event.title}</span>
+                        </div>
+                      ),
                       toolbar: (props: ToolbarProps<CalendarEvent, object>) => {
                         const { view, date, onNavigate, onView } = props;
 
@@ -326,7 +338,7 @@ export default function AvailabilityPage() {
                             type="button"
                             onClick={() => onView(v)}
                             className={[
-                              "px-3 py-1 rounded border transition",
+                              "px-3 py-1 text-sm rounded border transition whitespace-nowrap",
                               view === v ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted",
                             ].join(" ")}
                           >
@@ -335,27 +347,27 @@ export default function AvailabilityPage() {
                         );
 
                         return (
-                          <div className="flex items-center justify-between mb-3 gap-3">
-                            <div className="flex gap-2">
+                          <div className="flex flex-wrap items-center gap-3 mb-3">
+                            <div className="order-2 md:order-1 flex flex-wrap gap-2">
                               <ViewBtn v="month" text="Mjesec" />
                               <ViewBtn v="week" text="Tjedan" />
                               <ViewBtn v="day" text="Dan" />
                               <ViewBtn v="agenda" text="Agenda" />
                             </div>
 
-                            <div className="flex-1 text-center font-semibold">
+                            <div className="order-1 md:order-2 w-full md:flex-1 text-center font-semibold text-sm sm:text-base">
                               {label}
                             </div>
 
-                            <div className="flex gap-2">
-                              <button type="button" className="px-3 py-1 rounded border hover:bg-muted transition" onClick={() => onNavigate("PREV")}>
-                                <ChevronLeft />
+                            <div className="order-3 ml-auto flex gap-2">
+                              <button type="button" className="px-2.5 py-1 rounded border hover:bg-muted transition" onClick={() => onNavigate("PREV")}>
+                                <ChevronLeft className="h-4 w-4" />
                               </button>
-                              <button type="button" className="px-3 py-1 rounded border hover:bg-muted transition" onClick={() => onNavigate("TODAY")}>
+                              <button type="button" className="px-3 py-1 text-sm rounded border hover:bg-muted transition whitespace-nowrap" onClick={() => onNavigate("TODAY")}>
                                 Danas
                               </button>
-                              <button type="button" className="px-3 py-1 rounded border hover:bg-muted transition" onClick={() => onNavigate("NEXT")}>
-                                <ChevronRight />
+                              <button type="button" className="px-2.5 py-1 rounded border hover:bg-muted transition" onClick={() => onNavigate("NEXT")}>
+                                <ChevronRight className="h-4 w-4" />
                               </button>
                             </div>
 
@@ -365,12 +377,13 @@ export default function AvailabilityPage() {
                     }}
                   culture="hr"
                 />
+                </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        <div>
+        <div className="min-w-0">
           <Card>
             <CardHeader>
               <CardTitle>Detalji termina</CardTitle>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import { fetcher } from "@/fetchers/fetcher";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,7 +13,6 @@ import {
   CalendarDays, 
   BookOpen, 
   Search,
-  Clock,
   Inbox,
   CalendarCheck,
   Menu,
@@ -43,6 +42,9 @@ export default function CarefreeLayout({
   const pathname = usePathname();
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+  const lastScrollYRef = useRef(0);
+  const tickingRef = useRef(false);
   
   
   const { data: user, isLoading, error } = useSWR<User>(
@@ -61,10 +63,37 @@ export default function CarefreeLayout({
     }
   }, [error, isLoading, router]);
 
-  // Close mobile menu when route changes
   useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, [pathname]);
+    const onScroll = () => {
+      const currentScrollY = window.scrollY;
+
+      if (tickingRef.current) {
+        return;
+      }
+
+      tickingRef.current = true;
+      window.requestAnimationFrame(() => {
+        const delta = currentScrollY - lastScrollYRef.current;
+
+        if (Math.abs(delta) < 8) {
+          tickingRef.current = false;
+          return;
+        }
+
+        if (currentScrollY <= 20 || delta < 0 || isMobileMenuOpen) {
+          setIsHeaderVisible(true);
+        } else {
+          setIsHeaderVisible(false);
+        }
+
+        lastScrollYRef.current = currentScrollY;
+        tickingRef.current = false;
+      });
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [isMobileMenuOpen]);
 
   const handleLogout = async () => {
     await fetch(`${BACKEND_API}/auth/logout/`, { method: "POST", credentials: "include" });
@@ -139,10 +168,12 @@ export default function CarefreeLayout({
 
   
   return (
-    <div className={`min-h-screen bg-background flex flex-col`} data-theme={user?.role === "caretaker" ? "caretaker" : "student"}>
+    <div className={`min-h-screen bg-background flex flex-col overflow-x-hidden`} data-theme={user?.role === "caretaker" ? "caretaker" : "student"}>
       
       
-      <header className="sticky top-0 z-50 w-full border-b bg-card/90 backdrop-blur-md shadow-sm transition-colors duration-500">
+      <header className={`sticky top-0 z-50 w-full border-b bg-card/90 backdrop-blur-md shadow-sm transition-transform duration-300 will-change-transform ${
+        isHeaderVisible ? "translate-y-0" : "-translate-y-full"
+      }`}>
         <div className="container mx-auto px-4 h-20 flex items-center justify-between">
           
           
@@ -258,7 +289,7 @@ export default function CarefreeLayout({
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 w-full">
+      <main className="flex-1 w-full min-w-0 overflow-x-hidden">
         {children}
       </main>
 

@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,12 +25,12 @@ export function LoginForm({
   ...props
 }: React.ComponentProps<"div">) {
 
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const showGoogleHint = (error || "").toLowerCase().includes("google");
 
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -49,7 +48,7 @@ export function LoginForm({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || "Login failed");
+        throw new Error(errorData.error || errorData.detail || "Prijava nije uspjela");
       }
 
       // Successfully logged in - wait a moment for cookies to be set
@@ -58,7 +57,7 @@ export function LoginForm({
       // Use window.location for a full page reload to ensure cookies are properly set
       window.location.href = "/carefree/main";
     } catch (error) {
-      setError((error as Error).message || "Login failed");
+      setError((error as Error).message || "Prijava nije uspjela");
       setLoading(false);
     }
   };
@@ -70,7 +69,7 @@ export function LoginForm({
         <CardHeader>
           <CardTitle>Prijavite se na svoj račun</CardTitle>
           <CardDescription>
-            Unesite svoj email za prijavu
+            Unesite email i lozinku ili se prijavite putem Googlea
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -123,7 +122,12 @@ export function LoginForm({
               </Field>
               <Field>
                 <Button type="submit" disabled={loading} className="bg-gradient-to-r from-[oklch(0.783_0.1136_182.2)] to-[oklch(0.68_0.20_45)] hover:opacity-90 transition-opacity">Prijavi se</Button>
-                {error && <p className="text-red-500 text-sm">{error}</p>}
+                {error && <p className="text-destructive text-sm">{error}</p>}
+                {showGoogleHint && (
+                  <p className="text-sm text-muted-foreground">
+                    Ako želite koristiti prijavu lozinkom za Google račun, kliknite <Link href="/auth/forgot-password" className="underline underline-offset-4">Zaboravili ste lozinku?</Link> i postavite novu lozinku.
+                  </p>
+                )}
                 <FieldDescription className="text-center">
                   Nemate račun? <Link href="./signup" className="underline">Registrirajte se</Link>
                 </FieldDescription>
