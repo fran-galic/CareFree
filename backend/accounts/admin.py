@@ -1,10 +1,10 @@
 from django.contrib import admin
 from .models import Certificate, User, Student, Caretaker, HelpCategory, CaretakerCV, Diploma
-from django.core.mail import send_mail
 from django.conf import settings
 from django.utils.html import format_html
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
+from backend.emailing import send_transactional_email
 
 
 def _send_caretaker_status_email(caretaker, approved: bool):
@@ -34,7 +34,14 @@ def _send_caretaker_status_email(caretaker, approved: bool):
         html = render_to_string('emails/caretaker_status.html', ctx)
         plain = strip_tags(html)
         from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or getattr(settings, 'EMAIL_HOST_USER', None)
-        send_mail(subject, plain, from_email, [caretaker.user.email], html_message=html)
+        send_transactional_email(
+            subject=subject,
+            message=plain,
+            from_email=from_email,
+            recipient_list=[caretaker.user.email],
+            html_message=html,
+            fail_silently=True,
+        )
     except Exception:
         pass
 
@@ -113,12 +120,10 @@ class CaretakerAdmin(admin.ModelAdmin):
     def approve_caretakers(self, request, queryset):
         from calendar_integration.models import GoogleCredential
         updated = 0
-        skipped = 0
+        without_google = 0
         for ct in queryset:
-            # Check if Google Calendar is connected
             if not GoogleCredential.objects.filter(user=ct.user).exists():
-                skipped += 1
-                continue
+                without_google += 1
                 
             if getattr(ct, 'approval_status', None) != getattr(ct, 'APPROVAL_APPROVED', 'APPROVED'):
                 try:
@@ -129,10 +134,10 @@ class CaretakerAdmin(admin.ModelAdmin):
                 _send_caretaker_status_email(ct, approved=True)
                 updated += 1
         
-        if skipped > 0:
+        if without_google > 0:
             self.message_user(
                 request, 
-                f"Approved {updated} caretakers. Skipped {skipped} caretakers without Google Calendar connection.",
+                f"Approved {updated} caretakers. {without_google} approved caretakers have not connected Google Calendar yet.",
                 level='warning'
             )
         else:

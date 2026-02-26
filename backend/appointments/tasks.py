@@ -2,10 +2,10 @@ from celery import shared_task
 from django.utils import timezone
 from .models import Appointment, CalendarEventLog
 from calendar_integration.google_client import create_event, build_service
-from django.core.mail import send_mail, EmailMessage
 import uuid
 import json
 from django.conf import settings
+from backend.emailing import send_transactional_email
 
 
 @shared_task(bind=True, max_retries=5)
@@ -138,7 +138,7 @@ def sync_create_google_event(self, appointment_id):
                 body += "Detalji sastanka bit će poslani uskoro."
             
             try:
-                send_mail(
+                send_transactional_email(
                     subject='Potvrda termina - CareFree',
                     message=body,
                     from_email=settings.DEFAULT_FROM_EMAIL,

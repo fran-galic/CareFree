@@ -13,6 +13,8 @@ from .views import (
     MyCalendarView,
     HoldCreateView,
     HoldReleaseView,
+    AppointmentFeedbackUpsertView,
+    CaretakerFeedbackListView,
 )
 
 urlpatterns = [
@@ -27,6 +29,8 @@ urlpatterns = [
     path('caretaker/availability/save/', CaretakerAvailabilityBulkSaveView.as_view(), name='caretaker-availability-save'),
     path('caretaker/availability/my/', CaretakerMyAvailabilityView.as_view(), name='caretaker-my-availability'),
     path('calendar/my/', MyCalendarView.as_view(), name='my-calendar'),
+    path('feedback/', AppointmentFeedbackUpsertView.as_view(), name='appointment-feedback-upsert'),
+    path('feedback/caretaker/<int:caretaker_id>/', CaretakerFeedbackListView.as_view(), name='caretaker-feedback-list'),
     path('holds/', HoldCreateView.as_view(), name='holds-create'),
     path('holds/<int:pk>/release/', HoldReleaseView.as_view(), name='holds-release'),
 ]

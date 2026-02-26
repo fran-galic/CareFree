@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from .permissions import IsStudent
 from .serializers import AppointmentRequestSerializer
-from .models import AppointmentRequest
+from .models import AppointmentRequest, AppointmentFeedback
 from accounts.models import Caretaker
 from .services import create_appointment_request
 from rest_framework import generics
@@ -22,11 +22,12 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import get_object_or_404
 from .services import get_caretaker_slots, toggle_availability
-from .serializers import SlotSerializer
+from .serializers import SlotSerializer, AppointmentFeedbackSerializer
 from .permissions import IsStudent
 from django.views.decorators.cache import never_cache
 from .services import create_hold, release_hold
 from rest_framework import permissions
+from backend.emailing import send_transactional_email
 
 
 class HoldCreateView(APIView):
@@ -177,7 +178,6 @@ class AppointmentRequestRejectView(APIView):
         req.save(update_fields=['status'])
         # notify student and caretaker by email (best-effort)
         try:
-            from django.core.mail import send_mail
             from django.conf import settings
             recipients = []
             if req.student and getattr(req.student, 'user', None) and req.student.user.email:
@@ -193,7 +193,13 @@ class AppointmentRequestRejectView(APIView):
                 subj = 'Zahtjev za razgovor je odbijen - CareFree'
                 msg = f"Vaš zahtjev za razgovor {start_str} je odbijen.\n\n"
                 msg += "Molimo da u aplikaciji odaberete neki drugi termin."
-                send_mail(subject=subj, message=msg, from_email=settings.DEFAULT_FROM_EMAIL, recipient_list=recipients, fail_silently=True)
+                send_transactional_email(
+                    subject=subj,
+                    message=msg,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=recipients,
+                    fail_silently=True,
+                )
         except Exception:
             pass
 
@@ -380,6 +386,70 @@ class CaretakerMyAvailabilityView(APIView):
             })
 
         return Response(result)
+
+
+class AppointmentFeedbackUpsertView(APIView):
+    permission_classes = [IsAuthenticated, IsStudent]
+
+    def post(self, request, *args, **kwargs):
+        appointment_id = request.data.get('appointment_id')
+        rating = request.data.get('rating')
+        comment = request.data.get('comment', '')
+        is_public = bool(request.data.get('is_public', True))
+
+        if not appointment_id:
+            return Response({'detail': 'appointment_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if rating is None:
+            return Response({'detail': 'rating is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            rating = int(rating)
+        except Exception:
+            return Response({'detail': 'rating must be a number from 1 to 5'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if rating < 1 or rating > 5:
+            return Response({'detail': 'rating must be between 1 and 5'}, status=status.HTTP_400_BAD_REQUEST)
+
+        appointment = get_object_or_404(Appointment, pk=appointment_id)
+
+        student = getattr(request.user, 'student', None)
+        if not student:
+            return Response({'detail': 'Student profile not found'}, status=status.HTTP_403_FORBIDDEN)
+
+        if appointment.student_id != student.pk:
+            return Response({'detail': 'You can only leave feedback for your own appointments'}, status=status.HTTP_403_FORBIDDEN)
+
+        if appointment.status not in [Appointment.STATUS_CONFIRMED, Appointment.STATUS_COMPLETED, Appointment.STATUS_CONFIRMED_PENDING]:
+            return Response({'detail': 'Feedback can be left only for confirmed or completed appointments'}, status=status.HTTP_400_BAD_REQUEST)
+
+        feedback, _ = AppointmentFeedback.objects.update_or_create(
+            appointment=appointment,
+            defaults={
+                'student': student,
+                'caretaker': appointment.caretaker,
+                'rating': rating,
+                'comment': comment,
+                'is_public': is_public,
+            },
+        )
+
+        return Response(AppointmentFeedbackSerializer(feedback).data, status=status.HTTP_200_OK)
+
+
+class CaretakerFeedbackListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, caretaker_id, *args, **kwargs):
+        public_only = request.query_params.get('public_only', 'true').lower() != 'false'
+
+        qs = AppointmentFeedback.objects.filter(caretaker_id=caretaker_id)
+        if public_only:
+            qs = qs.filter(is_public=True)
+
+        qs = qs.select_related('student__user', 'appointment')[:50]
+        serializer = AppointmentFeedbackSerializer(qs, many=True)
+        return Response(serializer.data)
 
 
 class MyCalendarView(APIView):
