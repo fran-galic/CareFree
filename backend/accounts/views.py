@@ -23,7 +23,6 @@ from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes
 from django.conf import settings
-from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 import jwt
@@ -49,6 +48,7 @@ from .models import CaretakerCV, Diploma, HelpCategory, Certificate
 from .serializers import CertificateSerializer
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.generics import ListAPIView
+from backend.emailing import send_project_email
 
 
 User = get_user_model()
@@ -126,12 +126,10 @@ class RequestRegistrationTokenView(APIView):
         html_message = render_to_string('emails/confirm_registration.html', ctx)
         plain_message = strip_tags(html_message)
 
-        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or getattr(settings, 'EMAIL_HOST_USER', None) or 'carefree@support.hr'
         try:
-            send_mail(
+            send_project_email(
                 subject="Dovršite registraciju na CareFree",
                 message=plain_message,
-                from_email=from_email,
                 recipient_list=[email],
                 html_message=html_message,
                 fail_silently=False,
@@ -308,12 +306,10 @@ def loginOrRegisterWithWGogleView(request):
         html_message = render_to_string('emails/confirm_registration.html', ctx)
         plain_message = strip_tags(html_message)
 
-        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or getattr(settings, 'EMAIL_HOST_USER', None) or 'carefree@support.hr'
         try:
-            send_mail(
+            send_project_email(
                 subject="Dovršite registraciju na CareFree",
                 message=plain_message,
-                from_email=from_email,
                 recipient_list=[email],
                 html_message=html_message,
                 fail_silently=False,
@@ -690,10 +686,9 @@ def requestPasswordResetView(request):
     
     reset_link = f"{settings.FRONTEND_URL}/auth/reset-password/{uid}/{token}/"
 
-    send_mail(
+    send_project_email(
         subject="Resetiraj svoju lozinku - CareFree",
         message=f"Klikni na link da promijeniš svoju lozinku:\n{reset_link}",
-        from_email="carefree_reset_pass@gmail.com",
         recipient_list=[email],
     )
 

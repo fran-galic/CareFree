@@ -2,20 +2,21 @@
 
 import "./globals.css";
 import { GoogleOAuthProvider } from '@react-oauth/google'
-import { Inter } from "next/font/google"
-
-const inter = Inter({ 
-  subsets: ["latin"],
-  variable: "--font-inter",
-})
-
-const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ""
+import { GOOGLE_CLIENT_ID } from "@/lib/config";
 
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const content = GOOGLE_CLIENT_ID ? (
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      {children}
+    </GoogleOAuthProvider>
+  ) : (
+    children
+  );
+
   return (
     <html lang="en">
       <head>
@@ -27,10 +28,8 @@ export default function RootLayout({
           src="https://tweakcn.com/live-preview.min.js"
         />
       </head>
-      <body className={`${inter.variable} font-sans antialiased`}>
-        <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-          {children}
-        </GoogleOAuthProvider>
+      <body className="font-sans antialiased">
+        {content}
       </body>
     </html>
   )

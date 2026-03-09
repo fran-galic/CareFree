@@ -5,12 +5,49 @@ from datetime import timedelta
 from datetime import timezone as dt_timezone
 from zoneinfo import ZoneInfo
 from datetime import datetime
+from django.conf import settings
 
 from .models import AppointmentRequest, Appointment
 from .tasks import summarize_appointment_request, sync_create_google_event
 from .tasks import expire_hold_task
 from .models import ReservationHold
 from django.utils import timezone as dj_timezone
+from backend.emailing import send_project_email
+from .google_sync import (
+    build_appointment_payload,
+    extract_conference_link,
+    get_shared_calendar_id,
+)
+
+
+def _send_appointment_confirmation_email(appt):
+    recipients = []
+    if appt.student and getattr(appt.student, 'user', None) and appt.student.user.email:
+        recipients.append(appt.student.user.email)
+    if getattr(appt.caretaker, 'user', None) and appt.caretaker.user.email:
+        if appt.caretaker.user.email not in recipients:
+            recipients.append(appt.caretaker.user.email)
+
+    if not recipients:
+        return
+
+    zagreb_tz = ZoneInfo('Europe/Zagreb')
+    start_str = appt.start.astimezone(zagreb_tz).strftime('%d.%m.%Y u %H:%M')
+    body = f"Vaš zahtjev za razgovor {start_str} je potvrđen!\n\n"
+    if appt.conference_link:
+        body += f"Sastanku možete pristupiti putem ovog linka: {appt.conference_link}"
+    else:
+        body += "Termin je potvrđen, ali Meet link trenutno nije generiran."
+
+    try:
+        send_project_email(
+            subject='Potvrda termina - CareFree',
+            message=body,
+            recipient_list=recipients,
+            fail_silently=True,
+        )
+    except Exception:
+        pass
 
 
 def create_appointment_request(student_user, caretaker_obj, requested_start, message):
@@ -65,9 +102,6 @@ def create_appointment_request(student_user, caretaker_obj, requested_start, mes
 
     # Send notification email to caretaker about new appointment request
     try:
-        from django.core.mail import send_mail
-        from django.conf import settings
-        
         if getattr(caretaker_obj, 'user', None) and caretaker_obj.user.email:
             zagreb_tz = ZoneInfo('Europe/Zagreb')
             start_str = requested_start.astimezone(zagreb_tz).strftime('%d.%m.%Y u %H:%M')
@@ -81,10 +115,9 @@ def create_appointment_request(student_user, caretaker_obj, requested_start, mes
             body += f"Poruka: {message or '(bez poruke)'}\n\n"
             body += f"Molimo prijavite se u CareFree aplikaciju za potvrdu/odbijanje zahtjeva."
             
-            send_mail(
+            send_project_email(
                 subject='Novi zahtjev za termin - CareFree',
                 message=body,
-                from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[caretaker_obj.user.email],
                 fail_silently=True
             )
@@ -184,33 +217,15 @@ def approve_appointment_request(approver_user, request_id):
         req.status = AppointmentRequest.STATUS_ACCEPTED
         req.save(update_fields=['status'])
 
-    # Create Google Calendar event and send single email with Meet link
+    # Create Google Calendar event in the system calendar and send a single confirmation email.
     try:
         sync_create_google_event_sync(appt.id)
     except Exception as sync_exc:
         # Send fallback email without Meet link
         try:
-            from django.core.mail import send_mail
-            from django.conf import settings
-            
-            if req.student and getattr(req.student, 'user', None) and req.student.user.email:
-                zagreb_tz = ZoneInfo('Europe/Zagreb')
-                start_str = req.requested_start.astimezone(zagreb_tz).strftime('%d.%m.%Y u %H:%M')
-                caretaker_name = req.caretaker.user.get_full_name() or "Caretaker"
-                
-                body = f"Vaš zahtjev za termin je prihvaćen!\n\n"
-                body += f"Caretaker: {caretaker_name}\n"
-                body += f"Vrijeme: {start_str}\n\n"
-                body += f"Kontaktirajte caretaker-a za detalje sastanka.\n\n"
-                body += f"Vidimo se!"
-                
-                send_mail(
-                    subject='Zahtjev za termin prihvaćen - CareFree',
-                    message=body,
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[req.student.user.email],
-                    fail_silently=True
-                )
+            appt.status = Appointment.STATUS_SYNC_FAILED
+            appt.save(update_fields=['status'])
+            _send_appointment_confirmation_email(appt)
         except Exception:
             pass
 
@@ -219,111 +234,41 @@ def approve_appointment_request(approver_user, request_id):
 
 def sync_create_google_event_sync(appointment_id):
     """Synchronous version of sync_create_google_event for when Celery is not available"""
-    from django.core.mail import send_mail
-    from django.conf import settings
     from .models import Appointment, CalendarEventLog
     from calendar_integration.google_client import create_event
-    from django.utils import timezone
     
     try:
         appt = Appointment.objects.select_related('caretaker', 'student').get(pk=appointment_id)
-        payload = {
-            'start': appt.start.isoformat(),
-            'end': appt.end.isoformat(),
-            'summary': 'Sastanak - CareFree',
-            'attendees': [appt.caretaker.user.email] + ([appt.student.user.email] if appt.student else []),
-            'description': appt.appointment_request.ai_summary or appt.appointment_request.message or '',
-        }
+        calendar_id = get_shared_calendar_id()
+        payload = build_appointment_payload(appt)
         
-        # sanitize attendees
-        raw_att = payload.get('attendees') or []
-        cleaned = []
-        seen = set()
-        for a in raw_att:
-            try:
-                email = (a or '').strip()
-            except Exception:
-                continue
-            if not email or '@' not in email:
-                continue
-            email = email.lower()
-            if email in seen:
-                continue
-            seen.add(email)
-            cleaned.append(email)
-        payload['attendees'] = cleaned
-        
-        # Get caretaker's Google OAuth credentials
-        from calendar_integration.models import GoogleCredential
-        caretaker_user = appt.caretaker.user
-        user_creds = None
-        
-        try:
-            google_cred = GoogleCredential.objects.get(user=caretaker_user)
-            if google_cred.access_token and google_cred.refresh_token:
-                # Parse scopes from JSON string
-                import json
-                try:
-                    scopes = json.loads(google_cred.scopes) if google_cred.scopes else ['https://www.googleapis.com/auth/calendar']
-                except (json.JSONDecodeError, TypeError):
-                    scopes = ['https://www.googleapis.com/auth/calendar']
-                
-                user_creds = {
-                    'token': google_cred.access_token,
-                    'refresh_token': google_cred.refresh_token,
-                    'token_uri': google_cred.token_uri or 'https://oauth2.googleapis.com/token',
-                    'client_id': google_cred.client_id or settings.GOOGLE_OAUTH_CLIENT_ID,
-                    'client_secret': google_cred.client_secret or settings.GOOGLE_OAUTH_CLIENT_SECRET,
-                    'scopes': scopes,
-                }
-        except GoogleCredential.DoesNotExist:
-            raise Exception(f"Caretaker {caretaker_user.email} has not connected their Google Calendar")
-        
-        # Create Google Calendar event using caretaker's credentials
         result = create_event(
-            'primary',  # Use caretaker's primary calendar
+            calendar_id,
             summary=payload['summary'],
             description=payload['description'],
             start=payload['start'],
             end=payload['end'],
             attendees=payload['attendees'],
             create_conference=True,
-            user_credentials=user_creds,
         )
         
         appt.external_event_id = result.get('id')
-        appt.conference_link = result.get('hangoutLink') or (result.get('conferenceData', {}).get('entryPoints') or [{}])[0].get('uri') or result.get('conference_link')
+        appt.calendar_id = calendar_id
+        appt.conference_link = extract_conference_link(result)
         appt.status = Appointment.STATUS_CONFIRMED
-        appt.save(update_fields=['external_event_id', 'conference_link', 'status'])
-        
-        # Send email with Meet link
-        recipients = []
-        if appt.student and getattr(appt.student, 'user', None) and appt.student.user.email:
-            recipients.append(appt.student.user.email)
-        if getattr(appt.caretaker, 'user', None) and appt.caretaker.user.email:
-            if appt.caretaker.user.email not in recipients:
-                recipients.append(appt.caretaker.user.email)
-        
-        if recipients:
-            zagreb_tz = ZoneInfo('Europe/Zagreb')
-            start_str = appt.start.astimezone(zagreb_tz).strftime('%d.%m.%Y u %H:%M')
-            body = f"Vaš zahtjev za razgovor {start_str} je potvrđen!\n\n"
-            if appt.conference_link:
-                body += f"Sastanku možete pristupiti putem ovog linka: {appt.conference_link}"
-            else:
-                body += "Detalji sastanka bit će poslani uskoro."
-            
-            try:
-                send_mail(
-                    subject='Potvrda termina - CareFree',
-                    message=body,
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=recipients,
-                    fail_silently=False
-                )
-            except Exception as email_error:
-                pass
-    except Exception as e:
+        appt.save(update_fields=['external_event_id', 'calendar_id', 'conference_link', 'status'])
+        CalendarEventLog.objects.create(
+            appointment=appt,
+            operation=CalendarEventLog.OP_CREATE,
+            external_id=appt.external_event_id,
+            request_payload=payload,
+            response_payload=result,
+            status='success',
+            attempts=1,
+            last_attempted_at=dj_timezone.now(),
+        )
+        _send_appointment_confirmation_email(appt)
+    except Exception:
         raise
 
 
@@ -339,44 +284,6 @@ def get_caretaker_slots(caretaker_obj, days=3, start_hour=8, end_hour=16, tz_nam
     slots = []
     local_tz = ZoneInfo(tz_name)
     now_local = datetime.now(tz=local_tz)
-
-    # prepare optional freebusy busy intervals (UTC)
-    busy_intervals = []
-    try:
-        # attempt to use per-user GoogleCredential if available
-        cred = getattr(getattr(caretaker_obj, 'user', None), 'google_credential', None)
-        if cred and getattr(cred, 'access_token', None):
-            from calendar_integration.google_client import freebusy_query
-
-            # compute UTC range covering all requested days/hours
-            first_local_start = datetime(now_local.year, now_local.month, now_local.day, start_hour, tzinfo=local_tz)
-            last_day = (now_local.date()) + timedelta(days=days - 1)
-            last_local_end = datetime(last_day.year, last_day.month, last_day.day, end_hour, tzinfo=local_tz)
-            utc_range_start = first_local_start.astimezone(dt_timezone.utc).isoformat()
-            utc_range_end = last_local_end.astimezone(dt_timezone.utc).isoformat()
-
-            user_creds = {
-                'token': cred.access_token,
-                'refresh_token': cred.refresh_token,
-                'token_uri': cred.token_uri,
-                'client_id': cred.client_id,
-                'client_secret': cred.client_secret,
-                'scopes': cred.scopes.split(',') if cred.scopes else [],
-            }
-
-            res = freebusy_query(utc_range_start, utc_range_end, items=[{'id': 'primary'}], user_credentials=user_creds)
-            cal = res.get('calendars', {}).get('primary', {})
-            busy = cal.get('busy', [])
-            for b in busy:
-                try:
-                    bs = datetime.fromisoformat(b['start']).astimezone(dt_timezone.utc)
-                    be = datetime.fromisoformat(b['end']).astimezone(dt_timezone.utc)
-                    busy_intervals.append((bs, be))
-                except Exception:
-                    continue
-    except Exception:
-        # best-effort: if freebusy check fails, quietly ignore and proceed with local info only
-        busy_intervals = []
 
     for d in range(days):
         day = (now_local.date()) + timedelta(days=d)
@@ -405,13 +312,6 @@ def get_caretaker_slots(caretaker_obj, days=3, start_hour=8, end_hour=16, tz_nam
 
             if occupied:
                 is_avail = False
-            
-            # if Google reports busy for this time, mark unavailable
-            if is_avail and busy_intervals:
-                for (bs, be) in busy_intervals:
-                    if (utc_start < be) and (utc_end > bs):
-                        is_avail = False
-                        break
             slots.append({
                 "start": local_start.isoformat(),
                 "end": local_end.isoformat(),

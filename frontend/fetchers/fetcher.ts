@@ -1,5 +1,4 @@
-
-const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+import { BACKEND_URL } from "@/lib/config";
 
 let isRefreshing = false;
 let refreshPromise: Promise<boolean> | null = null;
@@ -12,7 +11,7 @@ async function refreshAccessToken(): Promise<boolean> {
     isRefreshing = true;
     refreshPromise = (async () => {
         try {
-            const response = await fetch(`${API_URL}/auth/refresh/`, {
+            const response = await fetch(`${BACKEND_URL}/auth/refresh/`, {
                 method: 'POST',
                 credentials: 'include',
                 headers: {

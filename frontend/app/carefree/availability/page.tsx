@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useSearchParams } from "next/navigation";
 import { Calendar, dateFnsLocalizer, View, ToolbarProps } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay } from "date-fns";
 import { hr } from "date-fns/locale";
@@ -9,10 +8,8 @@ import "react-big-calendar/lib/css/react-big-calendar.css";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Calendar as CalendarIcon, ExternalLink, Video, User, Clock, ChevronLeft, ChevronRight, AlertTriangle, CalendarCheck } from "lucide-react";
+import { Loader2, Calendar as CalendarIcon, Video, User, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { getCaretakerAppointments, type Appointment } from "@/fetchers/appointments";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle2 } from "lucide-react";
 const locales = {
   hr: hr,
 };
@@ -34,57 +31,14 @@ interface CalendarEvent {
 }
 
 export default function AvailabilityPage() {
-  const searchParams = useSearchParams();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>("month");
   const [date, setDate] = useState(new Date());
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
-  const [googleConnected, setGoogleConnected] = useState(false);
-  const [checkingGoogle, setCheckingGoogle] = useState(true);
-  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
-
-  useEffect(() => {
-    // Check if we were redirected back from Google OAuth
-    if (searchParams.get('calendar_connected') === 'true') {
-      setShowSuccessMessage(true);
-      // Clear the URL parameter after a short delay
-      const timer = setTimeout(() => {
-        const url = new URL(window.location.href);
-        url.searchParams.delete('calendar_connected');
-        window.history.replaceState({}, '', url.pathname);
-      }, 100);
-      
-      // Hide the message after 5 seconds
-      const hideTimer = setTimeout(() => {
-        setShowSuccessMessage(false);
-      }, 5000);
-
-      return () => {
-        clearTimeout(timer);
-        clearTimeout(hideTimer);
-      };
-    }
-  }, [searchParams]);
 
   useEffect(() => {
     async function fetchData() {
-      try {
-        // Provjeri Google Calendar status
-        const statusRes = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/calendar/status/`,
-          { credentials: "include" }
-        );
-        if (statusRes.ok) {
-          const statusData = await statusRes.json();
-          setGoogleConnected(statusData.connected || false);
-        }
-      } catch (error) {
-        console.error("Greška pri provjeri Google statusa:", error);
-      } finally {
-        setCheckingGoogle(false);
-      }
-
       try {
         const data = await getCaretakerAppointments();
         setAppointments(data);
@@ -141,50 +95,6 @@ export default function AvailabilityPage() {
     setView(newView);
   }, []);
 
-  const handleGoogleCalendarSync = async () => {
-    if (!googleConnected) {
-      // Redirect to Google OAuth flow
-      try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/calendar/connect/`,
-          { credentials: "include" }
-        );
-        
-        if (response.ok) {
-          const data = await response.json();
-          if (data.auth_url) {
-            window.location.href = data.auth_url;
-          }
-        } else {
-          alert("Greška pri povezivanju s Google Calendarom");
-        }
-      } catch (error) {
-        console.error("Greška:", error);
-        alert("Greška pri povezivanju s Google Calendarom");
-      }
-    } else {
-      // Already connected, sync now
-      try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/calendar/sync-now/`,
-          {
-            method: "POST",
-            credentials: "include",
-          }
-        );
-
-        if (response.ok) {
-          alert("Uspješno sinkronizirano s Google Calendarom!");
-        } else {
-          alert("Greška pri sinkronizaciji");
-        }
-      } catch (error) {
-        console.error("Greška:", error);
-        alert("Greška pri sinkronizaciji");
-      }
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -195,47 +105,13 @@ export default function AvailabilityPage() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      {showSuccessMessage && (
-        <Alert className="border-green-500 bg-green-50">
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-800">
-            Google Calendar uspješno povezan! Sada možete sinkronizirati svoje termine.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {!checkingGoogle && !googleConnected && !showSuccessMessage && (
-        <Alert className="border-accent bg-muted">
-          <AlertTriangle className="h-5 w-5 text-accent" />
-          <AlertDescription className="text-popover-foreground pt-[0.24rem]">
-            Prije zakazivanja termina povežite svoj Google Calendar, inače zakazani termini neće biti prikazani.
-          </AlertDescription>
-        </Alert>
-      )}
-      
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl text-primary font-bold">Moj Kalendar</h1>
           <p className="text-muted-foreground">
-            Pregled svih zakazanih termina
+            Pregled svih zakazanih termina unutar CareFree sustava
           </p>
         </div>
-        {!checkingGoogle && (
-          <Button 
-            onClick={handleGoogleCalendarSync} 
-            className="gap-2"
-            variant={googleConnected ? "default" : "outline"}
-            disabled={googleConnected}
-          >
-            {!googleConnected
-              ? <ExternalLink className="w-4 h-4" />
-              : <CalendarCheck className="w-4 h-4" />}
-            
-            {googleConnected 
-              ? "Google Calendar povezan" 
-              : "Poveži Google Calendar"}
-          </Button>
-        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -13,7 +13,6 @@ import {
   CalendarDays, 
   BookOpen, 
   Search,
-  Clock,
   Inbox,
   CalendarCheck,
   Menu,
@@ -54,17 +53,11 @@ export default function CarefreeLayout({
     }
   );
 
-  
   useEffect(() => {
     if (error && error.message.includes('401') && !isLoading) {
       router.push('/accounts/login');
     }
   }, [error, isLoading, router]);
-
-  // Close mobile menu when route changes
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, [pathname]);
 
   const handleLogout = async () => {
     await fetch(`${BACKEND_API}/auth/logout/`, { method: "POST", credentials: "include" });

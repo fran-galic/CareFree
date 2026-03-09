@@ -2,20 +2,13 @@
 
 import { useSearchParams } from "next/navigation"
 import SignupCaretakerForm from "@/components/signup-caretaker-form"
-import { useEffect, useState, Suspense } from "react"
+import { Suspense } from "react"
 
 function CompleteCaretakerContent() {
   const searchParams = useSearchParams()
   const userId = searchParams.get("userId")
-  const [isReady, setIsReady] = useState(false)
 
-  useEffect(() => {
-    if (userId) {
-      setIsReady(true)
-    }
-  }, [userId])
-
-  if (!isReady || !userId) {
+  if (!userId) {
     return (
       <div className="flex min-h-screen items-center justify-center p-6">
         <div className="text-center">
@@ -45,7 +38,7 @@ export default function CompleteCaretakerPage() {
       fallback={
         <div className="flex min-h-screen items-center justify-center">
           <div className="text-center">
-            <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
             <p className="mt-4 text-muted-foreground">Učitavanje...</p>
           </div>
         </div>

@@ -16,13 +16,13 @@ class Command(BaseCommand):
 
         from django.template.loader import render_to_string
         from django.utils.html import strip_tags
-        from django.core.mail import send_mail
         from django.conf import settings
         from django.utils.http import urlsafe_base64_encode
         from django.utils.encoding import force_bytes
+        from backend.emailing import send_project_email
 
         if mail_type == 'confirm_registration':
-            registration_link = f"{getattr(settings, 'FRONTEND_URL', 'http://localhost:3000').rstrip('/')}" + "/accounts/signup?token=TESTTOKEN"
+            registration_link = f"{getattr(settings, 'FRONTEND_URL', 'http://localhost:3001').rstrip('/')}" + "/accounts/signup?token=TESTTOKEN"
             ctx = {'registration_link': registration_link}
             html = render_to_string('emails/confirm_registration.html', ctx)
             subject = 'Dovršite registraciju na CareFree'
@@ -30,7 +30,7 @@ class Command(BaseCommand):
         elif mail_type == 'password_reset':
             uid = urlsafe_base64_encode(force_bytes('test-user'))
             token = 'TEST-RESET-TOKEN'
-            reset_link = f"{getattr(settings, 'FRONTEND_URL', 'http://localhost:3000').rstrip('/')}" + f"/auth/reset-password/{uid}/{token}/"
+            reset_link = f"{getattr(settings, 'FRONTEND_URL', 'http://localhost:3001').rstrip('/')}" + f"/auth/reset-password/{uid}/{token}/"
             ctx = {'user_first_name': name, 'reset_link': reset_link}
             html = render_to_string('emails/password_reset.html', ctx)
             subject = 'Resetiraj svoju lozinku - CareFree'
@@ -38,7 +38,7 @@ class Command(BaseCommand):
         elif mail_type == 'caretaker_approval':
             subject = 'CareFree - account approved'
             message_text = 'Vaš račun njegovatelja je odobren. Sada možete koristiti aplikaciju.'
-            action_url = f"{getattr(settings, 'FRONTEND_URL', 'http://localhost:3000').rstrip('/')}" + '/auth/login'
+            action_url = f"{getattr(settings, 'FRONTEND_URL', 'http://localhost:3001').rstrip('/')}" + '/auth/login'
             ctx = {
                 'title': 'CareFree',
                 'recipient_name': name,
@@ -60,11 +60,9 @@ class Command(BaseCommand):
 
         plain = strip_tags(html)
 
-        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or getattr(settings, 'EMAIL_HOST_USER', None) or 'carefree@support.hr'
-
         self.stdout.write('Sending test email...')
         try:
-            send_mail(subject=subject, message=plain, from_email=from_email, recipient_list=[to_email], html_message=html, fail_silently=False)
+            send_project_email(subject=subject, message=plain, recipient_list=[to_email], html_message=html, fail_silently=False)
             self.stdout.write(self.style.SUCCESS(f'Email sent successfully to {to_email}'))
         except Exception as e:
             raise CommandError(f'Failed to send email: {e}')

@@ -33,6 +33,16 @@ except Exception:
     Flow = None
 
 from .models import GoogleCredential
+from appointments.google_sync import get_shared_calendar_id
+
+
+def _calendar_sync_disabled_response():
+    return Response(
+        {
+            "detail": "Per-user Google Calendar sync is disabled. CareFree uses a shared system calendar."
+        },
+        status=410,
+    )
 
 
 class GoogleCalendarStatusView(APIView):
@@ -40,6 +50,8 @@ class GoogleCalendarStatusView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        if not getattr(settings, "ENABLE_USER_GOOGLE_CALENDAR_SYNC", False):
+            return _calendar_sync_disabled_response()
         if not hasattr(request.user, 'caretaker'):
             return Response({'detail': 'Only caretakers can check Google Calendar status'}, status=403)
 
@@ -61,6 +73,8 @@ class GoogleDisconnectView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        if not getattr(settings, "ENABLE_USER_GOOGLE_CALENDAR_SYNC", False):
+            return _calendar_sync_disabled_response()
         if not hasattr(request.user, 'caretaker'):
             return Response({'detail': 'Only caretakers can disconnect Google Calendar'}, status=403)
 
@@ -133,7 +147,10 @@ class CreateEventView(APIView):
         attendees = data.get("attendees")
         create_conf = bool(data.get("create_conference", False))
 
-        calendar_id = getattr(settings, "GOOGLE_CALENDAR_ID", "primary")
+        try:
+            calendar_id = get_shared_calendar_id()
+        except Exception as exc:
+            return Response({"status": "error", "detail": str(exc)}, status=500)
 
         try:
             ev = create_event(
@@ -177,6 +194,8 @@ class GoogleConnectView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        if not getattr(settings, "ENABLE_USER_GOOGLE_CALENDAR_SYNC", False):
+            return _calendar_sync_disabled_response()
         # require caretaker
         if not hasattr(request.user, 'caretaker'):
             return Response({'detail': 'Only caretakers can connect Google Calendar'}, status=403)
@@ -213,6 +232,8 @@ class GoogleOAuthCallbackView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        if not getattr(settings, "ENABLE_USER_GOOGLE_CALENDAR_SYNC", False):
+            return _calendar_sync_disabled_response()
         # handle OAuth callback with ?code=...
         if not hasattr(request.user, 'caretaker'):
             return Response({'detail': 'Only caretakers can connect Google Calendar'}, status=403)

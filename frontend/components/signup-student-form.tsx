@@ -8,12 +8,8 @@ import {
 } from "@/components/ui/card"
 import {
     Field,
-    FieldContent,
-    FieldDescription,
     FieldGroup,
     FieldLabel,
-    FieldSet,
-    FieldTitle,
 } from "@/components/ui/field"
 import {
     Select,
@@ -24,7 +20,6 @@ import {
 } from "@/components/ui/select"
 import { Input } from "./ui/input"
 import { Button } from "./ui/button"
-import { Textarea } from "./ui/textarea"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Label } from "./ui/label"
@@ -71,7 +66,7 @@ export default function SignupStudentForm({ userId }: ISignupStudentFormProps) {
                 )
             }
 
-            const data = await response.json();
+            await response.json();
 
             // onSignupComplete(payload.role as string, data.id)
             router.push("/accounts/login");

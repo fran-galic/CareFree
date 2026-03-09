@@ -2,11 +2,10 @@
 
 import Link from 'next/link';
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { useEffect } from "react";
 import useSWR from "swr";
 import SearchBar from "@/components/search-bar";
 import { searchCaretakers, getHelpCategories } from "@/fetchers/users";
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from "@/components/ui/checkbox";
@@ -27,7 +26,7 @@ export default function SearchPageClient() {
   
   const { data: caretakersData, isLoading } = useSWR(
     [`search`, q, categoriesParam, currentPage], 
-    ([_, query, cats, page]) => searchCaretakers(query, cats, page)
+    ([, query, cats, page]) => searchCaretakers(query, cats, page)
   );
 
   const caretakerList = caretakersData?.results ?? [];

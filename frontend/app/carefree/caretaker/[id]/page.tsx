@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from 'react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import useSWR from "swr";
 import { searchCaretakerById } from "@/fetchers/users";
 import { getCaretakerSlots, createAppointmentRequest, Slot } from "@/fetchers/appointments";
@@ -18,10 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Separator } from "@/components/ui/separator";
 import { 
-  MapPin, 
-  Phone, 
   Briefcase, 
   Clock, 
   CalendarCheck, 
@@ -375,21 +372,6 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
           </div>
         </TabsContent>
       </Tabs>
-    </div>
-  );
-}
-
-// Kompaktna data row komponenta
-function DataRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <div className="flex items-center gap-3">
-      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
-        {icon}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">{label}</p>
-        <p className="font-medium truncate">{value}</p>
-      </div>
     </div>
   );
 }

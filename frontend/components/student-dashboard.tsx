@@ -21,8 +21,6 @@ import {
   CalendarDays, 
   Search, 
   ArrowRight, 
-  Smile,
-  Zap,
   ChevronUp,
   Video
 } from "lucide-react";

@@ -20,6 +20,20 @@ from users.serializers import CaretakerLongSerializer
 from openai import OpenAI
 
 
+def _get_openai_client() -> OpenAI:
+    if not settings.OPENAI_API_KEY:
+        raise RuntimeError("OPENAI_API_KEY is not configured")
+    return OpenAI(api_key=settings.OPENAI_API_KEY)
+
+
+def _coerce_bool(value) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "da"}
+    return bool(value)
+
+
 
 
 def _get_student_from_request(request):
@@ -47,7 +61,7 @@ def generate_stream(session: AssistantSession):
             content=full_response,
         )
 
-    client = OpenAI(api_key=settings.OPENAI_API_KEY)
+    client = _get_openai_client()
     prompt = f"""
         Ti si AI podrška za mentalno zdravlje namijenjena studentima.  
         Tvoja uloga NIJE postavljanje dijagnoza niti zamjena za psihoterapiju.  
@@ -271,7 +285,7 @@ def generate_session_summary(session: AssistantSession) -> str:
         return "Sesija nema poruka."
     
 
-    client = OpenAI(api_key=settings.OPENAI_API_KEY)
+    client = _get_openai_client()
     prompt = f"""
         Ti si psihološki asistent za studente koji ti se javljaju s problemima. Šaljem ti sve poruke koje su do sada protekle
         u ovom razgovoru sa studentom. Tvoja uloga je procijeniti jesi li prikupio dovoljno informacija od studenta da znaš o 
@@ -465,7 +479,7 @@ def generate_bot_message(session: AssistantSession) -> json:
         return "Sesija nema poruka."
     
 
-    client = OpenAI(api_key=settings.OPENAI_API_KEY)
+    client = _get_openai_client()
     prompt = f"""
         Ti si psihološki asistent za studente koji ti se javljaju s problemima. Šaljem ti sve poruke koje su do sada protekle
         u ovom razgovoru sa studentom. Tvoja uloga je procijeniti jesi li prikupio dovoljno informacija od studenta da znaš o 
@@ -756,7 +770,10 @@ class SessionMessageView(APIView):
         #bot_message = generate_stream(session)
 
         
-        bot_json = generate_bot_message(session)
+        try:
+            bot_json = generate_bot_message(session)
+        except RuntimeError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         bot_message = AssistantMessage.objects.create(
             session=session,
             sender=AssistantMessage.SENDER_BOT,
@@ -810,26 +827,8 @@ class SessionMessageView(APIView):
             else:
                 return Response({"error": "Došlo je do greške prilikom stvaranja summaryja"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
-        try:
-            recommendation_ready = bot_json.get("recommendation_ready")
-            if not recommendation_ready or not recommendation_ready:
-                recommendation_ready = False
-                
-            else:
-                recommendation_ready = True
-        except Exception as e:
-            recommendation_ready = False
-
-
-        try:
-            danger_flag = bot_json.get("danger_flag", "")
-            if not danger_flag or not danger_flag.strip():
-                danger_flag = False
-                
-            else:
-                danger_flag = True
-        except Exception as e:
-            danger_flag = False
+        recommendation_ready = _coerce_bool(bot_json.get("recommendation_ready"))
+        danger_flag = _coerce_bool(bot_json.get("danger_flag"))
 
         response = Response(
             {

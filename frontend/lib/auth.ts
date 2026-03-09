@@ -1,15 +1,39 @@
-import { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
+import type { JWT } from "next-auth/jwt"
+import type { AuthOptions } from "next-auth"
 
-export const authOptions: NextAuthOptions = {
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
-  ],
+type AuthAccount = {
+  access_token?: string
+}
+
+type AuthUser = {
+  id?: string
+}
+
+type AuthSession = {
+  user: {
+    id?: string
+  }
+  accessToken?: string
+}
+
+const googleClientId = process.env.GOOGLE_CLIENT_ID
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET
+
+const providers =
+  googleClientId && googleClientSecret
+    ? [
+        GoogleProvider({
+          clientId: googleClientId,
+          clientSecret: googleClientSecret,
+        }),
+      ]
+    : []
+
+export const authOptions: AuthOptions = {
+  providers,
   callbacks: {
-    async jwt({ token, account, user }) {
+    async jwt({ token, account, user }: { token: JWT; account?: AuthAccount | null; user?: AuthUser }) {
       if (account) {
         token.accessToken = account.access_token
       }
@@ -18,7 +42,7 @@ export const authOptions: NextAuthOptions = {
       }
       return token
     },
-    async session({ session, token }) {
+    async session({ session, token }: { session: AuthSession; token: JWT }) {
       if (token) {
         session.user.id = token.id as string
         session.accessToken = token.accessToken as string

@@ -27,6 +27,7 @@ from .permissions import IsStudent
 from django.views.decorators.cache import never_cache
 from .services import create_hold, release_hold
 from rest_framework import permissions
+from backend.emailing import send_project_email
 
 
 class HoldCreateView(APIView):
@@ -177,8 +178,6 @@ class AppointmentRequestRejectView(APIView):
         req.save(update_fields=['status'])
         # notify student and caretaker by email (best-effort)
         try:
-            from django.core.mail import send_mail
-            from django.conf import settings
             recipients = []
             if req.student and getattr(req.student, 'user', None) and req.student.user.email:
                 recipients.append(req.student.user.email)
@@ -193,7 +192,7 @@ class AppointmentRequestRejectView(APIView):
                 subj = 'Zahtjev za razgovor je odbijen - CareFree'
                 msg = f"Vaš zahtjev za razgovor {start_str} je odbijen.\n\n"
                 msg += "Molimo da u aplikaciji odaberete neki drugi termin."
-                send_mail(subject=subj, message=msg, from_email=settings.DEFAULT_FROM_EMAIL, recipient_list=recipients, fail_silently=True)
+                send_project_email(subject=subj, message=msg, recipient_list=recipients, fail_silently=True)
         except Exception:
             pass
 

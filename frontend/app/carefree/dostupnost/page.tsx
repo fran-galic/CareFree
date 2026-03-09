@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,41 +27,17 @@ const HOURS = Array.from({ length: 9 }, (_, i) => i + 8); // 8-16 (8:00-15:00, l
 const DAYS_TO_SHOW = 7;
 
 export default function DostupnostPage() {
-  const [availabilitySlots, setAvailabilitySlots] = useState<AvailabilitySlot[]>([]);
   const [gridSlots, setGridSlots] = useState<GridSlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
 
-  const days = Array.from({ length: DAYS_TO_SHOW }, (_, i) => addDays(startOfDay(new Date()), i));
+  const days = useMemo(
+    () => Array.from({ length: DAYS_TO_SHOW }, (_, i) => addDays(startOfDay(new Date()), i)),
+    []
+  );
 
-  useEffect(() => {
-    fetchAvailability();
-  }, []);
-
-  const fetchAvailability = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/appointments/caretaker/availability/my/?days=${DAYS_TO_SHOW}`,
-        { credentials: "include" }
-      );
-
-      if (response.ok) {
-        const data: AvailabilitySlot[] = await response.json();
-        setAvailabilitySlots(data);
-        initializeGrid(data);
-      } else {
-        console.error("Greška pri dohvaćanju dostupnosti");
-      }
-    } catch (error) {
-      console.error("Greška:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const initializeGrid = (slots: AvailabilitySlot[]) => {
+  const initializeGrid = useCallback((slots: AvailabilitySlot[]) => {
     const grid: GridSlot[] = [];
 
     days.forEach((day) => {
@@ -84,7 +60,32 @@ export default function DostupnostPage() {
 
     setGridSlots(grid);
     setHasChanges(false);
-  };
+  }, [days]);
+
+  const fetchAvailability = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/appointments/caretaker/availability/my/?days=${DAYS_TO_SHOW}`,
+        { credentials: "include" }
+      );
+
+      if (response.ok) {
+        const data: AvailabilitySlot[] = await response.json();
+        initializeGrid(data);
+      } else {
+        console.error("Greška pri dohvaćanju dostupnosti");
+      }
+    } catch (error) {
+      console.error("Greška:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [initializeGrid]);
+
+  useEffect(() => {
+    void fetchAvailability();
+  }, [fetchAvailability]);
 
   const toggleSlot = (date: Date, hour: number) => {
     setGridSlots((prev) =>

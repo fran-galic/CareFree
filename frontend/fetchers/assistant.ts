@@ -1,6 +1,7 @@
 import { fetcher } from "./fetcher";
+import { BACKEND_URL } from "@/lib/config";
 
-const BACKEND_API = process.env.NEXT_PUBLIC_BACKEND_URL;
+const BACKEND_API = BACKEND_URL;
 
 // Tipovi podataka prema backend modelu [4]
 export interface AssistantMessage {

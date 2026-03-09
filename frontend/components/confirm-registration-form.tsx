@@ -202,7 +202,7 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
         
         router.push("/carefree/profile/caretaker");
       }
-    } catch (err) {
+    } catch {
       setError("Greška u mreži. Pokušajte ponovno.");
     } finally {
       setLoading(false);
