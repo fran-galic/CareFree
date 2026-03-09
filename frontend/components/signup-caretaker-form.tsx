@@ -8,12 +8,8 @@ import {
 } from "@/components/ui/card"
 import {
     Field,
-    FieldContent,
-    FieldDescription,
     FieldGroup,
     FieldLabel,
-    FieldSet,
-    FieldTitle,
 } from "@/components/ui/field"
 import {
     Select,
@@ -68,8 +64,7 @@ export default function SignupCaretakerForm({ userId } : ISignupCaretakerFormPro
                 )
             }
 
-            const data = await response.json();
-            console.log(data);
+            await response.json();
 
             // onSignupComplete(payload.role as string, data.id)
             console.log("success")
@@ -145,6 +140,7 @@ export default function SignupCaretakerForm({ userId } : ISignupCaretakerFormPro
                         <Field>
                             <FieldLabel htmlFor="office-address">Office Address</FieldLabel>
                             <Textarea
+                                name="about_me"
                                 id="office-address"
                                 placeholder="About me..."
                                 rows={4}

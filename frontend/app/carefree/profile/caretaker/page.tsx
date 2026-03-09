@@ -23,20 +23,34 @@ import {
   type HelpCategory
 } from "@/fetchers/users";
 
+interface CurrentUser {
+  first_name: string;
+  last_name: string;
+  email: string;
+  age?: number;
+  role: "student" | "caretaker";
+}
+
+interface CaretakerFormData {
+  tel_num: string;
+  about_me: string;
+  grad_year: string;
+  help_categories: number[];
+}
+
 export default function CaretakerProfilePage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<CurrentUser | null>(null);
   const [profile, setProfile] = useState<CaretakerProfile | null>(null);
   const [categories, setCategories] = useState<HelpCategory[]>([]);
-  const [formData, setFormData] = useState<any>({
+  const [formData, setFormData] = useState<CaretakerFormData>({
     tel_num: '',
     about_me: '',
-    grad_year: null,
+    grad_year: '',
     help_categories: [],
   });
   
   const [cvFile, setCvFile] = useState<File | null>(null);
-  const [diplomaFiles, setDiplomaFiles] = useState<File[]>([]);
   const [imageFile, setImageFile] = useState<File | null>(null);
   
   const [loading, setLoading] = useState(true);
@@ -76,7 +90,7 @@ export default function CaretakerProfilePage() {
         setFormData({
           tel_num: profileData.tel_num || '',
           about_me: profileData.about_me || '',
-          grad_year: profileData.grad_year || null,
+          grad_year: profileData.grad_year ? String(profileData.grad_year) : '',
           help_categories: profileData.help_categories || [],
         });
 
@@ -106,8 +120,8 @@ export default function CaretakerProfilePage() {
       const profileData = await getCaretakerProfile();
       setProfile(profileData);
       setCvFile(null);
-    } catch (error: any) {
-      setMessage({ type: "error", text: error.message || "Greška pri uploadu CV-a" });
+    } catch (error) {
+      setMessage({ type: "error", text: error instanceof Error ? error.message : "Greška pri uploadu CV-a" });
     } finally {
       setUploadingCV(false);
     }
@@ -122,8 +136,8 @@ export default function CaretakerProfilePage() {
       // Refresh profil
       const profileData = await getCaretakerProfile();
       setProfile(profileData);
-    } catch (error: any) {
-      setMessage({ type: "error", text: error.message || "Greška pri uploadu diplome" });
+    } catch (error) {
+      setMessage({ type: "error", text: error instanceof Error ? error.message : "Greška pri uploadu diplome" });
     } finally {
       setUploadingDiploma(false);
     }
@@ -140,8 +154,8 @@ export default function CaretakerProfilePage() {
       const profileData = await getCaretakerProfile();
       setProfile(profileData);
       setImageFile(null);
-    } catch (error: any) {
-      setMessage({ type: "error", text: error.message || "Greška pri uploadu slike" });
+    } catch (error) {
+      setMessage({ type: "error", text: error instanceof Error ? error.message : "Greška pri uploadu slike" });
     } finally {
       setUploadingImage(false);
     }
@@ -168,8 +182,8 @@ export default function CaretakerProfilePage() {
       } else {
         setMessage({ type: "success", text: "Profil uspješno ažuriran!" });
       }
-    } catch (error: any) {
-      setMessage({ type: "error", text: error.message || "Greška pri spremanju profila" });
+    } catch (error) {
+      setMessage({ type: "error", text: error instanceof Error ? error.message : "Greška pri spremanju profila" });
     } finally {
       setSaving(false);
     }
@@ -196,13 +210,13 @@ export default function CaretakerProfilePage() {
       } else {
         throw new Error("Greška pri brisanju računa");
       }
-    } catch (error) {
+    } catch {
       alert("Greška pri brisanju računa. Pokušajte ponovno.");
     }
   };
 
   const toggleCategory = (categoryId: number) => {
-    setFormData((prev: any) => ({
+    setFormData((prev) => ({
       ...prev,
       help_categories: prev.help_categories.includes(categoryId)
         ? prev.help_categories.filter((id: number) => id !== categoryId)

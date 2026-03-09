@@ -1,6 +1,7 @@
 import { fetcher } from "./fetcher";
+import { BACKEND_URL } from "@/lib/config";
 
-const BACKEND_API = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+const BACKEND_API = BACKEND_URL;
 
 export interface AppointmentRequest {
   id: number;

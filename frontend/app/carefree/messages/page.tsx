@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Send, Bot, User, StopCircle, CheckCircle, ChevronLeft, ChevronRight } from "lucide-react"; 
-import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
 
 
@@ -139,7 +138,7 @@ export default function ChatPage() {
       const minDelay = new Promise(resolve => setTimeout(resolve, 2000));
       const apiCall = sendMessage(tempContent);
       // Čekamo da prođu minimalno 2 sekunde I da backend odgovori
-      const [_, response] = await Promise.all([minDelay, apiCall]);
+      const [, response] = await Promise.all([minDelay, apiCall]);
 
       console.log("Response:", response);
       

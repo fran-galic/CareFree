@@ -2,10 +2,12 @@ from celery import shared_task
 from django.utils import timezone
 from .models import Appointment, CalendarEventLog
 from calendar_integration.google_client import create_event, build_service
-from django.core.mail import send_mail, EmailMessage
-import uuid
-import json
-from django.conf import settings
+from backend.emailing import send_project_email
+from .google_sync import (
+    build_appointment_payload,
+    extract_conference_link,
+    get_shared_calendar_id,
+)
 
 
 @shared_task(bind=True, max_retries=5)
@@ -27,95 +29,22 @@ def summarize_appointment_request(self, request_id):
 def sync_create_google_event(self, appointment_id):
     try:
         appt = Appointment.objects.select_related('caretaker', 'student').get(pk=appointment_id)
-        payload = {
-            'start': appt.start.isoformat(),
-            'end': appt.end.isoformat(),
-            'summary': 'Sastanak - CareFree',
-            'attendees': [appt.caretaker.user.email] + ([appt.student.user.email] if appt.student else []),
-            'description': appt.appointment_request.ai_summary or appt.appointment_request.message or '',
-        }
-        # sanitize attendees: remove falsy values, ensure contains '@', lowercase and dedupe preserving order
-        raw_att = payload.get('attendees') or []
-        cleaned = []
-        seen = set()
-        for a in raw_att:
-            try:
-                email = (a or '').strip()
-            except Exception:
-                continue
-            if not email or '@' not in email:
-                continue
-            email = email.lower()
-            if email in seen:
-                continue
-            seen.add(email)
-            cleaned.append(email)
-        payload['attendees'] = cleaned
-        # try to use per-user credentials for caretaker if available (create event in their primary calendar)
-        calendar_id = getattr(settings, 'GOOGLE_CALENDAR_ID', 'primary')
-        user_creds = None
-        try:
-            from calendar_integration.models import GoogleCredential
-            gc = GoogleCredential.objects.filter(user=appt.caretaker.user).first()
-            if gc and gc.access_token:
-                # build dict acceptable to google.oauth2.credentials.Credentials.from_authorized_user_info
-                try:
-                    scopes = json.loads(gc.scopes) if gc.scopes else []
-                except Exception:
-                    scopes = []
-                user_creds = {
-                    'token': gc.access_token,
-                    'refresh_token': gc.refresh_token,
-                    'token_uri': gc.token_uri or 'https://oauth2.googleapis.com/token',
-                    'client_id': gc.client_id,
-                    'client_secret': gc.client_secret,
-                    'scopes': scopes,
-                    'expiry': gc.expires_at.isoformat() if gc.expires_at else None,
-                }
-        except Exception:
-            user_creds = None
-
-        # prefer creating event directly in caretaker's personal calendar if user_creds present
-        try:
-            if user_creds:
-                # write to the caretaker's primary calendar
-                result = create_event(
-                    'primary',
-                    summary=payload['summary'],
-                    description=payload['description'],
-                    start=payload['start'],
-                    end=payload['end'],
-                    attendees=payload['attendees'],
-                    create_conference=True,
-                    user_credentials=user_creds,
-                )
-                # preserve calendar id as 'primary' to indicate personal calendar usage
-                calendar_id = 'primary'
-            else:
-                result = create_event(
-                    calendar_id,
-                    summary=payload['summary'],
-                    description=payload['description'],
-                    start=payload['start'],
-                    end=payload['end'],
-                    attendees=payload['attendees'],
-                    create_conference=True,
-                )
-        except Exception:
-            # fallback: try service-account calendar
-            result = create_event(
-                calendar_id,
-                summary=payload['summary'],
-                description=payload['description'],
-                start=payload['start'],
-                end=payload['end'],
-                attendees=payload['attendees'],
-                create_conference=True,
-            )
+        calendar_id = get_shared_calendar_id()
+        payload = build_appointment_payload(appt)
+        result = create_event(
+            calendar_id,
+            summary=payload['summary'],
+            description=payload['description'],
+            start=payload['start'],
+            end=payload['end'],
+            attendees=payload['attendees'],
+            create_conference=True,
+        )
         appt.external_event_id = result.get('id')
-        appt.conference_link = result.get('hangoutLink') or (result.get('conferenceData', {}).get('entryPoints') or [{}])[0].get('uri') or result.get('conference_link')
+        appt.calendar_id = calendar_id
+        appt.conference_link = extract_conference_link(result)
         appt.status = Appointment.STATUS_CONFIRMED
-        appt.save(update_fields=['external_event_id', 'conference_link', 'status'])
+        appt.save(update_fields=['external_event_id', 'calendar_id', 'conference_link', 'status'])
 
         CalendarEventLog.objects.create(appointment=appt, operation=CalendarEventLog.OP_CREATE, external_id=appt.external_event_id, request_payload=payload, response_payload=result, status='success', attempts=1, last_attempted_at=timezone.now())
 
@@ -138,10 +67,9 @@ def sync_create_google_event(self, appointment_id):
                 body += "Detalji sastanka bit će poslani uskoro."
             
             try:
-                send_mail(
+                send_project_email(
                     subject='Potvrda termina - CareFree',
                     message=body,
-                    from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=recipients,
                     fail_silently=True
                 )
@@ -165,7 +93,9 @@ def sync_cancel_google_event(self, appointment_id):
         if not appt.external_event_id:
             return
         service = build_service()
-        calendar_id = getattr(settings, 'GOOGLE_CALENDAR_ID', 'primary')
+        calendar_id = appt.calendar_id or get_shared_calendar_id(required=False)
+        if not calendar_id:
+            return
         try:
             service.events().delete(calendarId=calendar_id, eventId=appt.external_event_id).execute()
         except Exception:
@@ -189,15 +119,14 @@ def sync_availability_change(self, caretaker_id, slot_start_iso, make_available=
     """
     try:
         from calendar_integration.models import Calendar, CalendarEvent
-        from .models import AvailabilitySlot
-        from django.conf import settings
-        import json
         from datetime import datetime
 
         # normalize
         src_id = f"{caretaker_id}:{slot_start_iso}"
 
-        cal_id = getattr(settings, 'GOOGLE_CALENDAR_ID', 'primary')
+        cal_id = get_shared_calendar_id(required=False)
+        if not cal_id:
+            return
 
         if not make_available:
             # create event to block time

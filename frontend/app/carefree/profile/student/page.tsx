@@ -18,9 +18,6 @@ import {
   GraduationCap, 
   BookOpen,
   User,
-  EyeOff,
-  Eye,
-  Shield,
   Settings,
   UserPen,
   Save
@@ -29,9 +26,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+interface StudentDetails {
+  studying_at?: string;
+  year_of_study?: number;
+}
+
+interface StudentUser {
+  first_name: string;
+  last_name: string;
+  email: string;
+  role: "student" | "caretaker";
+  age?: number;
+  sex?: "" | "M" | "F" | "O";
+  student?: StudentDetails;
+}
+
 export default function StudentProfilePage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<StudentUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -90,6 +102,7 @@ export default function StudentProfilePage() {
   }, [user]);
 
   const handleCancelEdit = () => {
+    if (!user) return;
     setIsEditing(false);
     // reset form back to current user state
     setForm({
@@ -315,7 +328,7 @@ export default function StudentProfilePage() {
 
                         <div className="space-y-1">
                           <Label>Spol</Label>
-                          <Select value={form.sex} onValueChange={(v) => setForm((p) => ({ ...p, sex: v as any }))}>
+                          <Select value={form.sex} onValueChange={(v: "M" | "F" | "O") => setForm((p) => ({ ...p, sex: v }))}>
                             <SelectTrigger>
                               <SelectValue placeholder="Odaberi" />
                             </SelectTrigger>

@@ -1,6 +1,6 @@
 import { fetcher } from "./fetcher";
 
-const BACKEND_API = process.env.NEXT_PUBLIC_BACKEND_URL;
+const BACKEND_API = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
 
 export interface Caretaker {
   user_id: string;

@@ -9,8 +9,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Trash2, PlusCircle, BookOpen, Edit2, NotebookPen, PencilOff } from "lucide-react"; // Dodana Edit2 ikona
-import { Separator } from "@/components/ui/separator";
+import { Trash2, BookOpen, Edit2, NotebookPen, PencilOff } from "lucide-react";
+import type { JournalEntry as FetcherJournalEntry } from "@/fetchers/journal";
+
+interface JournalEntry {
+  id: number;
+  title: string;
+  content: string;
+  mood?: string | null;
+  created_at: string;
+}
 
 export default function JournalPage() {
   // Dohvaćanje podataka pomoću SWR-a (automatski cache i revalidacija)
@@ -66,7 +74,7 @@ export default function JournalPage() {
   };
 
   // Funkcija za pokretanje uređivanja
-  const handleEdit = (entry: any) => {
+  const handleEdit = (entry: JournalEntry) => {
     setNewEntry({
       title: entry.title,
       content: entry.content,
@@ -163,8 +171,8 @@ export default function JournalPage() {
                             { id: "tuzno", image: "/images/emot4.png" },
                             { id: "vrlo-tuzno", image: "/images/emot5.png" },
                         ].map((emotion) => {
-                            const [emojiPart, wordPart] = newEntry.mood?.split(":") || ["", ""];
-                            const isSelected = emojiPart === emotion.id;
+                            const [, wordPart = ""] = newEntry.mood?.split(":") || [];
+                            const isSelected = (newEntry.mood?.split(":")[0] || "") === emotion.id;
                             
                             return (
                                 <button
@@ -281,7 +289,7 @@ export default function JournalPage() {
             </div>
           ) : (
             <div className="grid gap-6">
-                {entries?.map((entry) => (
+                {entries?.map((entry: FetcherJournalEntry) => (
                 <Card key={entry.id} className="hover:shadow-md transition-shadow">
                     <CardHeader className="pb-3">
                         <div className="flex justify-between items-start">
@@ -291,7 +299,7 @@ export default function JournalPage() {
                                     <span>{formatDate(entry.created_at)}</span>
                                     {entry.mood && (
                                         (() => {
-                                            const [emojiPart, wordPart] = entry.mood.split(":");
+                                            const [, wordPart] = entry.mood.split(":");
                                             
                                             return (
                                                 <>

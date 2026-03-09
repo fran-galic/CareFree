@@ -1,14 +1,28 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import React from "react";
 import useSWR from "swr";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowLeft, MessageCircle, User, Bot, Calendar } from "lucide-react";
+import { Loader2, ArrowLeft, User, Bot, Calendar } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import type { Caretaker } from "@/fetchers/users";
+
+interface SummaryMessage {
+  sender: "bot" | "student";
+  content: string;
+}
+
+interface AssistantSummary {
+  created_at?: string;
+  main_category?: string;
+  summary_text?: string;
+  recommended_caretakers?: Caretaker[];
+  messages?: SummaryMessage[];
+}
 
 const fetcher = async (url: string) => {
   const res = await fetch(url, { credentials: "include" });
@@ -19,7 +33,7 @@ const fetcher = async (url: string) => {
 export default function AssistantSummaryDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = React.use(params);
   const router = useRouter();
-  const { data: summary, error, isLoading } = useSWR(
+  const { data: summary, error, isLoading } = useSWR<AssistantSummary>(
     `${process.env.NEXT_PUBLIC_BACKEND_URL}/assistant/summaries/${id}`,
     fetcher
   );
@@ -40,6 +54,10 @@ export default function AssistantSummaryDetailPage({ params }: { params: Promise
         </Alert>
       </div>
     );
+  }
+
+  if (!summary) {
+    return null;
   }
 
   const formatDate = (dateString: string) => {
@@ -93,7 +111,7 @@ export default function AssistantSummaryDetailPage({ params }: { params: Promise
             <div>
               <h3 className="font-semibold text-lg mb-3">Preporučeni psiholozi</h3>
               <div className="grid gap-3">
-                {summary.recommended_caretakers.map((caretaker: any) => (
+                {summary.recommended_caretakers.map((caretaker) => (
                   <Card key={caretaker.user_id} className="hover:shadow-md transition-shadow">
                     <CardContent className="pt-4">
                       <div className="flex items-start justify-between">
@@ -135,7 +153,7 @@ export default function AssistantSummaryDetailPage({ params }: { params: Promise
             <div>
               <h3 className="font-semibold text-lg mb-3">Povijest razgovora</h3>
               <div className="space-y-3 max-h-96 overflow-y-auto">
-                {summary.messages.map((message: any, idx: number) => (
+                {summary.messages.map((message, idx: number) => (
                   <div
                     key={idx}
                     className={`flex gap-3 ${

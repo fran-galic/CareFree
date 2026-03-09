@@ -23,7 +23,8 @@ describe("Users Fetcher Component Tests", () => {
     const rezultat = await getHelpCategories()
     expect(rezultat).toEqual(mockKategorije)
     expect(fetcher).toHaveBeenCalledWith(
-      expect.stringContaining("/help-categories/")
+      expect.stringContaining("/help-categories/"),
+      { credentials: "include" }
     )
   })
 

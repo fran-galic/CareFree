@@ -86,7 +86,7 @@ export default function ChatPage() {
       const apiCall = sendMessage(tempContent);
 
       
-      const [_, response] = await Promise.all([minDelay, apiCall]);
+      const [, response] = await Promise.all([minDelay, apiCall]);
       
       
       setMessages((prev) => {
