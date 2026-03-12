@@ -26,7 +26,10 @@ import {
   AlertCircle,
   Loader2,
   Mail,
-  Phone
+  Phone,
+  GraduationCap,
+  Sparkles,
+  ShieldCheck
 } from "lucide-react";
 
 interface SlotsByDay {
@@ -99,6 +102,8 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
     </div>
   );
 
+  const aboutText = caretaker.about_me?.trim();
+
   // --- FUNKCIJA REZERVACIJE ---
   const handleBooking = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -153,34 +158,39 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
           <h1 className="text-3xl font-bold tracking-tight">
             {caretaker.first_name} {caretaker.last_name}
           </h1>
-          <div className="flex items-center gap-2 mt-1">
+          <div className="mt-1 flex flex-wrap items-center gap-2">
             <Badge variant="outline" className="text-xs">
               <Briefcase className="w-3 h-3 mr-1" />
               Psiholog
             </Badge>
+            {caretaker.grad_year && (
+              <Badge variant="secondary" className="text-xs">
+                Diploma {caretaker.grad_year}.
+              </Badge>
+            )}
           </div>
         </div>
       </div>
 
       {/* SADRŽAJ: TABS */}
-      <Tabs defaultValue="about" className="w-full">
+      <Tabs defaultValue="booking" className="w-full">
         <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
-          <TabsTrigger value="about" className="gap-2">
-            <Briefcase className="w-4 h-4" />
-            O meni
-          </TabsTrigger>
           <TabsTrigger value="booking" className="gap-2">
             <CalendarCheck className="w-4 h-4" />
             Rezerviraj termin
+          </TabsTrigger>
+          <TabsTrigger value="about" className="gap-2">
+            <Briefcase className="w-4 h-4" />
+            O meni
           </TabsTrigger>
         </TabsList>
 
         {/* TAB 1: O MENI */}
         <TabsContent value="about" className="mt-0">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
             
             {/* Područja rada */}
-            <Card>
+            <Card className="xl:col-span-1">
               <CardHeader className="pb-0">
                 <CardTitle className="text-base font-medium">Područja rada</CardTitle>
               </CardHeader>
@@ -200,23 +210,76 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
             </Card>
 
             {/* O meni */}
-            <Card>
+            <Card className="xl:col-span-2">
               <CardHeader className="pb-1">
                 <CardTitle className="text-base font-medium">O meni</CardTitle>
               </CardHeader>
               <CardContent className="py-0">
                 <p className="whitespace-pre-line leading-relaxed text-muted-foreground">
-                  {caretaker.about_me || "Korisnik nije unio detaljan opis."}
+                  {aboutText || "Psiholog još nije unio detaljan opis profila."}
                 </p>
               </CardContent>
             </Card>
 
+            <Card>
+              <CardHeader className="pb-1">
+                <CardTitle className="flex items-center gap-2 text-base font-medium">
+                  <GraduationCap className="h-4 w-4 text-primary" />
+                  Profesionalni podaci
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 py-0">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Godina diplome</p>
+                  <p className="mt-1 text-sm text-foreground">{caretaker.grad_year || "Nije navedeno"}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Status profila</p>
+                  <p className="mt-1 text-sm text-foreground">
+                    Profil je verificiran i vidljiv studentima unutar CareFree sustava.
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Način rada</p>
+                  <p className="mt-1 text-sm text-foreground">
+                    Online savjetovanje kroz dogovorene termine i Google Meet pozive.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-1">
+                <CardTitle className="flex items-center gap-2 text-base font-medium">
+                  <ShieldCheck className="h-4 w-4 text-primary" />
+                  Privatnost i sigurnost
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 py-0 text-sm leading-6 text-muted-foreground">
+                <p>Detalji koje napišete uz zahtjev vidljivi su samo vama i psihologu kojem šaljete upit.</p>
+                <p>Kontakt podaci prikazuju se samo ako ih je psiholog odlučio podijeliti sa studentima.</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-1">
+                <CardTitle className="flex items-center gap-2 text-base font-medium">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  Što možete očekivati
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 py-0 text-sm leading-6 text-muted-foreground">
+                <p>Prvi razgovor služi upoznavanju, definiranju izazova i dogovoru oko najboljeg smjera podrške.</p>
+                <p>Nakon slanja zahtjeva psiholog potvrđuje termin, a potvrda i Google Meet link stižu e-mailom.</p>
+              </CardContent>
+            </Card>
+
             {(caretaker.contact_email || caretaker.contact_phone) && (
-              <Card>
-                <CardHeader className="pb-1">
+              <Card className="md:col-span-2 xl:col-span-3">
+                <CardHeader className="pb-0">
                   <CardTitle className="text-base font-medium">Kontakt</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3 py-0">
+                <CardContent className="space-y-3 pt-2 pb-0">
                   {caretaker.contact_email && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Mail className="h-4 w-4 text-primary" />
@@ -237,21 +300,33 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
 
         {/* TAB 2: REZERVACIJA */}
         <TabsContent value="booking" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="grid md:grid-cols-3 gap-6">
-            
-            {/* LIJEVA STRANA: KALENDAR */}
-            <div className="md:col-span-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <CalendarCheck className="w-5 h-5 text-primary" />
-                    Dostupni termini
-                  </CardTitle>
-                  <CardDescription>
-                    Odaberite termin za slanje zahtjeva. Psiholog će potvrditi termin.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CalendarCheck className="w-5 h-5 text-primary" />
+                  Dostupni termini
+                </CardTitle>
+                <CardDescription>
+                  Odaberite termin za slanje zahtjeva. Psiholog će potvrditi termin nakon pregleda vašeg upita.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div className="grid gap-3 rounded-xl border border-primary/10 bg-primary/5 p-4 md:grid-cols-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-primary">1. Odaberite termin</p>
+                    <p className="mt-1 text-sm text-muted-foreground">Kliknite slobodan termin koji vam odgovara.</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-primary">2. Napišite razlog dolaska</p>
+                    <p className="mt-1 text-sm text-muted-foreground">Dovoljno je nekoliko rečenica koje psiholog vidi prije potvrde.</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-primary">3. Pričekajte potvrdu</p>
+                    <p className="mt-1 text-sm text-muted-foreground">Nakon potvrde dobit ćete obavijest i Google Meet link.</p>
+                  </div>
+                </div>
+
                   {slotsError && (
                     <div className="flex items-center gap-2 p-4 bg-red-50 text-red-700 rounded-lg">
                       <AlertCircle className="w-5 h-5" />
@@ -260,8 +335,8 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
                   )}
 
                   {slotsLoading && (
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      {[1, 2, 3].map(i => (
+                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+                      {[1, 2, 3, 4].map(i => (
                         <div key={i} className="space-y-2">
                           <Skeleton className="h-10 w-full" />
                           <Skeleton className="h-32 w-full" />
@@ -278,10 +353,10 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
                   )}
 
                   {!slotsLoading && !slotsError && slotsByDay.length > 0 && (
-                    <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
                       {slotsByDay.map((day, dayIdx) => (
-                        <div key={dayIdx} className="space-y-3">
-                          <h4 className="font-semibold text-center py-2 bg-muted rounded-md text-sm">
+                        <div key={dayIdx} className="space-y-2 rounded-2xl border border-border/70 bg-card/80 p-2.5">
+                          <h4 className="rounded-md bg-muted py-2 text-center text-xs font-semibold">
                             {day.date.toLocaleDateString('hr-HR', { weekday: 'short', day: 'numeric', month: 'numeric' })}
                           </h4>
                           <div className="grid grid-cols-1 gap-2">
@@ -290,7 +365,7 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
                                 key={slotIdx}
                                 variant={slot.is_available ? "outline" : "ghost"}
                                 disabled={!slot.is_available}
-                                className={`w-full ${slot.is_available 
+                                className={`h-9 w-full px-2 text-xs ${slot.is_available 
                                   ? selectedSlot?.start === slot.start
                                       ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary' 
                                       : 'hover:border-primary hover:text-primary' 
@@ -306,74 +381,77 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
                       ))}
                     </div>
                   )}
-                </CardContent>
-              </Card>
-            </div>
+              </CardContent>
+            </Card>
 
-            {/* DESNA STRANA: FORMA ZA SLANJE ZAHTJEVA */}
-            <div className="md:col-span-1">
-              <Card className={`sticky top-6 border-l-4 transition-colors ${selectedSlot ? 'border-l-primary' : 'border-l-muted'}`}>
-                <CardHeader>
-                  <CardTitle>Vaš odabir</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {!selectedSlot ? (
-                    <div className="text-center py-8 text-muted-foreground animate-in fade-in">
-                      <Clock className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                      <p>Kliknite na slobodan termin (lijevo) za početak rezervacije.</p>
+            <Card className={`border-l-4 transition-colors ${selectedSlot ? 'border-l-primary' : 'border-l-muted'}`}>
+              <CardHeader>
+                <CardTitle>Vaš odabir</CardTitle>
+                <CardDescription>
+                  Nakon odabira termina ispunite kratku napomenu kako bi psiholog imao kontekst prije potvrde.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {!selectedSlot ? (
+                  <div className="py-8 text-center text-muted-foreground animate-in fade-in">
+                    <Clock className="mx-auto mb-3 h-12 w-12 opacity-20" />
+                    <p>Kliknite na slobodan termin iz gornjeg rasporeda za početak rezervacije.</p>
+                  </div>
+                ) : isBookingSuccess ? (
+                  <div className="space-y-4 py-8 text-center animate-in zoom-in duration-300">
+                    <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-100 text-green-600 shadow-sm">
+                      <CheckCircle2 className="h-10 w-10" />
                     </div>
-                  ) : isBookingSuccess ? (
-                    <div className="text-center py-8 space-y-4 animate-in zoom-in duration-300">
-                      <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto shadow-sm">
-                        <CheckCircle2 className="w-10 h-10" />
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-xl text-green-700">Zahtjev poslan!</h3>
-                        <p className="text-sm text-muted-foreground mt-2 px-4">
-                          Psiholog će pregledati vaš zahtjev. <br/>
-                          Potvrda i <strong>Google Meet</strong> link stići će vam e-mailom uskoro.
-                        </p>
-                      </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-green-700">Zahtjev poslan!</h3>
+                      <p className="mt-2 px-4 text-sm text-muted-foreground">
+                        Psiholog će pregledati vaš zahtjev. Potvrda i <strong>Google Meet</strong> link stići će vam e-mailom uskoro.
+                      </p>
                     </div>
-                  ) : (
-                    <form onSubmit={handleBooking} className="space-y-5 animate-in slide-in-from-right-4 duration-300">
+                  </div>
+                ) : (
+                  <form onSubmit={handleBooking} className="grid gap-6 lg:grid-cols-[0.95fr_1.4fr] animate-in slide-in-from-bottom-4 duration-300">
+                    <div className="rounded-xl border border-primary/10 bg-primary/5 p-5 space-y-1">
+                      <p className="text-xs font-bold uppercase tracking-wide text-primary">Odabrani termin</p>
+                      <p className="text-xl font-semibold">
+                        {new Date(selectedSlot.start).toLocaleDateString('hr-HR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                      </p>
+                      <p className="text-3xl font-bold text-primary">
+                        {selectedSlot.time}
+                      </p>
+                      <p className="pt-2 text-sm leading-6 text-muted-foreground">
+                        Ako vam termin ipak ne odgovara, možete odabrati drugi ili odustati prije slanja zahtjeva.
+                      </p>
+                    </div>
+
+                    <div className="space-y-5">
                       {errorMessage && (
-                        <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-md text-sm flex items-start gap-2">
-                          <AlertCircle className="w-4 h-4 mt-0.5" />
+                        <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                          <AlertCircle className="mt-0.5 h-4 w-4" />
                           <p>{errorMessage}</p>
                         </div>
                       )}
 
-                      <div className="bg-primary/5 p-5 rounded-xl border border-primary/10 space-y-1">
-                        <p className="text-xs font-bold text-primary uppercase tracking-wide">Odabrani Termin</p>
-                        <p className="font-semibold text-xl">
-                          {new Date(selectedSlot.start).toLocaleDateString('hr-HR', { weekday: 'long', day: 'numeric', month: 'long' })}
-                        </p>
-                        <p className="text-3xl font-bold text-primary">
-                          {selectedSlot.time}
-                        </p>
-                      </div>
-
                       <div className="space-y-2">
-                        <label className="text-sm font-medium flex items-center gap-2">
-                            Razlog dolaska 
-                            <span className="text-xs font-normal text-muted-foreground">(kratko)</span>
+                        <label className="flex items-center gap-2 text-sm font-medium">
+                          Razlog dolaska
+                          <span className="text-xs font-normal text-muted-foreground">(kratko)</span>
                         </label>
                         <Textarea 
                           placeholder="Npr. osjećam veliku anksioznost prije ispita..."
                           value={bookingNote}
                           onChange={(e) => setBookingNote(e.target.value)}
                           required
-                          rows={4}
+                          rows={5}
                           className="resize-none"
                         />
-                        <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-                           <AlertCircle className="w-3 h-3"/> 
-                           Ovaj opis vidljiv je samo psihologu.
+                        <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                          <AlertCircle className="h-3 w-3" />
+                          Ovaj opis vidljiv je samo psihologu.
                         </p>
                       </div>
 
-                      <div className="flex gap-3 pt-2">
+                      <div className="flex flex-col gap-3 pt-2 sm:flex-row">
                         <Button type="button" variant="outline" className="flex-1" onClick={() => {
                           setSelectedSlot(null);
                           setErrorMessage(null);
@@ -381,15 +459,15 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
                           Odustani
                         </Button>
                         <Button type="submit" className="flex-1 gap-2" disabled={isSubmitting}>
-                          {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                          {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
                           {isSubmitting ? "Slanje..." : "Pošalji zahtjev"}
                         </Button>
                       </div>
-                    </form>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+                    </div>
+                  </form>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
       </Tabs>

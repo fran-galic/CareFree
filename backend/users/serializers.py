@@ -36,7 +36,7 @@ class CaretakerShortSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Caretaker
-        fields = ["user_id", "first_name", "last_name", "help_categories", "user_image_url", "grad_year"]
+        fields = ["user_id", "first_name", "last_name", "help_categories", "user_image_url", "about_me", "grad_year"]
 
     def get_user_image_url(self, obj):
         return _versioned_image_url(getattr(obj, "image", None))
