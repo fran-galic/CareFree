@@ -333,15 +333,15 @@ export default function ChatPage() {
       
       {}
       {!sessionEnded && (
-        <div className="bg-background/95 border-b supports-[backdrop-filter]:bg-background/60">
+        <div className="border-b border-primary/10 bg-gradient-to-r from-background via-background to-primary/5 supports-[backdrop-filter]:bg-background/80">
           <div className="flex items-center justify-between px-6 py-4">
             <div className="flex items-center gap-3">
-              <div className="bg-gradient-to-br from-primary to-teal-600 p-2 rounded-lg">
-                <Bot className="w-5 h-5 text-white" />
+              <div className="rounded-xl bg-primary/12 p-2.5 ring-1 ring-primary/15 shadow-sm">
+                <Bot className="w-5 h-5 text-primary" />
               </div>
               <div>
                 <h1 className="text-lg font-semibold">Julija - CareFree AI asistent</h1>
-                <p className="text-xs text-muted-foreground">Siguran razgovor</p>
+                <p className="text-xs text-muted-foreground">Siguran razgovor i podrška korak po korak</p>
               </div>
             </div>
             <Button 
@@ -349,7 +349,7 @@ export default function ChatPage() {
               size="sm" 
               onClick={handleEndSession} 
               disabled={!isSessionActive}
-              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              className="rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
             >
               <StopCircle className="w-4 h-4 mr-2" />
               Završi
@@ -361,7 +361,7 @@ export default function ChatPage() {
       {/* CHAT CONTAINER */}
       <div className="flex-1 m-6 mb-8 border rounded-lg shadow-sm overflow-hidden flex flex-col">
         {/* CHAT AREA */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 bg-muted/20">
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 bg-muted/10">
           {messages.map((msg) => (
             <div
               key={msg.id}
@@ -420,13 +420,13 @@ export default function ChatPage() {
       </div>
 
       {/* INPUT AREA */}
-      <div className="border-t bg-background px-6 py-3">
-        <form onSubmit={handleSendMessage} className="flex gap-2">
+      <div className="border-t border-primary/10 bg-background px-6 py-4">
+        <form onSubmit={handleSendMessage} className="flex items-center gap-2 rounded-2xl border border-primary/15 bg-background p-1.5 shadow-sm">
           <Input
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             placeholder={sessionEnded ? "Razgovor je završen" : "Napiši poruku..."}
-            className="flex-1"
+            className="flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
             autoFocus
             disabled={isLoading || sessionEnded}
           />
@@ -434,7 +434,7 @@ export default function ChatPage() {
             type="submit" 
             disabled={isLoading || !inputValue.trim() || sessionEnded}
             size="icon"
-            className="flex-shrink-0"
+            className="h-10 w-10 flex-shrink-0 rounded-xl bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
           >
             <Send className="w-4 h-4" />
             <span className="sr-only">Pošalji</span>
