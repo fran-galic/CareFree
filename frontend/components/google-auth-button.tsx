@@ -1,7 +1,6 @@
 "use client"
 
 import { useGoogleLogin } from '@react-oauth/google'
-import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { API_URL, GOOGLE_CLIENT_ID } from '@/lib/config'
 
@@ -16,7 +15,6 @@ export default function GoogleAuthButton({
   className = "",
   onError,
 }: GoogleAuthButtonProps) {
-  const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   
   const handleGoogleLogin = useGoogleLogin({
@@ -38,12 +36,17 @@ export default function GoogleAuthButton({
         const data = await response.json()
 
         if (response.ok) {
+          const isOnboarding = data.auth_flow === "complete_registration"
+          const baseTarget = isOnboarding
+            ? data.onboarding_path || "/accounts/signup"
+            : "/carefree/main"
           const target =
-            data.auth_flow === "complete_registration"
-              ? data.onboarding_path || "/accounts/signup"
-              : "/carefree/main"
+            isOnboarding && data.user?.email
+              ? `${baseTarget}?google=1&email=${encodeURIComponent(data.user.email)}`
+              : baseTarget
 
-          router.push(target)
+          // Full reload ensures auth cookies are available before the next page checks /users/me/.
+          window.location.href = target
         } else {
           console.error('Google login failed:', data)
           onError?.(data.error || 'Prijava s Googleom nije uspjela')

@@ -54,6 +54,27 @@ from backend.emailing import render_branded_email, send_project_email
 User = get_user_model()
 
 
+def _versioned_image_url(image_field):
+    if not image_field:
+        return None
+
+    try:
+        url = image_field.url
+    except Exception:
+        return None
+
+    try:
+        storage_name = image_field.storage.__class__.__name__.lower()
+        if "filesystemstorage" not in storage_name:
+            return url
+        modified_at = image_field.storage.get_modified_time(image_field.name)
+        version = int(modified_at.timestamp())
+        separator = "&" if "?" in url else "?"
+        return f"{url}{separator}v={version}"
+    except Exception:
+        return url
+
+
 def _serialize_auth_user(user):
     return {
         **UserSerializer(user).data,
@@ -413,44 +434,62 @@ class CaretakerCompleteRegistrationView(APIView):
     serializer_class = CaretakerProfileSerializer
     permission_classes = [IsCaretaker, IsAuthenticated]
 
-    def get(self, request):
-        caretaker = request.user.caretaker
+    def _serialize_profile(self, caretaker, user):
         serializer = self.serializer_class(caretaker)
         data = serializer.data
 
-        try:
-            image_url = getattr(caretaker.image, 'url', None)
-        except Exception:
-            image_url = None
+        image_url = _versioned_image_url(getattr(caretaker, 'image', None))
         image_mime = getattr(caretaker, 'image_mime_type', None)
 
         try:
             cv = caretaker.cv
             cv_name = cv.original_filename or getattr(cv.file, 'name', None)
+            cv_data = {
+                'id': cv.id,
+                'filename': cv_name,
+            }
         except Exception:
             cv_name = None
+            cv_data = None
 
         diploma_names = []
+        diploma_files = []
         try:
             for d in caretaker.diplomas.all():
-                diploma_names.append(d.original_filename or getattr(d.file, 'name', None))
+                filename = d.original_filename or getattr(d.file, 'name', None)
+                diploma_names.append(filename)
+                diploma_files.append({'id': d.id, 'filename': filename})
         except Exception:
             diploma_names = []
+            diploma_files = []
 
         certificate_names = []
+        certificate_files = []
         try:
             for c in caretaker.certificates.all():
-                certificate_names.append(c.original_filename or getattr(c.file, 'name', None))
+                filename = c.original_filename or getattr(c.file, 'name', None)
+                certificate_names.append(filename)
+                certificate_files.append({'id': c.id, 'filename': filename})
         except Exception:
             certificate_names = []
+            certificate_files = []
 
         data['image'] = image_url
         data['image_mime_type'] = image_mime
         data['cv_filename'] = cv_name
+        data['cv_file'] = cv_data
         data['diploma_filenames'] = diploma_names
+        data['diploma_files'] = diploma_files
         data['certificate_filenames'] = certificate_names
+        data['certificate_files'] = certificate_files
+        data['age'] = getattr(user, 'age', None)
 
-        return Response(data)
+        return data
+
+    def get(self, request):
+        caretaker = request.user.caretaker
+
+        return Response(self._serialize_profile(caretaker, request.user))
 
     def post(self, request):
         caretaker = request.user.caretaker
@@ -500,7 +539,7 @@ class CaretakerCompleteRegistrationView(APIView):
         caretaker.save()
 
         # Return helpful feedback if profile is incomplete
-        response_data = CaretakerProfileSerializer(caretaker).data
+        response_data = self._serialize_profile(caretaker, request.user)
         # include uploaded filenames and image metadata for client convenience
         # try:
         #     cv = caretaker.cv
@@ -567,7 +606,7 @@ class CaretakerCompleteRegistrationView(APIView):
         serializer.save()
         caretaker.save()
 
-        return Response(CaretakerProfileSerializer(caretaker).data)
+        return Response(self._serialize_profile(caretaker, request.user))
 
 from drf_spectacular.utils import extend_schema
 
@@ -599,6 +638,14 @@ class CaretakerCVUploadView(APIView):
         obj = serializer.save()
 
         return Response({'message': 'CV uploaded successfully'})
+
+    def delete(self, request):
+        caretaker = request.user.caretaker
+        try:
+            caretaker.cv.delete()
+        except CaretakerCV.DoesNotExist:
+            return Response({'error': 'CV nije pronađen.'}, status=404)
+        return Response({'message': 'CV deleted successfully'})
 
 
 @extend_schema(
@@ -634,6 +681,14 @@ class DiplomaCreateView(APIView):
 
         return Response({'message': 'Diploma uploaded successfully'})
 
+    def delete(self, request, diploma_id):
+        diploma = Diploma.objects.filter(id=diploma_id, caretaker=request.user.caretaker).first()
+        if not diploma:
+            return Response({'error': 'Diploma nije pronađena.'}, status=404)
+
+        diploma.delete()
+        return Response({'message': 'Diploma deleted successfully'})
+
 
 @extend_schema(
     request={
@@ -664,6 +719,14 @@ class CertificateCreateView(APIView):
 
         return Response({'message': 'Certificate uploaded successfully'})
 
+    def delete(self, request, certificate_id):
+        certificate = Certificate.objects.filter(id=certificate_id, caretaker=request.user.caretaker).first()
+        if not certificate:
+            return Response({'error': 'Certifikat nije pronađen.'}, status=404)
+
+        certificate.delete()
+        return Response({'message': 'Certificate deleted successfully'})
+
 
 @extend_schema(
     request={
@@ -693,6 +756,16 @@ class CaretakerImageUploadView(APIView):
         obj = serializer.save()
 
         return Response({'message': 'Image uploaded successfully'})
+
+    def delete(self, request):
+        caretaker = request.user.caretaker
+        if not caretaker.image:
+            return Response({'error': 'Profilna slika nije pronađena.'}, status=404)
+
+        caretaker.image = None
+        caretaker.image_mime_type = None
+        caretaker.save()
+        return Response({'message': 'Image deleted successfully'})
 
     
     

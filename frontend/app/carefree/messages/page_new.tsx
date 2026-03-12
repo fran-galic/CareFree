@@ -7,10 +7,11 @@ import { searchCaretakers, Caretaker } from "@/fetchers/users";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Send, Bot, User, StopCircle, CheckCircle } from "lucide-react"; 
 import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
+import { PersistentAvatar } from "@/components/persistent-avatar-image";
 
 
 const TypingIndicator = () => (
@@ -161,14 +162,13 @@ export default function ChatPage() {
                   <Card key={caretaker.user_id} className="hover:shadow-md transition-shadow">
                     <CardContent className="p-4">
                       <div className="flex items-start gap-4">
-                        <Avatar className="w-12 h-12">
-                          {caretaker.user_image_url ? (
-                            <AvatarImage src={caretaker.user_image_url} />
-                          ) : null}
-                          <AvatarFallback>
-                            {caretaker.first_name[0]}{caretaker.last_name[0]}
-                          </AvatarFallback>
-                        </Avatar>
+                        <PersistentAvatar
+                          cacheKey={`avatar:messages-new:${caretaker.user_id}`}
+                          src={caretaker.user_image_url}
+                          alt={`${caretaker.first_name} ${caretaker.last_name}`}
+                          className="w-12 h-12"
+                          fallback={<>{caretaker.first_name[0]}{caretaker.last_name[0]}</>}
+                        />
                         <div className="flex-1">
                           <h4 className="font-semibold">
                             {caretaker.academic_title} {caretaker.first_name} {caretaker.last_name}

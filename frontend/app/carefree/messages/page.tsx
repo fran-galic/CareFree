@@ -6,7 +6,8 @@ import { startSession, sendMessage, endSession, AssistantMessage } from "@/fetch
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { PersistentAvatar } from "@/components/persistent-avatar-image";
 import { Send, Bot, User, StopCircle, CheckCircle, ChevronLeft, ChevronRight } from "lucide-react"; 
 import Link from "next/link";
 
@@ -254,14 +255,14 @@ export default function ChatPage() {
                     <Card key={caretaker.user_id} className="hover:shadow-md transition-shadow h-full">
                       <CardContent className="p-3 flex flex-col items-center text-center h-full justify-between">
                         <div className="flex flex-col items-center">
-                          <Avatar className="w-12 h-12 mb-2">
-                            {caretaker.user_image_url ? (
-                              <AvatarImage src={caretaker.user_image_url} className="object-cover" />
-                            ) : null}
-                            <AvatarFallback className="text-sm">
-                              {caretaker.first_name[0]}{caretaker.last_name[0]}
-                            </AvatarFallback>
-                          </Avatar>
+                          <PersistentAvatar
+                            cacheKey={`avatar:messages:${caretaker.user_id}`}
+                            src={caretaker.user_image_url}
+                            alt={`${caretaker.first_name} ${caretaker.last_name}`}
+                            className="w-12 h-12 mb-2"
+                            fallbackClassName="text-sm"
+                            fallback={<>{caretaker.first_name[0]}{caretaker.last_name[0]}</>}
+                          />
                           <h4 className="font-semibold text-sm line-clamp-1">
                             {caretaker.academic_title} {caretaker.first_name} {caretaker.last_name}
                           </h4>

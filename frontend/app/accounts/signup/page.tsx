@@ -17,6 +17,8 @@ function SignupContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const token = searchParams.get("token")
+  const googleOnboarding = searchParams.get("google") === "1"
+  const googleEmail = searchParams.get("email")
   const [email, setEmail] = useState<string | null>(null)
   const [googleUser, setGoogleUser] = useState<{ email: string } | null>(null)
   const [resendCooldown, setResendCooldown] = useState<number>(0)
@@ -26,32 +28,45 @@ function SignupContent() {
   // Check if user is already logged in
   useEffect(() => {
     const checkAuth = async () => {
-      try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/users/me/`,
-          {
-            credentials: "include",
-          }
-        )
+      const attempts = googleOnboarding ? 8 : 1
 
-        if (response.ok) {
-          const user = await response.json()
-          if (user.needs_onboarding) {
-            setGoogleUser({ email: user.email })
-            setIsChecking(false)
+      for (let attempt = 0; attempt < attempts; attempt += 1) {
+        try {
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_BACKEND_URL}/users/me/`,
+            {
+              credentials: "include",
+              cache: "no-store",
+            }
+          )
+
+          if (response.ok) {
+            const user = await response.json()
+            if (user.needs_onboarding) {
+              setGoogleUser({ email: user.email })
+              setIsChecking(false)
+              return
+            }
+            router.replace("/carefree/main")
             return
           }
-          router.replace("/carefree/main")
-        } else {
-          setIsChecking(false)
+        } catch {
+          // Retry below for Google onboarding.
         }
-      } catch {
-        setIsChecking(false)
+
+        if (attempt < attempts - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 250))
+        }
       }
+
+      if (googleOnboarding && googleEmail) {
+        setGoogleUser({ email: googleEmail })
+      }
+      setIsChecking(false)
     }
 
     checkAuth()
-  }, [router])
+  }, [googleEmail, googleOnboarding, router])
 
   useEffect(() => {
     if (resendCooldown > 0) {

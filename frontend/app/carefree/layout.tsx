@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { fetcher } from "@/fetchers/fetcher";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { PersistentAvatar } from "@/components/persistent-avatar-image";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Home, 
@@ -23,6 +23,7 @@ import Image from "next/image";
 import { Footer } from "@/components/footer";
 
 const BACKEND_API = process.env.NEXT_PUBLIC_BACKEND_URL;
+const USER_CACHE_KEY = "carefree-user-cache";
 
 // Definiramo tipove podataka koji dolaze s backenda
 interface User {
@@ -32,6 +33,22 @@ interface User {
   first_name?: string; 
   last_name?: string;
   caretaker?: { user_image_url?: string }; 
+}
+
+function readCachedUser(): User | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const raw = window.sessionStorage.getItem(USER_CACHE_KEY);
+    if (!raw) {
+      return null;
+    }
+    return JSON.parse(raw) as User;
+  } catch {
+    return null;
+  }
 }
 
 function getInitials(firstName?: string, lastName?: string) {
@@ -48,12 +65,14 @@ export default function CarefreeLayout({
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+  const [cachedUser, setCachedUser] = useState<User | null>(readCachedUser);
   
   
   const { data: user, isLoading, error } = useSWR<User>(
     `${BACKEND_API}/users/me/`, 
     fetcher,
     {
+      fallbackData: cachedUser ?? undefined,
       revalidateOnMount: true,
       dedupingInterval: 0
     }
@@ -61,9 +80,25 @@ export default function CarefreeLayout({
 
   useEffect(() => {
     if (error && error.message.includes('401') && !isLoading) {
+      if (typeof window !== "undefined") {
+        window.sessionStorage.removeItem(USER_CACHE_KEY);
+      }
       router.push('/accounts/login');
     }
   }, [error, isLoading, router]);
+
+  useEffect(() => {
+    if (!user || typeof window === "undefined") {
+      return;
+    }
+
+    setCachedUser(user);
+    try {
+      window.sessionStorage.setItem(USER_CACHE_KEY, JSON.stringify(user));
+    } catch {
+      // Best effort cache only.
+    }
+  }, [user]);
 
   useEffect(() => {
     let lastScrollY = window.scrollY;
@@ -85,6 +120,9 @@ export default function CarefreeLayout({
 
   const handleLogout = async () => {
     await fetch(`${BACKEND_API}/auth/logout/`, { method: "POST", credentials: "include" });
+    if (typeof window !== "undefined") {
+      window.sessionStorage.removeItem(USER_CACHE_KEY);
+    }
     router.push("/accounts/login");
   };
 
@@ -215,23 +253,26 @@ export default function CarefreeLayout({
 
             {/* Profile Link */}
             <Link href={isCaretaker ? "/carefree/profile/caretaker" : "/carefree/profile/student"}>
+              {(() => {
+                const avatarAlt = user?.first_name || user?.email || "Moj Profil";
+                const avatarCacheKey = isCaretaker
+                  ? `avatar:self:${user?.id || user?.email || "anonymous"}`
+                  : `avatar:layout:${user?.id || "anonymous"}`;
+
+                return (
               <div className={`flex items-center gap-3 pl-1 pr-4 py-1 rounded-full border transition-all cursor-pointer group ${
                 isActive("/carefree/profile") 
                   ? "border-primary bg-primary/5" 
                   : "border-transparent hover:bg-primary/5 hover:border-primary"
               }`}>
-                <Avatar className="w-9 h-9 border-2 border-background shadow-sm group-hover:border-primary/50 transition-colors">
-                  {isCaretaker && user?.caretaker?.user_image_url ? (
-                    <AvatarImage 
-                      src={user.caretaker.user_image_url} 
-                      className="object-cover" 
-                    />
-                  ) : null}
-                  
-                  <AvatarFallback className="text-sm font-bold bg-primary/10 text-primary">
-                    {getInitials(user?.first_name, user?.last_name)}
-                  </AvatarFallback>
-                </Avatar>
+                <PersistentAvatar
+                  cacheKey={avatarCacheKey}
+                  src={isCaretaker ? user?.caretaker?.user_image_url : null}
+                  alt={avatarAlt}
+                  className="w-9 h-9 border-2 border-background shadow-sm group-hover:border-primary/50 transition-colors"
+                  fallbackClassName="text-sm font-bold bg-primary/10 text-primary"
+                  fallback={getInitials(user?.first_name, user?.last_name)}
+                />
                 
                 <div className="hidden sm:block text-left">
                   <p className="text-xs font-semibold group-hover:text-primary transition-colors">
@@ -242,6 +283,8 @@ export default function CarefreeLayout({
                   </p>
                 </div>
               </div>
+                );
+              })()}
             </Link>
 
             {/* Logout Button */}

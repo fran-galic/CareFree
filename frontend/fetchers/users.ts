@@ -6,12 +6,15 @@ export interface Caretaker {
   user_id: string;
   first_name: string;
   last_name: string;
-  academic_title: string;
+  academic_title?: string;
   help_categories: string[];
   user_image_url: string | null;
-  specialisation: string;
+  specialisation?: string;
   about_me: string;
-  working_since: string;
+  working_since?: string;
+  grad_year?: number | null;
+  contact_email?: string | null;
+  contact_phone?: string | null;
 }
 
 // Tipovi za kategorije
@@ -61,24 +64,31 @@ export function searchCaretakers(query: string, categories: string[] = [], page:
 }
 
 export function searchCaretakerById(id: string) {
-  return fetcher<any>(`${BACKEND_API}/users/caretakers/caretaker/${id}`, { // maknuo sam encodeURIComponent jer id je obicno clean
+  return fetcher<Caretaker>(`${BACKEND_API}/users/caretakers/caretaker/${id}`, {
       credentials: "include"
   });
 }
 
 // Tipovi za caretaker profil
 export interface CaretakerProfile {
+  cv_file?: { id: number; filename: string } | null;
+  diploma_files?: Array<{ id: number; filename: string }>;
+  certificate_files?: Array<{ id: number; filename: string }>;
   about_me: string;
   tel_num: string;
   image?: string;
   image_mime_type?: string;
+  age?: number | null;
   grad_year: number | null;
   help_categories: number[];
+  show_email_to_students: boolean;
+  show_phone_to_students: boolean;
   is_profile_complete: boolean;
   is_approved: boolean;
   approval_status: 'PENDING' | 'APPROVED' | 'DENIED';
   cv_filename?: string | null;
   diploma_filenames?: string[];
+  certificate_filenames?: string[];
   incomplete_reason?: string; // Backend može vratiti razlog zašto profil nije potpun
 }
 
@@ -108,6 +118,20 @@ export async function uploadCV(file: File): Promise<{ message: string }> {
   return response.json();
 }
 
+export async function deleteCV(): Promise<{ message: string }> {
+  const response = await fetch(`${BACKEND_API}/auth/caretaker/cv/`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || error.error || 'CV delete failed');
+  }
+
+  return response.json();
+}
+
 // Upload diplome
 export async function uploadDiploma(file: File): Promise<{ message: string }> {
   const formData = new FormData();
@@ -122,6 +146,53 @@ export async function uploadDiploma(file: File): Promise<{ message: string }> {
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.detail || 'Diploma upload failed');
+  }
+
+  return response.json();
+}
+
+export async function deleteDiploma(id: number): Promise<{ message: string }> {
+  const response = await fetch(`${BACKEND_API}/auth/caretaker/diploma/${id}/`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || error.error || 'Diploma delete failed');
+  }
+
+  return response.json();
+}
+
+// Upload certifikata
+export async function uploadCertificate(file: File): Promise<{ message: string }> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${BACKEND_API}/auth/caretaker/certificate/`, {
+    method: 'POST',
+    credentials: 'include',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Certificate upload failed');
+  }
+
+  return response.json();
+}
+
+export async function deleteCertificate(id: number): Promise<{ message: string }> {
+  const response = await fetch(`${BACKEND_API}/auth/caretaker/certificate/${id}/`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || error.error || 'Certificate delete failed');
   }
 
   return response.json();
@@ -146,6 +217,20 @@ export async function uploadCaretakerImage(file: File): Promise<{ message: strin
   return response.json();
 }
 
+export async function deleteCaretakerImage(): Promise<{ message: string }> {
+  const response = await fetch(`${BACKEND_API}/auth/caretaker/image/`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || error.error || 'Image delete failed');
+  }
+
+  return response.json();
+}
+
 // Ažuriranje caretaker profila
 export async function updateCaretakerProfile(data: Partial<CaretakerProfile>): Promise<CaretakerProfile> {
   const response = await fetch(`${BACKEND_API}/auth/caretaker/register/`, {
@@ -163,4 +248,23 @@ export async function updateCaretakerProfile(data: Partial<CaretakerProfile>): P
   }
 
   return response.json();
+}
+
+export interface CurrentUserProfileUpdate {
+  first_name?: string;
+  last_name?: string;
+  username?: string;
+  sex?: "M" | "F" | "O" | "";
+  age?: number | null;
+}
+
+export async function updateCurrentUserProfile(data: CurrentUserProfileUpdate) {
+  return fetcher(`${BACKEND_API}/users/me/`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
 }
