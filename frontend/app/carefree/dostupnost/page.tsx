@@ -190,27 +190,27 @@ export default function DostupnostPage() {
         </div>
       </div>
 
-      <Card>
+      <Card className="border-border/80 border-t-[3px] border-l-[3px] border-t-primary/28 border-l-primary/28 bg-[linear-gradient(180deg,rgba(231,244,241,0.22)_0%,rgba(255,255,255,1)_24%)]">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CalendarIcon className="w-5 h-5" />
             Postavi dostupnost po terminima
           </CardTitle>
           <CardDescription>
-            Kliknite na vrijeme da označite kada ste dostupni. Zeleno = dostupan, Sivo = nedostupan, Plavo = zakazan termin
+            Kliknite na vrijeme da označite kada ste dostupni. Teal = dostupan, svijetlo sivo = nedostupan, tamni teal = zakazan termin
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="bg-white rounded-lg border p-4">
+          <div className="rounded-2xl border border-border bg-[linear-gradient(180deg,rgba(250,253,252,1)_0%,rgba(255,255,255,1)_100%)] p-4">
             {/* Info Box */}
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-2">
-              <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-              <div className="text-sm text-blue-900">
+            <div className="mb-4 flex items-start gap-3 rounded-xl border border-[#eadfc3] bg-[linear-gradient(180deg,rgba(251,246,236,0.96)_0%,rgba(255,255,255,0.98)_100%)] p-4">
+              <Info className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#b7791f]" />
+              <div className="text-sm">
                 <p className="font-medium mb-1">Kako postaviti dostupnost:</p>
-                <ul className="list-disc list-inside space-y-1 text-blue-800">
-                  <li>Kliknite na slobodne satnice da ih označite kao dostupne (zeleno)</li>
-                  <li>Kliknite ponovno da poništite dostupnost (sivo)</li>
-                  <li>Plave satnice imaju zakazan termin i ne mogu se mijenjati</li>
+                <ul className="list-disc list-inside space-y-1 text-[#8a7448]">
+                  <li>Kliknite na slobodne satnice da ih označite kao dostupne (teal)</li>
+                  <li>Kliknite ponovno da poništite dostupnost (svijetlo sivo)</li>
+                  <li>Tamne teal satnice imaju zakazan termin i ne mogu se mijenjati</li>
                   <li>Promjene se spremaju tek kada kliknete &quot;Spremi promjene&quot;</li>
                 </ul>
               </div>
@@ -219,15 +219,15 @@ export default function DostupnostPage() {
             {/* Legend */}
             <div className="mb-4 flex flex-wrap gap-4 text-sm">
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-green-500 rounded"></div>
+                <div className="h-4 w-4 rounded bg-primary"></div>
                 <span>Dostupan</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-gray-200 rounded"></div>
+                <div className="h-4 w-4 rounded bg-muted"></div>
                 <span>Nedostupan</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-blue-500 rounded"></div>
+                <div className="h-4 w-4 rounded bg-[#21423d]"></div>
                 <span>Zakazan termin</span>
               </div>
               <div className="flex items-center gap-2">
@@ -267,14 +267,14 @@ export default function DostupnostPage() {
 
                       const isPast = slot.date < new Date();
                       const bgColor = slot.hasAppointment
-                        ? "bg-blue-500 text-white cursor-not-allowed"
+                        ? "bg-[#21423d] text-white cursor-not-allowed"
                         : slot.isAvailable
                           ? slot.isChanged
-                            ? "bg-green-400 border-2 border-yellow-500"
-                            : "bg-green-500 text-white"
+                            ? "bg-[#5fafa1] border-2 border-yellow-500 text-white"
+                            : "bg-primary text-white"
                           : slot.isChanged
-                            ? "bg-gray-100 border-2 border-yellow-500"
-                            : "bg-gray-200";
+                            ? "bg-[#f7faf9] border-2 border-yellow-500"
+                            : "bg-muted";
 
                       return (
                         <button
@@ -311,19 +311,22 @@ export default function DostupnostPage() {
       </Card>
 
       {/* Help Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Napomena</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground space-y-2">
-          <p>
-            Studenti mogu rezervirati termine samo za vrijeme koje ste označili kao dostupno.
-          </p>
-          <p>
-            Postavite svoju dostupnost barem nekoliko dana unaprijed kako bi studenti mogli lakše rezervirati termine.
-          </p>
-        </CardContent>
-      </Card>
+      <div className="rounded-xl border border-[#eadfc3] bg-[linear-gradient(180deg,rgba(251,246,236,0.96)_0%,rgba(255,255,255,0.98)_100%)] p-4">
+        <div className="flex items-start gap-3">
+          <Info className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#b7791f]" />
+          <div>
+            <h2 className="text-lg font-semibold text-[#6b4f1d]">Napomena</h2>
+            <div className="mt-2 space-y-1.5 text-[15px] leading-7 text-[#8a7448]">
+              <p>
+                Studenti mogu rezervirati termine samo za vrijeme koje ste označili kao dostupno.
+              </p>
+              <p>
+                Postavite svoju dostupnost barem nekoliko dana unaprijed kako bi studenti mogli lakše rezervirati termine.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -7,7 +7,7 @@ import { AppointmentRequestList } from "@/components/appointments/appointment-re
 
 export default function RequestsPage() {
   return (
-    <div className="container mx-auto p-6 max-w-5xl space-y-6">
+    <div className="container mx-auto max-w-5xl space-y-5 px-6 pt-3 pb-6">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-4">
@@ -29,14 +29,14 @@ export default function RequestsPage() {
       </div>
 
       {/* Info Card */}
-      <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg p-4">
+      <div className="rounded-xl border border-[#eadfc3] bg-[linear-gradient(180deg,rgba(251,246,236,0.96)_0%,rgba(255,255,255,0.98)_100%)] p-4">
         <div className="flex items-start gap-3">
-          <Bell className="w-5 h-5 text-blue-600 mt-0.5" />
+          <Bell className="mt-0.5 h-5 w-5 text-[#b7791f]" />
           <div className="flex-1 text-sm">
-            <p className="font-medium text-blue-900 dark:text-blue-100">
+            <p className="font-medium text-[#6b4f1d]">
               Automatske email notifikacije
             </p>
-            <p className="text-blue-700 dark:text-blue-300 mt-1">
+            <p className="mt-1 text-[#8a7448]">
               Kada student pošalje zahtjev, automatski ćete dobiti email obavijest. 
               Nakon što prihvatite termin, student će dobiti email s potvrdom i Google Meet linkom.
             </p>

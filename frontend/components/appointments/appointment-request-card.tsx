@@ -78,7 +78,7 @@ export function AppointmentRequestCard({ request, onStatusChange }: AppointmentR
   const getStatusBadge = () => {
     switch (request.status) {
       case "pending":
-        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">Na čekanju</Badge>;
+        return <Badge variant="outline" className="border-primary/30 bg-secondary text-primary">Na čekanju</Badge>;
       case "accepted":
         return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">Prihvaćen</Badge>;
       case "rejected":
@@ -91,7 +91,7 @@ export function AppointmentRequestCard({ request, onStatusChange }: AppointmentR
   };
 
   return (
-    <Card className={`${request.crisis_flag ? "border-red-500 border-2" : ""}`}>
+    <Card className={`${request.crisis_flag ? "border-red-400 border-2" : "border-border/80 border-t-[3px] border-l-[3px] border-t-primary/28 border-l-primary/28"} bg-[linear-gradient(180deg,rgba(231,244,241,0.18)_0%,rgba(255,255,255,1)_24%)]`}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
@@ -120,7 +120,7 @@ export function AppointmentRequestCard({ request, onStatusChange }: AppointmentR
 
       <CardContent className="space-y-4">
         {/* Datum i vrijeme */}
-        <div className="bg-primary/5 p-4 rounded-lg space-y-2">
+        <div className="space-y-2 rounded-xl border border-primary/15 bg-secondary/65 p-4">
           <div className="flex items-center gap-2 text-sm">
             <Calendar className="w-4 h-4 text-primary" />
             <span className="font-medium">{date}</span>
@@ -138,7 +138,7 @@ export function AppointmentRequestCard({ request, onStatusChange }: AppointmentR
               <MessageSquare className="w-4 h-4" />
               Razlog dolaska
             </div>
-            <p className="text-sm bg-muted p-3 rounded-md whitespace-pre-wrap">
+            <p className="whitespace-pre-wrap rounded-lg border border-border/60 bg-muted/70 p-3 text-sm">
               {request.message}
             </p>
           </div>
@@ -148,7 +148,7 @@ export function AppointmentRequestCard({ request, onStatusChange }: AppointmentR
         {request.ai_summary && (
           <div className="space-y-2">
             <div className="text-sm font-medium text-muted-foreground">AI Sažetak</div>
-            <p className="text-sm bg-blue-50 dark:bg-blue-950/20 p-3 rounded-md border border-blue-200 dark:border-blue-900">
+            <p className="rounded-lg border border-primary/15 bg-secondary/55 p-3 text-sm text-foreground/85">
               {request.ai_summary}
             </p>
           </div>
@@ -191,7 +191,7 @@ export function AppointmentRequestCard({ request, onStatusChange }: AppointmentR
               <Button
                 onClick={() => setShowRejectForm(true)}
                 variant="outline"
-                className="w-full sm:flex-1 gap-2 border-red-300 text-red-700 hover:bg-red-50"
+                className="w-full sm:flex-1 gap-2 border-red-200 text-red-700 hover:bg-red-50"
               >
                 <XCircle className="w-4 h-4" />
                 Odbij

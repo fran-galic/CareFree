@@ -48,7 +48,7 @@ export function AppointmentRequestList() {
 
       <TabsContent value={activeTab} className="space-y-4 mt-6">
         {error && (
-          <Card className="border-red-200 bg-red-50/50">
+          <Card className="border-red-200 bg-red-50/70">
             <CardContent className="flex items-center gap-3 p-6">
               <AlertCircle className="w-5 h-5 text-red-600" />
               <p className="text-red-900">
@@ -73,7 +73,7 @@ export function AppointmentRequestList() {
         )}
 
         {!isLoading && !error && requests && requests.length === 0 && (
-          <Card className="border-dashed">
+          <Card className="border-dashed border-primary/20 border-t-[3px] border-l-[3px] border-t-primary/22 border-l-primary/22 bg-[linear-gradient(180deg,rgba(231,244,241,0.2)_0%,rgba(255,255,255,1)_28%)]">
             <CardContent className="flex flex-col items-center justify-center p-12 text-center">
               <Inbox className="w-16 h-16 text-muted-foreground/50 mb-4" />
               <h3 className="text-lg font-semibold mb-2">

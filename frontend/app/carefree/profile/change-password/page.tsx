@@ -177,13 +177,13 @@ export default function ChangePasswordPage() {
             </div>
 
             {message && (
-              <Alert variant={message.type === "error" ? "destructive" : "default"} className={message.type === "success" ? "border-green-500 bg-green-50" : ""}>
+              <Alert variant={message.type === "error" ? "destructive" : "default"} className={message.type === "success" ? "border-primary/20 bg-secondary/70" : ""}>
                 {message.type === "error" ? (
                   <AlertCircle className="h-4 w-4" />
                 ) : (
-                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <CheckCircle className="h-4 w-4 text-primary" />
                 )}
-                <AlertDescription className={message.type === "success" ? "text-green-800" : ""}>
+                <AlertDescription className={message.type === "success" ? "text-foreground/85" : ""}>
                   {message.text}
                 </AlertDescription>
               </Alert>

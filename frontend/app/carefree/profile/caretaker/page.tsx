@@ -228,14 +228,14 @@ export default function CaretakerProfilePage() {
     if (!profile) return null;
     
     if (!profile.is_profile_complete) {
-      return <Badge variant="destructive" className="gap-1"><AlertTriangle className="w-3 h-3" /> Nepotpun profil</Badge>;
+      return <Badge className="gap-1 border border-[#d59f91] bg-[#f3dfd9] text-[#9b4636] hover:bg-[#f3dfd9]"><AlertTriangle className="w-3 h-3" /> Nepotpun profil</Badge>;
     }
     
     switch (profile.approval_status) {
       case 'APPROVED':
-        return <Badge variant="default" className="gap-1 bg-green-600"><CheckCircle2 className="w-3 h-3" /> Odobren</Badge>;
+        return <Badge variant="default" className="gap-1 bg-primary"><CheckCircle2 className="w-3 h-3" /> Odobren</Badge>;
       case 'DENIED':
-        return <Badge variant="destructive" className="gap-1"><XCircle className="w-3 h-3" /> Odbijen</Badge>;
+        return <Badge className="gap-1 border border-[#d59f91] bg-[#f3dfd9] text-[#9b4636] hover:bg-[#f3dfd9]"><XCircle className="w-3 h-3" /> Odbijen</Badge>;
       case 'PENDING':
       default:
         return <Badge variant="secondary" className="gap-1"><Clock className="w-3 h-3" /> Čeka odobrenje</Badge>;
@@ -262,9 +262,9 @@ export default function CaretakerProfilePage() {
       </div>
 
       {!profile.is_profile_complete && (
-        <Alert className="mb-6 border-orange-500 bg-orange-50">
-          <AlertTriangle className="h-4 w-4 text-orange-600" />
-          <AlertDescription className="text-orange-800">
+        <Alert className="mb-6 border-[#d59f91] bg-[#f3dfd9]">
+          <AlertTriangle className="h-4 w-4 text-[#9b4636]" />
+          <AlertDescription className="text-[#7f4336]">
             <strong>Vaš profil nije potpun!</strong> Molimo uploadajte sve potrebne dokumente (CV, diploma, profilna slika) i popunite sve podatke kako bi vaš profil bio poslan na odobrenje.
           </AlertDescription>
         </Alert>
@@ -277,7 +277,7 @@ export default function CaretakerProfilePage() {
         {/* LIJEVI STUPAC - Postavke i Dokumenti */}
         <div className="space-y-6">
           {/* Osnovni podaci */}
-          <Card>
+          <Card className="border-t-[3px] border-l-[3px] border-t-primary/22 border-l-primary/22 bg-[linear-gradient(180deg,rgba(231,244,241,0.16)_0%,rgba(255,255,255,1)_30%)]">
             <CardHeader>
               <CardTitle className="text-lg">Osnovni podaci</CardTitle>
             </CardHeader>
@@ -288,7 +288,7 @@ export default function CaretakerProfilePage() {
           </Card>
 
           {/* Upload dokumenta */}
-          <Card>
+          <Card className="border-t-[3px] border-l-[3px] border-t-primary/22 border-l-primary/22 bg-[linear-gradient(180deg,rgba(231,244,241,0.16)_0%,rgba(255,255,255,1)_30%)]">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2"><FileText className="w-5 h-5" /> Dokumenti</CardTitle>
               <CardDescription>Uploadajte potrebne dokumente za verifikaciju</CardDescription>
@@ -298,7 +298,7 @@ export default function CaretakerProfilePage() {
               {/* CV Upload */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
-                  <FileText className="w-4 h-4" /> CV {profile.cv_filename && <CheckCircle2 className="w-4 h-4 text-green-600" />}
+                  <FileText className="w-4 h-4" /> CV {profile.cv_filename && <CheckCircle2 className="w-4 h-4 text-primary" />}
                 </Label>
                 {profile.cv_filename && (
                   <p className="text-xs text-muted-foreground">Trenutni: {profile.cv_filename}</p>
@@ -324,7 +324,7 @@ export default function CaretakerProfilePage() {
               {/* Diploma Upload */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
-                  <Award className="w-4 h-4" /> Diploma {profile.diploma_filenames && profile.diploma_filenames.length > 0 && <CheckCircle2 className="w-4 h-4 text-green-600" />}
+                  <Award className="w-4 h-4" /> Diploma {profile.diploma_filenames && profile.diploma_filenames.length > 0 && <CheckCircle2 className="w-4 h-4 text-primary" />}
                 </Label>
                 {profile.diploma_filenames && profile.diploma_filenames.length > 0 && (
                   <div className="text-xs text-muted-foreground space-y-1">
@@ -351,7 +351,7 @@ export default function CaretakerProfilePage() {
               {/* Image Upload */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
-                  <ImageIcon className="w-4 h-4" /> Profilna slika {profile.image && <CheckCircle2 className="w-4 h-4 text-green-600" />}
+                  <ImageIcon className="w-4 h-4" /> Profilna slika {profile.image && <CheckCircle2 className="w-4 h-4 text-primary" />}
                 </Label>
                 <div className="flex gap-2">
                   <Input 
@@ -382,17 +382,17 @@ export default function CaretakerProfilePage() {
             <Button onClick={() => router.push("/carefree/profile/change-password")} variant="outline" className="w-full h-12">
               <Key className="mr-2 h-4 w-4" /> Promijeni lozinku
             </Button>
-            <Button onClick={handleLogout} variant="outline" className="w-full h-12 text-destructive hover:bg-destructive/10">
+            <Button onClick={handleLogout} variant="outline" className="h-12 w-full text-[#9b4636] hover:bg-[#f3dfd9] hover:text-[#863b2d]">
               <LogOut className="mr-2 h-4 w-4" /> Odjava
             </Button>
             <Separator className="my-2" />
-            <Button onClick={handleDeleteAccount} variant="destructive" className="w-full h-12">
+            <Button onClick={handleDeleteAccount} className="h-12 w-full bg-[#c6523d] text-white hover:bg-[#ae4735]">
               <Trash className="mr-2 h-4 w-4" /> Obriši račun
             </Button>
           </div>
 
           {message && (
-            <div className={`p-3 rounded text-sm text-center ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+            <div className={`rounded-lg p-3 text-center text-sm ${message.type === 'success' ? 'border border-primary/15 bg-secondary/70 text-primary' : 'border border-[#d59f91] bg-[#f3dfd9] text-[#9b4636]'}`}>
               {message.text}
             </div>
           )}
@@ -401,7 +401,7 @@ export default function CaretakerProfilePage() {
         {/* DESNI STUPAC - Profil podaci */}
         <div className="lg:col-span-2 space-y-6">
           {/* Osnovni podaci */}
-          <Card>
+          <Card className="border-t-[3px] border-l-[3px] border-t-primary/22 border-l-primary/22 bg-[linear-gradient(180deg,rgba(231,244,241,0.16)_0%,rgba(255,255,255,1)_30%)]">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <UserCircle className="w-5 h-5 text-primary" /> O meni

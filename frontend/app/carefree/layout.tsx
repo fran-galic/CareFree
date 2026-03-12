@@ -158,7 +158,14 @@ export default function CarefreeLayout({
 
   
   return (
-    <div className={`min-h-screen bg-background flex flex-col`} data-theme={user?.role === "caretaker" ? "caretaker" : "student"}>
+    <div
+      className={`min-h-screen flex flex-col ${
+        isCaretaker
+          ? "bg-[#fafaf7]"
+          : "bg-background"
+      }`}
+      data-theme={user?.role === "caretaker" ? "caretaker" : "student"}
+    >
       
       
       <header
@@ -178,11 +185,11 @@ export default function CarefreeLayout({
                 className="object-contain"
               />
             </div>
-            <span className="text-2xl font-bold tracking-tight bg-gradient-to-r from-[oklch(0.783_0.1136_182.2)] to-[oklch(0.68_0.20_45)] bg-clip-text text-transparent">CareFree</span>
+            <span className="carefree-gradient text-2xl font-bold tracking-tight">CareFree</span>
           </Link>
 
           
-          <nav className="hidden md:flex items-center gap-1 bg-secondary/30 p-1.5 rounded-full border border-secondary/50">
+          <nav className="hidden md:flex items-center gap-1 rounded-full border border-border bg-card p-1.5">
             {navigationLinks.map((link) => (
               <Link key={link.href} href={link.href} className={navLinkClass(link.href)}>
                 <link.icon className="w-4 h-4" />
@@ -196,7 +203,7 @@ export default function CarefreeLayout({
             {/* Hamburger Menu Button - Mobile Only */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden p-2 rounded-lg hover:bg-secondary/50 transition-colors"
+              className="md:hidden rounded-lg p-2 transition-colors hover:bg-secondary/70"
               aria-label="Toggle menu"
             >
               {isMobileMenuOpen ? (
@@ -251,7 +258,7 @@ export default function CarefreeLayout({
 
         {/* Mobile Navigation Menu */}
         {isMobileMenuOpen && (
-          <div className="md:hidden border-t bg-card/95 backdrop-blur-md animate-in slide-in-from-top-2 duration-200">
+          <div className="animate-in slide-in-from-top-2 duration-200 border-t bg-card/95 backdrop-blur-md md:hidden">
             <nav className="container mx-auto px-4 py-4 flex flex-col gap-2">
               {navigationLinks.map((link) => (
                 <Link 
