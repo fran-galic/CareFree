@@ -134,7 +134,7 @@ export function StudentDashboard({ firstName }: StudentDashboardProps) {
               )}
             </CardHeader>
             {isAppointmentExpanded && (
-              <div className="px-6 pt-2 pb-2 flex gap-2 border-b sticky top-0 bg-background z-10 animate-in fade-in slide-in-from-top-2 duration-500">
+              <div className="px-6 pt-2 pb-2 flex gap-2 border-b bg-background animate-in fade-in slide-in-from-top-2 duration-500">
                 <button
                   onClick={() => setSelectedTab('appointments')}
                   className={`text-sm font-medium pb-2 px-2 transition-colors ${

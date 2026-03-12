@@ -2,11 +2,20 @@
 
 import { LoginForm } from "@/components/login-form"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { useSearchParams } from "next/navigation"
 
 export default function Page() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isChecking, setIsChecking] = useState(true);
+  const registrationMessage = useMemo(() => {
+    if (searchParams.get("registered") !== "1") {
+      return null;
+    }
+
+    return "Racun je uspjesno aktiviran. Prijavite se kako biste nastavili koristiti CareFree.";
+  }, [searchParams]);
 
   useEffect(() => {
     // Check if user is already logged in
@@ -44,7 +53,7 @@ export default function Page() {
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
       <div className="w-full max-w-sm">
-        <LoginForm />
+        <LoginForm registrationMessage={registrationMessage} />
       </div>
     </div>
   )

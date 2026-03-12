@@ -77,12 +77,6 @@ export default function HomePage() {
     },
   ]
 
-  const getFilteredFeatures = () => {
-    if (selectedRole === "student") return studentFeatures
-    if (selectedRole === "psiholog") return psihologFeatures
-    return [...studentFeatures, ...psihologFeatures]
-  }
-
   const scrollToFeatures = () => {
     const featuresSection = document.querySelector(".role-toggle-container")
     if (featuresSection) {
@@ -96,10 +90,10 @@ export default function HomePage() {
         <div className="content-wrapper">
           <div className="logo-box animate-float">
             <Image
-              src="/images/carefree-logo-assistant-new.png"
+              src="/images/logo.png"
               alt="CareFree Logo"
-              width={120}
-              height={120}
+              width={96}
+              height={96}
               className="logo-img"
               priority
             />
@@ -187,7 +181,12 @@ export default function HomePage() {
       <section className="features-section">
         <div className="container mx-auto px-4">
           <div className="feature-grid-dynamic">
-            {getFilteredFeatures().map((feature, index) => (
+            {(selectedRole === "student"
+              ? studentFeatures
+              : selectedRole === "psiholog"
+                ? psihologFeatures
+                : [...studentFeatures, ...psihologFeatures]
+            ).map((feature, index) => (
               <div
                 key={index}
                 className={`feature-card-dynamic ${
