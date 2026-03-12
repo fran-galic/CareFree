@@ -94,6 +94,36 @@ export default function SearchPageClient() {
         </div>
       </div>
 
+      <Card className="mb-8 overflow-hidden border-primary/15 bg-gradient-to-r from-primary/8 via-background to-amber-50/70 shadow-sm">
+        <div className="grid gap-6 px-6 py-6 md:grid-cols-[1.4fr_0.9fr] md:px-8">
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
+              Julija može pomoći
+            </p>
+            <h2 className="text-2xl font-bold tracking-tight text-foreground">
+              Niste sigurni što vas točno muči?
+            </h2>
+            <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+              Ako još ne znate koji bi psiholog bio najbolji izbor, razgovarajte s Julijom. Kroz siguran i strukturiran razgovor pomoći će vam jasnije razumjeti situaciju i usmjeriti vas prema osobi koja vam najbolje odgovara.
+            </p>
+          </div>
+
+          <div className="flex flex-col justify-between gap-4 rounded-2xl border border-primary/10 bg-card/90 p-5 shadow-sm">
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-foreground">
+                Krenite od razgovora s AI asistenticom
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Julija vam može pomoći prepoznati temu razgovora i napraviti prvi korak bez pritiska.
+              </p>
+            </div>
+            <Button asChild className="w-full md:w-auto">
+              <Link href="/carefree/messages">Razgovaraj s Julijom</Link>
+            </Button>
+          </div>
+        </div>
+      </Card>
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
         {/* SIDEBAR FILTERI - STICKY POZICIJA */}
@@ -104,6 +134,14 @@ export default function SearchPageClient() {
                     <span className="text-base">Filtriraj po problemu</span>
                 </div>
                 <Separator className="mb-4" />
+                <div className="mb-5 rounded-xl border border-border/70 bg-muted/30 px-4 py-3">
+                    <p className="text-sm font-medium text-foreground">
+                        Znate što vas muči?
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                        Pretražite našu bazu licenciranih psihologa i suzite izbor prema temi o kojoj želite razgovarati.
+                    </p>
+                </div>
                 
                 <div className="space-y-6 max-h-[80vh] overflow-y-auto pr-2 custom-scrollbar">
                     {sortedCategories.map((cat) => (
@@ -167,7 +205,9 @@ export default function SearchPageClient() {
                                     {/* AVATAR SEKCIJA */}
                                     <div className="flex-shrink-0">
                                         <Avatar className="w-24 h-24 border-4 border-background shadow-sm group-hover:scale-105 transition-transform duration-300">
-                                            <AvatarImage src={caretaker.user_image_url || ""} className="object-cover" />
+                                            {caretaker.user_image_url ? (
+                                                <AvatarImage src={caretaker.user_image_url} className="object-cover" />
+                                            ) : null}
                                             <AvatarFallback className="text-2xl bg-primary/5 text-primary font-bold">
                                                 {caretaker.first_name?.charAt(0)}
                                                 {caretaker.last_name?.charAt(0)}

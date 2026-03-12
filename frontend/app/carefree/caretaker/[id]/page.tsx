@@ -139,7 +139,9 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
       {/* HEADER PROFILA - Kompaktan */}
       <div className="flex items-center gap-4 mb-8">
         <Avatar className="w-24 h-24 border-2 border-primary/20 shadow-lg">
-          <AvatarImage src={caretaker.user_image_url || ""} className="object-cover" />
+          {caretaker.user_image_url ? (
+            <AvatarImage src={caretaker.user_image_url} className="object-cover" />
+          ) : null}
           <AvatarFallback className="text-3xl font-bold bg-primary/10 text-primary">
             {caretaker.first_name?.charAt(0)}{caretaker.last_name?.charAt(0)}
           </AvatarFallback>

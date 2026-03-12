@@ -34,6 +34,11 @@ interface User {
   caretaker?: { user_image_url?: string }; 
 }
 
+function getInitials(firstName?: string, lastName?: string) {
+  const initials = `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.trim().toUpperCase();
+  return initials || "CF";
+}
+
 export default function CarefreeLayout({
   children,
 }: {
@@ -209,13 +214,15 @@ export default function CarefreeLayout({
                   : "border-transparent hover:bg-primary/5 hover:border-primary"
               }`}>
                 <Avatar className="w-9 h-9 border-2 border-background shadow-sm group-hover:border-primary/50 transition-colors">
-                  <AvatarImage 
-                    src={isCaretaker ? user?.caretaker?.user_image_url || "" : ""} 
-                    className="object-cover" 
-                  />
+                  {isCaretaker && user?.caretaker?.user_image_url ? (
+                    <AvatarImage 
+                      src={user.caretaker.user_image_url} 
+                      className="object-cover" 
+                    />
+                  ) : null}
                   
                   <AvatarFallback className="text-sm font-bold bg-primary/10 text-primary">
-                    {isCaretaker ? 'P' : 'S'}
+                    {getInitials(user?.first_name, user?.last_name)}
                   </AvatarFallback>
                 </Avatar>
                 
