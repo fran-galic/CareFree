@@ -48,7 +48,7 @@ from .models import CaretakerCV, Diploma, HelpCategory, Certificate
 from .serializers import CertificateSerializer
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.generics import ListAPIView
-from backend.emailing import send_project_email
+from backend.emailing import render_branded_email, send_project_email
 
 
 User = get_user_model()
@@ -754,10 +754,23 @@ def requestPasswordResetView(request):
     
     reset_link = f"{settings.FRONTEND_URL}/auth/reset-password/{uid}/{token}/"
 
+    html_message, plain_message = render_branded_email(
+        title="Resetiraj svoju lozinku",
+        intro="Zaprimili smo zahtjev za promjenu lozinke za tvoj CareFree račun.",
+        body_lines=[
+            "Ako si ti zatražio/la promjenu, klikni na donji gumb i postavi novu lozinku.",
+            "Ako nisi tražio/la reset lozinke, slobodno ignoriraj ovu poruku.",
+        ],
+        action_label="Resetiraj lozinku",
+        action_url=reset_link,
+        recipient_name=user.first_name or user.email,
+    )
+
     send_project_email(
         subject="Resetiraj svoju lozinku - CareFree",
-        message=f"Klikni na link da promijeniš svoju lozinku:\n{reset_link}",
+        message=plain_message,
         recipient_list=[email],
+        html_message=html_message,
     )
 
     return Response({"message": "Poslali smo link za resetiranje svog passworda na Vaš email."}, status=200)

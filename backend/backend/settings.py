@@ -258,6 +258,7 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3001")
+EMAIL_ASSETS_BASE_URL = os.environ.get("EMAIL_ASSETS_BASE_URL", "").strip()
 
 #Google service account settings for Calendar API (server-to-server)
 GOOGLE_SERVICE_ACCOUNT_JSON = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON")
@@ -278,6 +279,7 @@ ENABLE_USER_GOOGLE_CALENDAR_SYNC = os.environ.get("ENABLE_USER_GOOGLE_CALENDAR_S
 GOOGLE_OAUTH_CLIENT_ID = os.environ.get("GOOGLE_OAUTH_CLIENT_ID")
 GOOGLE_OAUTH_CLIENT_SECRET = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET")
 GOOGLE_OAUTH_REDIRECT_URI = os.environ.get("GOOGLE_OAUTH_REDIRECT_URI")
+GOOGLE_SHARED_CALENDAR_ACCOUNT_EMAIL = os.environ.get("GOOGLE_SHARED_CALENDAR_ACCOUNT_EMAIL", "").strip()
 
 CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
 

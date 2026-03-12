@@ -27,7 +27,7 @@ from .permissions import IsStudent
 from django.views.decorators.cache import never_cache
 from .services import create_hold, release_hold
 from rest_framework import permissions
-from backend.emailing import send_project_email
+from backend.emailing import render_branded_email, send_project_email
 
 
 class HoldCreateView(APIView):
@@ -192,7 +192,23 @@ class AppointmentRequestRejectView(APIView):
                 subj = 'Zahtjev za razgovor je odbijen - CareFree'
                 msg = f"Vaš zahtjev za razgovor {start_str} je odbijen.\n\n"
                 msg += "Molimo da u aplikaciji odaberete neki drugi termin."
-                send_project_email(subject=subj, message=msg, recipient_list=recipients, fail_silently=True)
+                html_message, plain_message = render_branded_email(
+                    title='Zahtjev je odbijen',
+                    intro=f'Zahtjev za razgovor u terminu {start_str} trenutno nije prihvaćen.',
+                    body_lines=[
+                        'Molimo odaberite drugi termin unutar CareFree aplikacije.',
+                    ],
+                    action_label='Otvori kalendar',
+                    action_url=f"{settings.FRONTEND_URL.rstrip('/')}/carefree/calendar",
+                    recipient_name=getattr(req.student.user, 'first_name', '') if req.student and getattr(req.student, 'user', None) else None,
+                )
+                send_project_email(
+                    subject=subj,
+                    message=plain_message or msg,
+                    recipient_list=recipients,
+                    html_message=html_message,
+                    fail_silently=True,
+                )
         except Exception:
             pass
 

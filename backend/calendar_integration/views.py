@@ -12,6 +12,7 @@ except ImportError:
 
 from django.conf import settings
 from django.core.management import call_command
+from django.core.cache import cache
 from rest_framework.permissions import IsAdminUser
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -21,7 +22,7 @@ from .google_client import create_event
 from .models import Calendar, CalendarEvent
 from .serializers import CalendarEventSerializer
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from django.conf import settings
 from django.utils import timezone
@@ -32,7 +33,7 @@ try:
 except Exception:
     Flow = None
 
-from .models import GoogleCredential
+from .models import GoogleCredential, SystemGoogleCredential
 from appointments.google_sync import get_shared_calendar_id
 
 
@@ -229,14 +230,12 @@ class GoogleConnectView(APIView):
 
 
 class GoogleOAuthCallbackView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def get(self, request):
         if not getattr(settings, "ENABLE_USER_GOOGLE_CALENDAR_SYNC", False):
             return _calendar_sync_disabled_response()
         # handle OAuth callback with ?code=...
-        if not hasattr(request.user, 'caretaker'):
-            return Response({'detail': 'Only caretakers can connect Google Calendar'}, status=403)
 
         if Flow is None:
             return Response({'detail': 'google-auth-oauthlib not installed on server'}, status=500)
@@ -248,6 +247,13 @@ class GoogleOAuthCallbackView(APIView):
         redirect_uri = getattr(settings, 'GOOGLE_OAUTH_REDIRECT_URI', None)
         if not code or not client_id or not client_secret or not redirect_uri:
             return Response({'detail': 'Missing OAuth parameters'}, status=400)
+
+        flow_meta = None
+        if state:
+            try:
+                flow_meta = cache.get(f"google_oauth_state:{state}")
+            except Exception:
+                flow_meta = None
 
         client_config = {
             'web': {
@@ -267,6 +273,8 @@ class GoogleOAuthCallbackView(APIView):
                 flow.state = sess_state
         except Exception:
             pass
+        if flow_meta and flow_meta.get("state"):
+            flow.state = flow_meta["state"]
 
         try:
             flow.fetch_token(code=code)
@@ -274,6 +282,56 @@ class GoogleOAuthCallbackView(APIView):
             return Response({'detail': 'Token exchange failed', 'error': str(exc)}, status=400)
 
         creds = flow.credentials
+
+        if flow_meta and flow_meta.get("mode") == "system":
+            google_email = None
+            try:
+                import requests
+                resp = requests.get(
+                    "https://www.googleapis.com/oauth2/v2/userinfo",
+                    headers={"Authorization": f"Bearer {getattr(creds, 'token', None)}"},
+                    timeout=15,
+                )
+                if resp.ok:
+                    google_email = (resp.json().get("email") or "").strip().lower()
+            except Exception:
+                google_email = None
+
+            expected_email = (getattr(settings, "GOOGLE_SHARED_CALENDAR_ACCOUNT_EMAIL", "") or "").strip().lower()
+            if expected_email and google_email and google_email != expected_email:
+                return Response(
+                    {
+                        "detail": "Authorized Google account does not match GOOGLE_SHARED_CALENDAR_ACCOUNT_EMAIL.",
+                        "expected": expected_email,
+                        "received": google_email,
+                    },
+                    status=400,
+                )
+
+            SystemGoogleCredential.objects.update_or_create(
+                key="shared_calendar",
+                defaults={
+                    'google_account_email': google_email or expected_email or None,
+                    'access_token': getattr(creds, 'token', None),
+                    'refresh_token': getattr(creds, 'refresh_token', None),
+                    'token_uri': getattr(creds, 'token_uri', None),
+                    'client_id': client_id,
+                    'client_secret': client_secret,
+                    'scopes': ",".join(getattr(creds, 'scopes', []) or []),
+                    'expires_at': getattr(creds, 'expiry', None),
+                }
+            )
+            try:
+                cache.delete(f"google_oauth_state:{state}")
+            except Exception:
+                pass
+            from django.shortcuts import redirect
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3001')
+            return redirect(f'{frontend_url}/carefree/availability?shared_calendar_connected=true')
+
+        if not request.user.is_authenticated or not hasattr(request.user, 'caretaker'):
+            return Response({'detail': 'Only authenticated caretakers can connect personal Google Calendar'}, status=403)
+
         # persist token into GoogleCredential model (scaffold)
         try:
             gc, _ = GoogleCredential.objects.update_or_create(
@@ -295,3 +353,48 @@ class GoogleOAuthCallbackView(APIView):
         from django.shortcuts import redirect
         frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3001')
         return redirect(f'{frontend_url}/carefree/availability?calendar_connected=true')
+
+
+class SystemGoogleConnectView(APIView):
+    """Return Google OAuth consent URL for the shared project calendar account."""
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        if not getattr(settings, "ENABLE_USER_GOOGLE_CALENDAR_SYNC", False):
+            return _calendar_sync_disabled_response()
+
+        client_id = getattr(settings, 'GOOGLE_OAUTH_CLIENT_ID', None)
+        client_secret = getattr(settings, 'GOOGLE_OAUTH_CLIENT_SECRET', None)
+        redirect_uri = getattr(settings, 'GOOGLE_OAUTH_REDIRECT_URI', None)
+        if not client_id or not client_secret or not redirect_uri or Flow is None:
+            return Response({'detail': 'OAuth not configured on this server'}, status=500)
+
+        client_config = {
+            'web': {
+                'client_id': client_id,
+                'client_secret': client_secret,
+                'auth_uri': 'https://accounts.google.com/o/oauth2/auth',
+                'token_uri': 'https://oauth2.googleapis.com/token',
+            }
+        }
+        scopes = [
+            'openid',
+            'email',
+            'https://www.googleapis.com/auth/calendar',
+        ]
+
+        flow = Flow.from_client_config(client_config, scopes=scopes, redirect_uri=redirect_uri)
+        auth_url, state = flow.authorization_url(
+            access_type='offline',
+            include_granted_scopes='true',
+            prompt='consent',
+        )
+        try:
+            cache.set(
+                f"google_oauth_state:{state}",
+                {"mode": "system", "state": state},
+                timeout=900,
+            )
+        except Exception:
+            pass
+        return Response({'auth_url': auth_url})

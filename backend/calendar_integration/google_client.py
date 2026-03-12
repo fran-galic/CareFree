@@ -1,8 +1,15 @@
 import json
 import os
+import time
 import uuid
 
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
+
+try:
+    from googleapiclient.errors import HttpError
+except Exception:  # pragma: no cover - dependency is present in runtime
+    HttpError = Exception
 
 
 #funkcija za učitavanje Google service account credentials
@@ -23,15 +30,55 @@ def _load_credentials():
             pass
     return None
 
+
+def _load_system_oauth_credential():
+    shared_email = (getattr(settings, "GOOGLE_SHARED_CALENDAR_ACCOUNT_EMAIL", "") or "").strip().lower()
+    if not shared_email:
+        return None
+
+    try:
+        from calendar_integration.models import SystemGoogleCredential
+    except Exception:
+        return None
+
+    cred = SystemGoogleCredential.objects.filter(key="shared_calendar").first()
+    if not cred:
+        return None
+
+    if cred.google_account_email and cred.google_account_email.strip().lower() != shared_email:
+        raise ImproperlyConfigured(
+            f"Stored shared Google credential belongs to {cred.google_account_email}, expected {shared_email}."
+        )
+
+    try:
+        cred.refresh_if_needed()
+    except Exception:
+        pass
+    return cred
+
 #funkcija za izgradnju Google kalendar API servisa
 def build_service():
-    info = _load_credentials()
+    system_cred = _load_system_oauth_credential()
     try:
         from google.oauth2.service_account import Credentials
+        from google.oauth2.credentials import Credentials as UserCredentials
         from googleapiclient.discovery import build
     except Exception:
         raise
 
+    if system_cred:
+        info = system_cred.get_authorized_user_info()
+        creds = UserCredentials(
+            token=info.get("token"),
+            refresh_token=info.get("refresh_token"),
+            token_uri=info.get("token_uri"),
+            client_id=info.get("client_id"),
+            client_secret=info.get("client_secret"),
+            scopes=info.get("scopes") or None,
+        )
+        return build("calendar", "v3", credentials=creds)
+
+    info = _load_credentials()
     creds = None
     if info:
         creds = Credentials.from_service_account_info(info, scopes=["https://www.googleapis.com/auth/calendar"])
@@ -78,21 +125,66 @@ def create_event(
     if description:
         event["description"] = description
     if start:
-        event["start"] = {"dateTime": start}
+        event["start"] = {"dateTime": start, "timeZone": getattr(settings, "TIME_ZONE", "UTC")}
     if end:
-        event["end"] = {"dateTime": end}
+        event["end"] = {"dateTime": end, "timeZone": getattr(settings, "TIME_ZONE", "UTC")}
     if attendees:
         event["attendees"] = [{"email": a} for a in attendees]
 
     if create_conference:
         event["conferenceData"] = {
-            "createRequest": {"requestId": uuid.uuid4().hex,},
+            "createRequest": {
+                "requestId": uuid.uuid4().hex,
+            },
         }
-        created = (
-            service.events()
-            .insert(calendarId=calendar_id, body=event, conferenceDataVersion=1, sendUpdates='none')
-            .execute()
+        try:
+            created = (
+                service.events()
+                .insert(calendarId=calendar_id, body=event, conferenceDataVersion=1, sendUpdates='none')
+                .execute()
+            )
+        except HttpError as exc:
+            error_text = str(exc)
+            # Service accounts without domain-wide delegation cannot invite attendees.
+            # Retry without attendees so the shared calendar still gets the appointment event.
+            if attendees and "forbiddenForServiceAccounts" in error_text:
+                event_without_attendees = dict(event)
+                event_without_attendees.pop("attendees", None)
+                created = (
+                    service.events()
+                    .insert(
+                        calendarId=calendar_id,
+                        body=event_without_attendees,
+                        conferenceDataVersion=1,
+                        sendUpdates='none',
+                    )
+                    .execute()
+                )
+            else:
+                raise
+        event_id = created.get("id")
+        has_link = bool(
+            created.get("hangoutLink")
+            or (created.get("conferenceData", {}).get("entryPoints") or [{}])[0].get("uri")
         )
+        if event_id and not has_link:
+            for _ in range(3):
+                time.sleep(1)
+                refreshed = (
+                    service.events()
+                    .get(
+                        calendarId=calendar_id,
+                        eventId=event_id,
+                    )
+                    .execute()
+                )
+                has_link = bool(
+                    refreshed.get("hangoutLink")
+                    or (refreshed.get("conferenceData", {}).get("entryPoints") or [{}])[0].get("uri")
+                )
+                created = refreshed
+                if has_link:
+                    break
     else:
         created = service.events().insert(calendarId=calendar_id, body=event, sendUpdates='none').execute()
     return created
