@@ -25,17 +25,20 @@ export function ProfileHeader({
   const displayName = firstName && lastName 
     ? `${firstName} ${lastName}` 
     : firstName || "Moj Profil";
+  const initials = `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.trim().toUpperCase() || (isCaretaker ? "P" : "S");
 
   return (
     <div className="mb-12 flex flex-col md:flex-row items-center md:items-start gap-8 animate-in fade-in duration-500">
       <Avatar className="w-32 h-32 border-4 border-background shadow-xl ring-1 ring-muted">
-        <AvatarImage 
-          src={imageUrl || ""} 
-          className="object-cover"
-        />
+        {imageUrl ? (
+          <AvatarImage 
+            src={imageUrl} 
+            className="object-cover"
+          />
+        ) : null}
         {/* Koristimo neutralnu boju da paše na obje stranice */}
         <AvatarFallback className="text-6xl font-bold bg-primary/10 text-primary">
-          {isCaretaker ? "P" : "S"}
+          {initials}
         </AvatarFallback>
       </Avatar>
 
