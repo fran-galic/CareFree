@@ -22,8 +22,9 @@ import { Eye, EyeOff } from "lucide-react";
 
 export function LoginForm({
   className,
+  registrationMessage,
   ...props
-}: React.ComponentProps<"div">) {
+}: React.ComponentProps<"div"> & { registrationMessage?: string | null }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -73,6 +74,11 @@ export function LoginForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {registrationMessage ? (
+            <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+              {registrationMessage}
+            </div>
+          ) : null}
           <form onSubmit={handleSubmit}>
             <FieldGroup>
               <Field>

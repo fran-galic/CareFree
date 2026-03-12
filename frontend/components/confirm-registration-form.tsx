@@ -37,6 +37,19 @@ export function ConfirmRegistrationForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const redirectToLogin = async () => {
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/logout/`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch {
+      // Best effort only. Regular registrations will not have cookies yet.
+    }
+
+    router.push("/accounts/login?registered=1");
+  };
+
   useEffect(() => {
     if (providedEmail) {
       setEmail(providedEmail);
@@ -111,7 +124,6 @@ export function ConfirmRegistrationForm({
       const isGoogleUser = Boolean(registerData.user && registerData.access);
       
       if (isGoogleUser) {
-        // Tokens already set in cookies by backend
         if (formData.role === "student") {
           const studentData: any = {};
           if (formData.age) studentData.age = parseInt(formData.age);
@@ -135,45 +147,19 @@ export function ConfirmRegistrationForm({
               console.error("Failed to update student profile:", err);
             }
           }
-
-          router.push("/carefree/main");
-        } else {
-          router.push("/carefree/profile/caretaker");
         }
+        await redirectToLogin();
         return;
       }
 
-      // Regular email/password user - need to login
       if (formData.role === "student") {
-        
-        const loginResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/login/`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            email: email,
-            password: formData.password,
-          }),
-        });
-
-        if (!loginResponse.ok) {
-          setError("Registracija uspješna, ali automatska prijava nije uspjela. Prijavite se ručno.");
-          router.push("/accounts/login");
-          return;
-        }
-
-        const loginData = await loginResponse.json();
-
-        // Call the new student registration endpoint
         const studentData: any = {};
         if (formData.age) studentData.age = parseInt(formData.age);
         if (formData.sex) studentData.sex = formData.sex;
         if (formData.studying_at) studentData.studying_at = formData.studying_at;
         if (formData.year_of_study) studentData.year_of_study = parseInt(formData.year_of_study);
 
-        if (Object.keys(studentData).length > 0 && loginData.user?.id) {
+        if (Object.keys(studentData).length > 0 && registerData.user?.id) {
           try {
             await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/register/student/`, {
               method: "POST",
@@ -181,7 +167,7 @@ export function ConfirmRegistrationForm({
                 "Content-Type": "application/json",
               },
               body: JSON.stringify({
-                user_id: loginData.user.id,
+                user_id: registerData.user.id,
                 ...studentData
               }),
             });
@@ -189,32 +175,9 @@ export function ConfirmRegistrationForm({
             console.error("Failed to update student profile:", err);
           }
         }
-
-        
-        router.push("/carefree/main");
-      } else {
-        
-        const loginResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/login/`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            email: email,
-            password: formData.password,
-          }),
-        });
-
-        if (!loginResponse.ok) {
-          setError("Registracija uspješna, ali automatska prijava nije uspjela. Prijavite se ručno.");
-          router.push("/accounts/login");
-          return;
-        }
-
-        
-        router.push("/carefree/profile/caretaker");
       }
+
+      await redirectToLogin();
     } catch {
       setError("Greška u mreži. Pokušajte ponovno.");
     } finally {

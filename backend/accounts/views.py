@@ -166,6 +166,8 @@ class RequestRegistrationTokenView(APIView):
         ctx = {
             'registration_link': registration_link,
             'expiry_hours': expiry_hours,
+            'logo_url': f"{settings.FRONTEND_URL.rstrip('/')}/images/logo.png",
+            'hero_image_url': f"{settings.FRONTEND_URL.rstrip('/')}/images/for_email.png",
         }
         html_message = render_to_string('emails/confirm_registration.html', ctx)
         plain_message = strip_tags(html_message)
@@ -245,7 +247,13 @@ class ConfirmRegistrationView(APIView):
             except Exception as e:
                 return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-            return Response({"detail": "Registracija uspješna."}, status=status.HTTP_201_CREATED)
+            return Response(
+                {
+                    "detail": "Registracija uspješna.",
+                    "user": _serialize_auth_user(user),
+                },
+                status=status.HTTP_201_CREATED,
+            )
         
 
         if user.google_sub is None:

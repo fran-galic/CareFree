@@ -1,4 +1,5 @@
 import { Heart } from "lucide-react";
+import Image from "next/image";
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -9,6 +10,13 @@ export function Footer() {
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
           {/* Lijeva strana - Logo i naziv */}
           <div className="flex items-center gap-2">
+            <Image
+              src="/images/logo.png"
+              alt="CareFree logo"
+              width={28}
+              height={28}
+              className="rounded-md"
+            />
             <span className="text-lg font-bold bg-gradient-to-r from-[oklch(0.783_0.1136_182.2)] to-[oklch(0.68_0.20_45)] bg-clip-text text-transparent">
               CareFree
             </span>

@@ -104,7 +104,7 @@ export default function CarefreeLayout({
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
-        <header className="sticky top-0 z-50 w-full border-b bg-card/90 backdrop-blur-md shadow-sm h-20 flex items-center justify-between px-4 container mx-auto">
+        <header className="z-30 w-full border-b bg-card/90 backdrop-blur-md shadow-sm h-20 flex items-center justify-between px-4 container mx-auto">
           
           <div className="flex items-center gap-3">
             <Skeleton className="w-10 h-10 rounded-full" />
@@ -135,14 +135,14 @@ export default function CarefreeLayout({
     <div className={`min-h-screen bg-background flex flex-col`} data-theme={user?.role === "caretaker" ? "caretaker" : "student"}>
       
       
-      <header className="sticky top-0 z-50 w-full border-b bg-card/90 backdrop-blur-md shadow-sm transition-colors duration-500">
+      <header className="z-30 w-full border-b bg-card/90 shadow-sm transition-colors duration-500 supports-[backdrop-filter]:backdrop-blur-md">
         <div className="container mx-auto px-4 h-20 flex items-center justify-between">
           
           
           <Link href="/carefree/main" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <div className="relative w-10 h-10">
               <Image 
-                src="/images/carefree-logo-assistant-new.png" 
+                src="/images/logo.png" 
                 alt="CareFree Logo" 
                 fill
                 className="object-contain"

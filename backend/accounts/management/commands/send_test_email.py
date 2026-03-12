@@ -23,7 +23,12 @@ class Command(BaseCommand):
 
         if mail_type == 'confirm_registration':
             registration_link = f"{getattr(settings, 'FRONTEND_URL', 'http://localhost:3001').rstrip('/')}" + "/accounts/signup?token=TESTTOKEN"
-            ctx = {'registration_link': registration_link}
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3001').rstrip('/')
+            ctx = {
+                'registration_link': registration_link,
+                'logo_url': f'{frontend_url}/images/logo.png',
+                'hero_image_url': f'{frontend_url}/images/for_email.png',
+            }
             html = render_to_string('emails/confirm_registration.html', ctx)
             subject = 'Dovršite registraciju na CareFree'
 

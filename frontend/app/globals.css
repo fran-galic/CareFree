@@ -270,7 +270,6 @@
       oklch(0.97 0 0) 60%,
       oklch(0.95 0 0) 100%
     );
-    background-attachment: fixed;
     min-height: 100vh;
   }
 
@@ -306,21 +305,21 @@
   }
 
   .hero-section {
-    @apply min-h-screen relative;
+    @apply relative flex min-h-screen flex-col;
     background: transparent;
   }
 
   .container-centered {
-    @apply container mx-auto px-4 py-8 md:py-12;
+    @apply container mx-auto px-4 pt-7 pb-4 md:pt-14 md:pb-6;
   }
 
   .content-wrapper {
-    @apply flex flex-col items-center text-center space-y-6 max-w-4xl mx-auto;
-    @apply bg-white/60 backdrop-blur-sm rounded-3xl p-8 md:p-10 shadow-sm border border-gray-100;
+    @apply mx-auto flex max-w-4xl flex-col items-center text-center space-y-4;
+    @apply rounded-[2rem] border border-gray-100 bg-white/75 p-6 shadow-sm backdrop-blur-sm md:p-8;
   }
 
   .logo-box {
-    @apply mb-4;
+    @apply mb-1;
   }
 
   .logo-img {
@@ -329,11 +328,11 @@
   }
 
   .title-section {
-    @apply space-y-4;
+    @apply space-y-3;
   }
 
   .main-title {
-    @apply text-5xl md:text-7xl font-bold tracking-tight;
+    @apply text-4xl md:text-6xl font-bold tracking-tight;
   }
 
   .color-shift {
@@ -351,15 +350,15 @@
   }
 
   .subtitle {
-    @apply text-xl md:text-2xl text-muted-foreground font-light max-w-2xl mx-auto;
+    @apply mx-auto max-w-2xl text-lg font-light text-muted-foreground md:text-2xl;
   }
 
   .description {
-    @apply text-lg text-muted-foreground max-w-2xl leading-relaxed;
+    @apply max-w-2xl text-base leading-relaxed text-muted-foreground md:text-lg;
   }
 
   .button-group {
-    @apply flex flex-col sm:flex-row gap-4 pt-4;
+    @apply flex flex-col gap-3 pt-2 sm:flex-row;
   }
 
   .cta-button {
@@ -393,7 +392,7 @@
 
   /* Scroll Indicator */
   .scroll-indicator {
-    @apply flex flex-col items-center gap-2 mt-12 animate-bounce;
+    @apply mt-4 flex flex-col items-center gap-2 animate-bounce;
   }
 
   .scroll-icon {
@@ -434,7 +433,7 @@
 
   /* Role Toggle Styles */
   .role-toggle-container {
-    @apply w-full py-8 flex flex-col items-center gap-6;
+    @apply w-full flex flex-col items-center gap-4 px-4 py-6;
   }
 
   .role-toggle-heading {
@@ -450,12 +449,12 @@
   }
 
   .role-toggle-wrapper {
-    @apply inline-flex items-center gap-1 p-1.5 rounded-full;
+    @apply inline-flex flex-wrap items-center justify-center gap-1 rounded-full p-1.5;
     @apply bg-white border-2 border-gray-200 shadow-sm;
   }
 
   .role-toggle-option {
-    @apply px-8 py-3 rounded-full font-semibold text-base;
+    @apply rounded-full px-6 py-2.5 text-sm font-semibold md:px-8 md:py-3 md:text-base;
     @apply transition-all duration-300 ease-in-out;
     @apply text-gray-600 hover:text-gray-800;
     @apply cursor-pointer outline-none;
@@ -475,15 +474,17 @@
 
   /* Features Section */
   .features-section {
-    @apply py-12 pb-24;
+    @apply py-6 pb-12 md:pb-14;
   }
 
   .feature-grid-dynamic {
-    @apply grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto;
+    @apply mx-auto grid max-w-7xl gap-4 md:grid-cols-2 lg:grid-cols-3 md:gap-5;
+    transition: min-height 220ms ease, opacity 220ms ease;
+    min-height: 21rem;
   }
 
   .feature-card-dynamic {
-    @apply relative p-8 rounded-2xl bg-white border-2;
+    @apply relative rounded-2xl border-2 bg-white p-6;
     @apply transition-all duration-300 ease-in-out;
   }
 
