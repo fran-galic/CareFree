@@ -18,6 +18,7 @@ function SignupContent() {
   const router = useRouter()
   const token = searchParams.get("token")
   const [email, setEmail] = useState<string | null>(null)
+  const [googleUser, setGoogleUser] = useState<{ email: string } | null>(null)
   const [resendCooldown, setResendCooldown] = useState<number>(0)
   const [isResending, setIsResending] = useState<boolean>(false)
   const [isChecking, setIsChecking] = useState(true)
@@ -34,7 +35,12 @@ function SignupContent() {
         )
 
         if (response.ok) {
-          // User is already logged in, redirect to main page
+          const user = await response.json()
+          if (user.needs_onboarding) {
+            setGoogleUser({ email: user.email })
+            setIsChecking(false)
+            return
+          }
           router.replace("/carefree/main")
         } else {
           setIsChecking(false)
@@ -97,6 +103,10 @@ function SignupContent() {
   // If token is present, show confirmation form
   if (token) {
     return <ConfirmRegistrationForm token={token} />
+  }
+
+  if (googleUser) {
+    return <ConfirmRegistrationForm email={googleUser.email} isGoogleOnboarding />
   }
 
   if (email) {

@@ -105,7 +105,7 @@ export default function EmailRequestForm({ onSuccess }: EmailRequestFormProps) {
             <Field>
               <GoogleAuthButton 
                 text="Registriraj se s Google-om" 
-                onRegistrationEmailSent={onSuccess}
+                onError={setError}
               />
             </Field>
           </FieldGroup>

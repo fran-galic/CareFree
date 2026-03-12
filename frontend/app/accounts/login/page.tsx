@@ -17,8 +17,8 @@ export default function Page() {
         });
         
         if (response.ok) {
-          // User is already logged in, redirect to main page
-          router.replace("/carefree/main");
+          const user = await response.json();
+          router.replace(user.needs_onboarding ? "/accounts/signup" : "/carefree/main");
         } else {
           setIsChecking(false);
         }

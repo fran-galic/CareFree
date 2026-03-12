@@ -1,23 +1,22 @@
 "use client"
 
 import { useGoogleLogin } from '@react-oauth/google'
-import { useRouter, usePathname } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { API_URL, GOOGLE_CLIENT_ID } from '@/lib/config'
 
 interface GoogleAuthButtonProps {
   text?: string
   className?: string
-  onRegistrationEmailSent?: (email: string) => void
+  onError?: (message: string) => void
 }
 
 export default function GoogleAuthButton({ 
   text = "Nastavi s Google-om",
   className = "",
-  onRegistrationEmailSent
+  onError,
 }: GoogleAuthButtonProps) {
   const router = useRouter()
-  const pathname = usePathname()
   const [isLoading, setIsLoading] = useState(false)
   
   const handleGoogleLogin = useGoogleLogin({
@@ -39,36 +38,26 @@ export default function GoogleAuthButton({
         const data = await response.json()
 
         if (response.ok) {
-          // Success - tokens are set in cookies by backend
-          if (data.detail && data.detail.includes('email')) {
-            // Registration email sent - get email from backend response
-            const userEmail = data.email || 'your email'
-            
-            // If on signup page and callback provided, use it to show email confirmation
-            if (pathname === '/accounts/signup' && onRegistrationEmailSent) {
-              onRegistrationEmailSent(userEmail)
-            } else {
-              // Otherwise navigate to signup with email
-              router.push(`/accounts/signup?emailSent=true`)
-            }
-          } else {
-            // Login successful
-            router.push('/carefree/main')
-          }
+          const target =
+            data.auth_flow === "complete_registration"
+              ? data.onboarding_path || "/accounts/signup"
+              : "/carefree/main"
+
+          router.push(target)
         } else {
           console.error('Google login failed:', data)
-          alert(data.error || 'Prijava s Googleom nije uspjela')
+          onError?.(data.error || 'Prijava s Googleom nije uspjela')
         }
       } catch (error) {
         console.error('Error during Google login:', error)
-        alert('Došlo je do greške prilikom prijave')
+        onError?.('Došlo je do greške prilikom prijave')
       } finally {
         setIsLoading(false)
       }
     },
     onError: (error) => {
       console.error('Google OAuth error:', error)
-      alert('Autentifikacija putem Googlea nije uspjela')
+      onError?.('Autentifikacija putem Googlea nije uspjela')
     },
   })
 

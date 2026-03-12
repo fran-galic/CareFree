@@ -54,16 +54,28 @@ from backend.emailing import send_project_email
 User = get_user_model()
 
 
-def build_auth_response(user):
+def _serialize_auth_user(user):
+    return {
+        **UserSerializer(user).data,
+        "auth_provider": "google" if getattr(user, "google_sub", None) else "password",
+        "needs_onboarding": not bool(getattr(user, "role", None)),
+    }
+
+
+def build_auth_response(user, *, status_code=200, extra_data=None):
     """Return a Response containing JWT tokens and set auth cookies for a given user."""
     refresh = RefreshToken.for_user(user)
     access = refresh.access_token
 
-    response = Response({
-        "user": UserSerializer(user).data,
+    payload = {
+        "user": _serialize_auth_user(user),
         "refresh": str(refresh),
         "access": str(access),
-    })
+    }
+    if extra_data:
+        payload.update(extra_data)
+
+    response = Response(payload, status=status_code)
 
     response.set_cookie(
         key="accessToken",
@@ -88,6 +100,32 @@ def build_auth_response(user):
 COMPLETE_REGISTER_PATH = "/accounts/signup"
 
 
+def _google_onboarding_payload(user):
+    needs_onboarding = not bool(getattr(user, "role", None))
+    return {
+        "auth_flow": "complete_registration" if needs_onboarding else "login",
+        "needs_onboarding": needs_onboarding,
+        "onboarding_path": COMPLETE_REGISTER_PATH if needs_onboarding else "/carefree/main",
+    }
+
+
+def _split_google_name(userinfo):
+    given_name = (userinfo.get("given_name") or "").strip()
+    family_name = (userinfo.get("family_name") or "").strip()
+    full_name = (userinfo.get("name") or "").strip()
+
+    if given_name or family_name:
+        return given_name, family_name
+
+    if not full_name:
+        return "", ""
+
+    parts = full_name.split()
+    if len(parts) == 1:
+        return parts[0], ""
+    return parts[0], " ".join(parts[1:])
+
+
 class RequestRegistrationTokenView(APIView):
     """Accepts `{ "email": "..." }`. Sends an email to complete the registration.
 
@@ -102,8 +140,14 @@ class RequestRegistrationTokenView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         email = serializer.validated_data['email'].strip()
-        if User.objects.filter(email__iexact=email).exists():
-            return Response({"error": "Mail je vec registriran"}, status=status.HTTP_400_BAD_REQUEST)
+        existing_user = User.objects.filter(email__iexact=email).first()
+        if existing_user:
+            if existing_user.google_sub:
+                return Response(
+                    {"error": "Za ovaj email već postoji Google račun. Prijavite se pomoću gumba 'Google'."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            return Response({"error": "Mail je već registriran."}, status=status.HTTP_400_BAD_REQUEST)
 
         now = timezone.now()
         expiry_seconds = getattr(settings, 'REGISTRATION_TOKEN_EXP_SECONDS', 900)
@@ -152,20 +196,32 @@ class ConfirmRegistrationView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = serializer.validated_data
-        token = data['token']
-        try:
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-        except jwt.ExpiredSignatureError:
-            return Response({"error": "Token je istekao."}, status=status.HTTP_400_BAD_REQUEST)
-        except jwt.InvalidTokenError:
-            return Response({"error": "Neispravan token."}, status=status.HTTP_400_BAD_REQUEST)
+        token = data.get('token')
+        user = None
+        email = None
 
-        email = payload.get('email')
-        if not email:
-            return Response({"error": "Token ne sadrzi email."}, status=status.HTTP_400_BAD_REQUEST)
+        if token:
+            try:
+                payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            except jwt.ExpiredSignatureError:
+                return Response({"error": "Token je istekao."}, status=status.HTTP_400_BAD_REQUEST)
+            except jwt.InvalidTokenError:
+                return Response({"error": "Neispravan token."}, status=status.HTTP_400_BAD_REQUEST)
 
-        User = get_user_model()
-        user = User.objects.filter(email__iexact=email).first()
+            email = payload.get('email')
+            if not email:
+                return Response({"error": "Token ne sadrži email."}, status=status.HTTP_400_BAD_REQUEST)
+
+            user = User.objects.filter(email__iexact=email).first()
+        elif request.user.is_authenticated and getattr(request.user, "google_sub", None) and not getattr(request.user, "role", None):
+            user = request.user
+            email = user.email
+        else:
+            return Response(
+                {"error": "Nedostaje valjan registracijski token ili aktivna Google prijava za dovršetak registracije."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         if user is None:
             password = data.get("password")
             if not password:
@@ -193,25 +249,28 @@ class ConfirmRegistrationView(APIView):
         
 
         if user.google_sub is None:
-            return Response({"error": "Mail je vec registriran."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Za ovaj email već postoji račun prijavljen lozinkom. Prijavite se lozinkom ili resetirajte lozinku."}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
             with transaction.atomic():
-                # upiši podatke (ako želiš: samo ako su prazni)
                 user.first_name = data["first_name"]
                 user.last_name = data["last_name"]
                 user.role = data["role"]
+                password = data.get("password")
+                if password:
+                    user.set_password(password)
                 user.save()
 
-                # osiguraj da postoji profil
                 if data["role"] == "caretaker":
-                    Caretaker.objects.create(user=user)
+                    Caretaker.objects.get_or_create(user=user)
                 else:
-                    Student.objects.create(user=user)
+                    Student.objects.get_or_create(user=user)
                 
-                response = build_auth_response(user)
+                response = build_auth_response(
+                    user,
+                    extra_data=_google_onboarding_payload(user),
+                )
                 return response
-                #return Response({"detail": "Profil dovršen."}, status=200)
 
 
         except Exception as e:
@@ -226,13 +285,22 @@ class LoginView(generics.CreateAPIView):
     permission_classes=[AllowAny]
 
     def post(self, request, *args, **kwargs):
-        email = request.data.get("email")
-        password=request.data.get("password")
+        email = (request.data.get("email") or "").strip()
+        password = request.data.get("password")
+
+        if not email or not password:
+            return Response({"error": "Email i lozinka su obavezni."}, status=400)
 
         user = authenticate(request, email=email, password=password)
 
         if not user:
-            return Response({"error": "Neispravno korisničko ime ili lozinka"}, status=400)
+            existing_user = User.objects.filter(email__iexact=email).first()
+            if existing_user and existing_user.google_sub and not existing_user.has_usable_password():
+                return Response(
+                    {"error": "Za ovaj račun koristite Google prijavu ili prvo postavite lozinku kroz dovršetak registracije."},
+                    status=400,
+                )
+            return Response({"error": "Neispravan email ili lozinka."}, status=400)
         
         return build_auth_response(user)
     
@@ -263,13 +331,19 @@ def loginOrRegisterWithWGogleView(request):
         
         userinfo = userinfo_response.json()
         google_sub = userinfo.get("id")
-        email = userinfo.get("email")
-        name = userinfo.get("name", "")
+        email = (userinfo.get("email") or "").strip().lower()
+        email_verified = bool(userinfo.get("verified_email"))
+        first_name, last_name = _split_google_name(userinfo)
 
         if not google_sub:
             return Response(
                 {"error": "Google ID nije pronađen"},
                 status=status.HTTP_401_UNAUTHORIZED
+            )
+        if not email or not email_verified:
+            return Response(
+                {"error": "Google račun mora imati potvrđen email da bi se mogao koristiti za prijavu."},
+                status=status.HTTP_401_UNAUTHORIZED,
             )
 
     except Exception as e:
@@ -279,65 +353,51 @@ def loginOrRegisterWithWGogleView(request):
             status=status.HTTP_401_UNAUTHORIZED
         )
     
-    
-    user, created = User.objects.get_or_create(
-        google_sub=google_sub,
-        defaults={"email": email or "", "first_name": name},
+    user = User.objects.filter(google_sub=google_sub).first()
+    existing_email_user = User.objects.filter(email__iexact=email).first()
+
+    if user is None and existing_email_user and not existing_email_user.google_sub:
+        return Response(
+            {
+                "error": "Za ovaj email već postoji račun prijavljen lozinkom. Prijavite se lozinkom ili resetirajte lozinku prije povezivanja Google računa."
+            },
+            status=status.HTTP_409_CONFLICT,
+        )
+
+    if user is None and existing_email_user and existing_email_user.google_sub and existing_email_user.google_sub != google_sub:
+        return Response(
+            {
+                "error": "Ovaj email je već povezan s drugim Google računom. Prijavite se ispravnim Google računom."
+            },
+            status=status.HTTP_409_CONFLICT,
+        )
+
+    if user is None:
+        user = User.objects.create_user(
+            email=email,
+            password=None,
+            first_name=first_name or email.split("@")[0],
+            last_name=last_name,
+            google_sub=google_sub,
+        )
+    else:
+        updated = False
+        if user.email != email:
+            user.email = email
+            updated = True
+        if first_name and user.first_name != first_name:
+            user.first_name = first_name
+            updated = True
+        if last_name and user.last_name != last_name:
+            user.last_name = last_name
+            updated = True
+        if updated:
+            user.save()
+
+    return build_auth_response(
+        user,
+        extra_data=_google_onboarding_payload(user),
     )
-
-    # novi user bez rolea
-    if created or user.role is None:
-        now = timezone.now()
-        expiry_seconds = getattr(settings, 'REGISTRATION_TOKEN_EXP_SECONDS', 900)
-        payload = {
-            'email': email,
-            'iat': int(now.timestamp()),
-            'exp': int((now + timedelta(seconds=expiry_seconds)).timestamp())
-        }
-        token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
-        registration_link = f"{settings.FRONTEND_URL.rstrip('/')}{COMPLETE_REGISTER_PATH}?token={token}"
-        print(f"[registration link for {email}]: {registration_link}")
-
-        expiry_hours = int(expiry_seconds) // 3600
-        ctx = {
-            'registration_link': registration_link,
-            'expiry_hours': expiry_hours,
-        }
-        html_message = render_to_string('emails/confirm_registration.html', ctx)
-        plain_message = strip_tags(html_message)
-
-        try:
-            send_project_email(
-                subject="Dovršite registraciju na CareFree",
-                message=plain_message,
-                recipient_list=[email],
-                html_message=html_message,
-                fail_silently=False,
-            )
-        except Exception as e:
-            print(f"Email sending error: {e}")
-            return Response({"error": "Slanje emaila nije uspjelo."}, status=500)
-
-        return Response({
-            "detail": "Poslali smo link za dovršetak registracije na Vaš email.",
-            "email": email
-        })
-    
-    
-    response = build_auth_response(user)
-    
-    
-    updated = False
-    if email and user.email != email:
-        user.email = email
-        updated = True
-    if name and getattr(user, "first_name", "") != name:
-        user.first_name = name
-        updated = True
-    if updated:
-        user.save()
-    
-    return response
 
 
 

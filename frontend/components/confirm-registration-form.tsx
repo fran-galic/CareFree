@@ -9,10 +9,16 @@ import { Button } from "@/components/ui/button";
 import { Eye, EyeOff } from "lucide-react";
 
 interface ConfirmRegistrationFormProps {
-  token: string;
+  token?: string;
+  email?: string;
+  isGoogleOnboarding?: boolean;
 }
 
-export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps) {
+export function ConfirmRegistrationForm({
+  token,
+  email: providedEmail,
+  isGoogleOnboarding = false,
+}: ConfirmRegistrationFormProps) {
   const router = useRouter();
   const [email, setEmail] = useState<string>("");
   const [showPassword, setShowPassword] = useState(false);
@@ -32,14 +38,22 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
   const [error, setError] = useState("");
 
   useEffect(() => {
-    
+    if (providedEmail) {
+      setEmail(providedEmail);
+      return;
+    }
+
+    if (!token) {
+      return;
+    }
+
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
       setEmail(payload.email || "");
     } catch (err) {
       console.error("Failed to decode token:", err);
     }
-  }, [token]);
+  }, [providedEmail, token]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,7 +92,7 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
         },
         credentials: "include",
         body: JSON.stringify({
-          token,
+          ...(token ? { token } : {}),
           first_name: formData.first_name,
           last_name: formData.last_name,
           password: formData.password,
@@ -94,8 +108,7 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
         return;
       }
 
-      // Check if this was a Google user - backend sets cookies and returns user data
-      const isGoogleUser = registerData.user && registerData.access;
+      const isGoogleUser = Boolean(registerData.user && registerData.access);
       
       if (isGoogleUser) {
         // Tokens already set in cookies by backend
@@ -213,8 +226,15 @@ export function ConfirmRegistrationForm({ token }: ConfirmRegistrationFormProps)
     <div className="flex min-h-screen items-center justify-center p-6">
       <Card className="w-full max-w-lg">
         <CardHeader>
-          <CardTitle className="text-2xl">Dovršite registraciju</CardTitle>
+          <CardTitle className="text-2xl">
+            {isGoogleOnboarding ? "Dovršite Google registraciju" : "Dovršite registraciju"}
+          </CardTitle>
           <CardDescription>
+            {isGoogleOnboarding ? (
+              <span className="block">
+                Uspješno ste se prijavili Google računom. Još samo dovršite osnovne podatke i odaberite ulogu.
+              </span>
+            ) : null}
             {email && (
               <span className="block mt-1">
                 Stvaranje računa za <span className="font-semibold text-foreground">{email}</span>

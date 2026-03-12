@@ -33,7 +33,7 @@ export function LoginForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setError(null);
     setLoading(true);
 
     try {
@@ -45,17 +45,19 @@ export function LoginForm({
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Login failed");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || errorData.detail || "Prijava nije uspjela.");
       }
+
+      const data = await response.json();
 
       // Successfully logged in - wait a moment for cookies to be set
       await new Promise(resolve => setTimeout(resolve, 100));
       
       // Use window.location for a full page reload to ensure cookies are properly set
-      window.location.href = "/carefree/main";
+      window.location.href = data.user?.needs_onboarding ? "/accounts/signup" : "/carefree/main";
     } catch (error) {
-      setError((error as Error).message || "Login failed");
+      setError((error as Error).message || "Prijava nije uspjela.");
       setLoading(false);
     }
   };
@@ -136,7 +138,7 @@ export function LoginForm({
                 </div>
               </div>
               <Field>
-                <GoogleAuthButton text="Prijavi se s Google-om" />
+                <GoogleAuthButton text="Prijavi se s Google-om" onError={setError} />
               </Field>
             </FieldGroup>
           </form>

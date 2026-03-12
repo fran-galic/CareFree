@@ -29,7 +29,7 @@ class EmailOnlySerializer(serializers.Serializer):
 
 
 class RegistrationConfirmSerializer(serializers.Serializer):
-    token = serializers.CharField(write_only=True)
+    token = serializers.CharField(write_only=True, required=False, allow_blank=True)
     first_name = serializers.CharField(max_length=150)
     last_name = serializers.CharField(max_length=150)
     role = serializers.ChoiceField(choices=(('student', 'student'), ('caretaker', 'caretaker')))
