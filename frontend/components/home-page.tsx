@@ -180,7 +180,7 @@ export default function HomePage() {
 
       <section className="features-section">
         <div className="container mx-auto px-4">
-          <div className="feature-grid-dynamic">
+          <div className={`feature-grid-dynamic ${selectedRole ? "filtered" : "all-roles"}`}>
             {(selectedRole === "student"
               ? studentFeatures
               : selectedRole === "psiholog"

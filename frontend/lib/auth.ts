@@ -1,21 +1,4 @@
 import GoogleProvider from "next-auth/providers/google"
-import type { JWT } from "next-auth/jwt"
-import type { AuthOptions } from "next-auth"
-
-type AuthAccount = {
-  access_token?: string
-}
-
-type AuthUser = {
-  id?: string
-}
-
-type AuthSession = {
-  user: {
-    id?: string
-  }
-  accessToken?: string
-}
 
 const googleClientId = process.env.GOOGLE_CLIENT_ID
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET
@@ -31,10 +14,10 @@ const providers =
       ]
     : []
 
-export const authOptions: AuthOptions = {
+export const authOptions: any = {
   providers,
   callbacks: {
-    async jwt({ token, account, user }: { token: JWT; account?: AuthAccount | null; user?: AuthUser }) {
+    async jwt({ token, account, user }: { token: any; account?: { access_token?: string } | null; user?: { id?: string } }) {
       if (account) {
         token.accessToken = account.access_token
       }
@@ -43,11 +26,11 @@ export const authOptions: AuthOptions = {
       }
       return token
     },
-    async session({ session, token }: { session: AuthSession; token: JWT }) {
-      if (token) {
+    async session({ session, token }: { session: any; token: any }) {
+      if (session.user) {
         session.user.id = token.id as string
-        session.accessToken = token.accessToken as string
       }
+      session.accessToken = token.accessToken as string
       return session
     },
   },

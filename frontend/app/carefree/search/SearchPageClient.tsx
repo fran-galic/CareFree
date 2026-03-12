@@ -7,12 +7,12 @@ import useSWR from "swr";
 import SearchBar from "@/components/search-bar";
 import { searchCaretakers, getHelpCategories } from "@/fetchers/users";
 import { Card } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Filter, Briefcase, Clock, ChevronRight, Stethoscope, ChevronLeft } from 'lucide-react';
+import { Filter, Briefcase, Clock, ChevronRight, Stethoscope, ChevronLeft, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { PersistentAvatar } from '@/components/persistent-avatar-image';
 
 export default function SearchPageClient() {
   const searchParams = useSearchParams();
@@ -78,23 +78,36 @@ export default function SearchPageClient() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleJumpToResults = () => {
+    const section = document.getElementById("search-results-section");
+    section?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   return (
-    <div className="container mx-auto py-10 min-h-screen pr-4 max-w-7xl">
+    <div className="container mx-auto min-h-screen max-w-7xl py-14 pr-4">
       
       {/* HEADER SEKCIJA */}
-      <div className="mb-12 text-center space-y-6">
+      <div className="mb-16 space-y-8 text-center">
         <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight text-primary">
             Pronađi svog CareTakera
         </h1>
         <p className="text-muted-foreground text-lg max-w-3xl mx-auto">
             Pretražite našu bazu licenciranih psihologa i pronađite osobu uz koju se osjećate sigurno, viđeno i podržano.
+            <button
+              type="button"
+              onClick={handleJumpToResults}
+              className="ml-2 inline-flex -translate-y-px items-center align-middle text-gray-400 transition-colors hover:text-gray-600"
+              aria-label="Idi na filtere i rezultate"
+            >
+              <ArrowDown className="h-[0.95rem] w-[0.95rem] animate-bounce" />
+            </button>
         </p>
-        <div className="max-w-2xl mx-auto pt-4">
+        <div className="mx-auto max-w-2xl pt-6">
              <SearchBar initial={q} />
         </div>
       </div>
 
-      <Card className="mb-8 overflow-hidden border-primary/15 bg-gradient-to-r from-primary/8 via-background to-amber-50/70 shadow-sm">
+      <Card className="mb-20 overflow-hidden border-primary/15 bg-gradient-to-r from-primary/8 via-background to-amber-50/70 shadow-sm">
         <div className="grid gap-6 px-6 py-6 md:grid-cols-[1.4fr_0.9fr] md:px-8">
           <div className="space-y-3">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
@@ -124,7 +137,7 @@ export default function SearchPageClient() {
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div id="search-results-section" className="grid grid-cols-1 items-start gap-10 scroll-mt-6 lg:grid-cols-12">
         
         {/* SIDEBAR FILTERI - STICKY POZICIJA */}
         <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-28 h-fit">
@@ -134,14 +147,6 @@ export default function SearchPageClient() {
                     <span className="text-base">Filtriraj po problemu</span>
                 </div>
                 <Separator className="mb-4" />
-                <div className="mb-5 rounded-xl border border-border/70 bg-muted/30 px-4 py-3">
-                    <p className="text-sm font-medium text-foreground">
-                        Znate što vas muči?
-                    </p>
-                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                        Pretražite našu bazu licenciranih psihologa i suzite izbor prema temi o kojoj želite razgovarati.
-                    </p>
-                </div>
                 
                 <div className="space-y-6 max-h-[80vh] overflow-y-auto pr-2 custom-scrollbar">
                     {sortedCategories.map((cat) => (
@@ -204,15 +209,19 @@ export default function SearchPageClient() {
                                 <div className="flex flex-col sm:flex-row gap-6 p-6">
                                     {/* AVATAR SEKCIJA */}
                                     <div className="flex-shrink-0">
-                                        <Avatar className="w-24 h-24 border-4 border-background shadow-sm group-hover:scale-105 transition-transform duration-300">
-                                            {caretaker.user_image_url ? (
-                                                <AvatarImage src={caretaker.user_image_url} className="object-cover" />
-                                            ) : null}
-                                            <AvatarFallback className="text-2xl bg-primary/5 text-primary font-bold">
-                                                {caretaker.first_name?.charAt(0)}
-                                                {caretaker.last_name?.charAt(0)}
-                                            </AvatarFallback>
-                                        </Avatar>
+                                        <PersistentAvatar
+                                            cacheKey={`avatar:search:${caretaker.user_id}`}
+                                            src={caretaker.user_image_url}
+                                            alt={`${caretaker.first_name} ${caretaker.last_name}`}
+                                            className="w-24 h-24 border-4 border-background shadow-sm group-hover:scale-105 transition-transform duration-300"
+                                            fallbackClassName="text-2xl bg-primary/5 text-primary font-bold"
+                                            fallback={
+                                                <>
+                                                    {caretaker.first_name?.charAt(0)}
+                                                    {caretaker.last_name?.charAt(0)}
+                                                </>
+                                            }
+                                        />
                                     </div>
                                     
                                     {/* INFO SEKCIJA */}

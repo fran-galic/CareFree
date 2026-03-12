@@ -22,7 +22,9 @@ urlpatterns = [
     path('caretaker/register/', CaretakerCompleteRegistrationView.as_view(), name='caretaker-profile'),
     path('caretaker/cv/', CaretakerCVUploadView.as_view(), name='caretaker-cv-upload'),
     path('caretaker/diploma/', DiplomaCreateView.as_view(), name='caretaker-diploma-upload'),
+    path('caretaker/diploma/<int:diploma_id>/', DiplomaCreateView.as_view(), name='caretaker-diploma-delete'),
     path('caretaker/certificate/', CertificateCreateView.as_view(), name='caretaker-certificate-upload'),
+    path('caretaker/certificate/<int:certificate_id>/', CertificateCreateView.as_view(), name='caretaker-certificate-delete'),
     path('caretaker/image/', CaretakerImageUploadView.as_view(), name='caretaker-image-upload'),
     path('caretakers/search/', CaretakerSearchView.as_view(), name='caretaker-search'),
     

@@ -136,25 +136,44 @@ class CertificateSerializer(serializers.ModelSerializer):
 
 class CaretakerProfileSerializer(serializers.ModelSerializer):
     help_categories = serializers.PrimaryKeyRelatedField(many=True, queryset=Caretaker.help_categories.field.related_model.objects.all(), required=False)
+    age = serializers.IntegerField(source='user.age', required=False, allow_null=True, min_value=0, max_value=100)
     # image = serializers.ImageField(required=False, allow_null=True)
     # image_mime_type = serializers.CharField(read_only=True)
 
     class Meta:
         model = Caretaker
-        fields = ['about_me', 'tel_num', 'grad_year', 'help_categories', 'is_profile_complete', 'is_approved', 'approval_status']
+        fields = [
+            'about_me',
+            'tel_num',
+            'grad_year',
+            'help_categories',
+            'show_email_to_students',
+            'show_phone_to_students',
+            'age',
+            'is_profile_complete',
+            'is_approved',
+            'approval_status',
+        ]
         read_only_fields = ['is_profile_complete', 'is_approved', 'approval_status', 'image_mime_type']
+
+    def update(self, instance, validated_data):
+        user_data = validated_data.pop('user', {})
+        age = user_data.get('age', serializers.empty)
+        if age is not serializers.empty:
+            instance.user.age = age
+            instance.user.save(update_fields=['age'])
+        return super().update(instance, validated_data)
 
 
 class CaretakerSearchSerializer(serializers.ModelSerializer):
     """Serializer for caretaker search results"""
     first_name = serializers.CharField(source='user.first_name', read_only=True)
     last_name = serializers.CharField(source='user.last_name', read_only=True)
-    email = serializers.EmailField(source='user.email', read_only=True)
     user_id = serializers.IntegerField(source='user.id', read_only=True)
 
     class Meta:
         model = Caretaker
-        fields = ['user_id', 'first_name', 'last_name', 'email', 'about_me', 'grad_year', 'is_approved']
+        fields = ['user_id', 'first_name', 'last_name', 'about_me', 'grad_year', 'is_approved']
         read_only_fields = fields
 
 

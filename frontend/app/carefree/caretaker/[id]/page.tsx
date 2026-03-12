@@ -13,7 +13,7 @@ import {
   CardHeader,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { PersistentAvatar } from "@/components/persistent-avatar-image";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,7 +24,9 @@ import {
   CalendarCheck, 
   CheckCircle2, 
   AlertCircle,
-  Loader2
+  Loader2,
+  Mail,
+  Phone
 } from "lucide-react";
 
 interface SlotsByDay {
@@ -138,14 +140,14 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
     <div className="container mx-auto py-6 px-4 max-w-6xl">
       {/* HEADER PROFILA - Kompaktan */}
       <div className="flex items-center gap-4 mb-8">
-        <Avatar className="w-24 h-24 border-2 border-primary/20 shadow-lg">
-          {caretaker.user_image_url ? (
-            <AvatarImage src={caretaker.user_image_url} className="object-cover" />
-          ) : null}
-          <AvatarFallback className="text-3xl font-bold bg-primary/10 text-primary">
-            {caretaker.first_name?.charAt(0)}{caretaker.last_name?.charAt(0)}
-          </AvatarFallback>
-        </Avatar>
+        <PersistentAvatar
+          cacheKey={`avatar:caretaker-public:${caretaker.user_id}`}
+          src={caretaker.user_image_url}
+          alt={`${caretaker.first_name} ${caretaker.last_name}`}
+          className="w-24 h-24 border-2 border-primary/20 shadow-lg"
+          fallbackClassName="text-3xl font-bold bg-primary/10 text-primary"
+          fallback={`${caretaker.first_name?.charAt(0) ?? ""}${caretaker.last_name?.charAt(0) ?? ""}`}
+        />
         
         <div className="flex-1">
           <h1 className="text-3xl font-bold tracking-tight">
@@ -156,11 +158,6 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
               <Briefcase className="w-3 h-3 mr-1" />
               Psiholog
             </Badge>
-          </div>
-          <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <p className="text-muted-foreground">
-              {caretaker.academic_title} {caretaker.specialisation ? `• ${caretaker.specialisation}` : ''}
-            </p>
           </div>
         </div>
       </div>
@@ -213,6 +210,28 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
                 </p>
               </CardContent>
             </Card>
+
+            {(caretaker.contact_email || caretaker.contact_phone) && (
+              <Card>
+                <CardHeader className="pb-1">
+                  <CardTitle className="text-base font-medium">Kontakt</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 py-0">
+                  {caretaker.contact_email && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Mail className="h-4 w-4 text-primary" />
+                      <span>{caretaker.contact_email}</span>
+                    </div>
+                  )}
+                  {caretaker.contact_phone && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Phone className="h-4 w-4 text-primary" />
+                      <span>{caretaker.contact_phone}</span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
         </TabsContent>
 

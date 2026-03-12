@@ -86,7 +86,8 @@ def caretaker_helpcategories_changed(sender, instance, action, **kwargs):
 
 
 @receiver(post_save, sender=CaretakerCV)
-def cv_changed_update_completeness(sender, instance, created, **kwargs):
+@receiver(post_delete, sender=CaretakerCV)
+def cv_changed_update_completeness(sender, instance, **kwargs):
     try:
         evaluate_profile_complete(instance.caretaker.pk)
     except Exception:
