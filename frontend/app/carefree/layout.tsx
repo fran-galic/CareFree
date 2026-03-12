@@ -42,6 +42,7 @@ export default function CarefreeLayout({
   const pathname = usePathname();
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   
   
   const { data: user, isLoading, error } = useSWR<User>(
@@ -58,6 +59,24 @@ export default function CarefreeLayout({
       router.push('/accounts/login');
     }
   }, [error, isLoading, router]);
+
+  useEffect(() => {
+    let lastScrollY = window.scrollY;
+
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      const scrollingUp = currentScrollY < lastScrollY;
+      const nearTop = currentScrollY < 24;
+
+      setIsHeaderVisible(nearTop || scrollingUp || isMobileMenuOpen);
+      lastScrollY = currentScrollY;
+    };
+
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [isMobileMenuOpen]);
 
   const handleLogout = async () => {
     await fetch(`${BACKEND_API}/auth/logout/`, { method: "POST", credentials: "include" });
@@ -104,25 +123,27 @@ export default function CarefreeLayout({
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
-        <header className="z-30 w-full border-b bg-card/90 backdrop-blur-md shadow-sm h-20 flex items-center justify-between px-4 container mx-auto">
+        <header className="fixed inset-x-0 top-0 z-40 border-b bg-card/90 shadow-sm supports-[backdrop-filter]:backdrop-blur-md">
+          <div className="container mx-auto h-20 flex items-center justify-between px-4">
           
-          <div className="flex items-center gap-3">
-            <Skeleton className="w-10 h-10 rounded-full" />
-            <Skeleton className="w-24 h-6" />
-          </div>
+            <div className="flex items-center gap-3">
+              <Skeleton className="w-10 h-10 rounded-full" />
+              <Skeleton className="w-24 h-6" />
+            </div>
           
-          <div className="hidden md:flex gap-2">
-            <Skeleton className="w-20 h-8 rounded-full" />
-            <Skeleton className="w-20 h-8 rounded-full" />
-            <Skeleton className="w-20 h-8 rounded-full" />
-          </div>
+            <div className="hidden md:flex gap-2">
+              <Skeleton className="w-20 h-8 rounded-full" />
+              <Skeleton className="w-20 h-8 rounded-full" />
+              <Skeleton className="w-20 h-8 rounded-full" />
+            </div>
           
-          <div className="flex items-center gap-2">
-            <Skeleton className="w-9 h-9 rounded-full" />
-            <Skeleton className="w-24 h-8 rounded-full" />
+            <div className="flex items-center gap-2">
+              <Skeleton className="w-9 h-9 rounded-full" />
+              <Skeleton className="w-24 h-8 rounded-full" />
+            </div>
           </div>
         </header>
-        <main className="flex-1 w-full p-6 space-y-4">
+        <main className="flex-1 w-full pt-24 p-6 space-y-4">
           <Skeleton className="h-12 w-1/3" />
           <Skeleton className="h-64 w-full" />
         </main>
@@ -135,7 +156,11 @@ export default function CarefreeLayout({
     <div className={`min-h-screen bg-background flex flex-col`} data-theme={user?.role === "caretaker" ? "caretaker" : "student"}>
       
       
-      <header className="z-30 w-full border-b bg-card/90 shadow-sm transition-colors duration-500 supports-[backdrop-filter]:backdrop-blur-md">
+      <header
+        className={`fixed inset-x-0 top-0 z-40 border-b bg-card/90 shadow-sm transition-transform duration-300 ease-out supports-[backdrop-filter]:backdrop-blur-md ${
+          isHeaderVisible ? "translate-y-0" : "-translate-y-full"
+        }`}
+      >
         <div className="container mx-auto px-4 h-20 flex items-center justify-between">
           
           
@@ -251,7 +276,7 @@ export default function CarefreeLayout({
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 w-full">
+      <main className="flex-1 w-full pt-24">
         {children}
       </main>
 
