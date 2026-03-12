@@ -14,7 +14,8 @@ import {
   Inbox,
   CalendarDays,
   CalendarCheck,
-  ArrowRight
+  ArrowRight,
+  Info
 } from "lucide-react";
 
 interface CaretakerDashboardProps {
@@ -24,41 +25,8 @@ interface CaretakerDashboardProps {
 export function CaretakerDashboard({ firstName }: CaretakerDashboardProps) {
   const router = useRouter();
 
-  const dashboardCards = [
-    {
-      title: "Zahtjevi studenata",
-      description: "Novi zahtjevi za rezervaciju",
-      icon: Inbox,
-      iconColor: "text-orange-600",
-      borderColor: "border-l-orange-500",
-      href: "/carefree/requests",
-      content: "Pregledajte i odobrite zahtjeve studenata za rezervaciju termina. Ovdje možete vidjeti dodatne informacije o studentu i razlog rezervacije.",
-      colSpan: "md:col-span-2"
-    },
-    {
-      title: "Termini",
-      description: "Pregled zakazanih termina",
-      icon: CalendarDays,
-      iconColor: "text-blue-600",
-      borderColor: "border-l-blue-500",
-      href: "/carefree/availability",
-      content: "Pregled svih zakazanih termina u kalendaru. Upravljajte susretima sa studentima.",
-      colSpan: "md:col-span-1"
-    },
-    {
-      title: "Dostupnost",
-      description: "Postavi dostupne satnice",
-      icon: CalendarCheck,
-      iconColor: "text-green-600",
-      borderColor: "border-l-green-500",
-      href: "/carefree/dostupnost",
-      content: "Postavite svoje dostupne termine. Kliknite na satnice kada ste dostupni za razgovore sa studentima.",
-      colSpan: "md:col-span-1"
-    }
-  ];
-
   return (
-    <div className="container mx-auto p-6 max-w-6xl space-y-8 animate-in fade-in duration-500">
+    <div className="container mx-auto max-w-6xl animate-in space-y-6 p-6 fade-in duration-500">
       
       {/* POZDRAVNA SEKCIJA */}
       <div className="flex flex-col gap-2">
@@ -73,8 +41,8 @@ export function CaretakerDashboard({ firstName }: CaretakerDashboardProps) {
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
-        <Card 
-          className="md:row-span-2 bg-gradient-to-br from-primary/10 via-primary/5 to-background border-primary/20 shadow-md hover:shadow-lg transition-all cursor-pointer group flex flex-col"
+        <Card
+          className="group flex cursor-pointer flex-col border-primary/15 border-t-[3px] border-l-[3px] border-t-primary/50 border-l-primary/50 bg-[linear-gradient(180deg,rgba(231,244,241,0.5)_0%,rgba(255,255,255,1)_22%)] transition-all hover:-translate-y-0.5 md:row-span-2"
           onClick={() => router.push("/carefree/requests")}
         >
           <CardHeader>
@@ -87,7 +55,7 @@ export function CaretakerDashboard({ firstName }: CaretakerDashboardProps) {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-1">
-            <p className="text-lg font-medium text-foreground/80 leading-relaxed">
+            <p className="text-lg font-medium leading-relaxed text-foreground/80">
               Pregledajte i odobrite zahtjeve studenata za rezervaciju termina. Ovdje možete vidjeti dodatne informacije o studentu i razlog rezervacije.
             </p>
           </CardContent>
@@ -98,48 +66,67 @@ export function CaretakerDashboard({ firstName }: CaretakerDashboardProps) {
           </CardFooter>
         </Card>
 
-        
-        {dashboardCards.slice(1).map((card, index) => {
-          const IconComponent = card.icon;
-          return (
-            <Card 
-              key={index}
-              className={`border-l-4 ${card.borderColor} hover:shadow-lg transition-all cursor-pointer group`}
-              onClick={() => router.push(card.href)}
-            >
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-xl">
-                  <IconComponent className={`w-6 h-6 ${card.iconColor}`} />
-                  {card.title}
-                </CardTitle>
-                <CardDescription className="text-base">
-                  {card.description}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-                  {card.content}
-                </p>
-                <div className="flex items-center gap-2 text-primary text-sm font-medium group-hover:gap-3 transition-all">
-                  Otvori <ArrowRight className="w-4 h-4" />
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+        <Card
+          className="group cursor-pointer border border-border/80 border-t-[3px] border-l-[3px] border-t-primary/40 border-l-primary/40 bg-[linear-gradient(180deg,rgba(231,244,241,0.34)_0%,rgba(255,255,255,1)_28%)] transition-all hover:-translate-y-0.5 hover:border-primary/25"
+          onClick={() => router.push("/carefree/availability")}
+        >
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-xl text-foreground">
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary text-primary shadow-sm">
+                <CalendarDays className="h-5 w-5" />
+              </span>
+              Termini
+            </CardTitle>
+            <CardDescription className="text-base">Pregled zakazanih termina</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-4 text-sm leading-relaxed text-muted-foreground">
+              Pregled svih zakazanih termina u kalendaru. Upravljajte susretima sa studentima.
+            </p>
+            <div className="flex items-center gap-2 text-sm font-medium text-primary transition-all group-hover:gap-3">
+              Otvori <ArrowRight className="w-4 h-4" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card
+          className="group cursor-pointer border border-border/80 border-t-[3px] border-l-[3px] border-t-primary/40 border-l-primary/40 bg-[linear-gradient(180deg,rgba(231,244,241,0.34)_0%,rgba(255,255,255,1)_28%)] transition-all hover:-translate-y-0.5 hover:border-primary/25"
+          onClick={() => router.push("/carefree/dostupnost")}
+        >
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-xl text-foreground">
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary text-primary shadow-sm">
+                <CalendarCheck className="h-5 w-5" />
+              </span>
+              Dostupnost
+            </CardTitle>
+            <CardDescription className="text-base">Postavi dostupne satnice</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-4 text-sm leading-relaxed text-muted-foreground">
+              Postavite svoje dostupne termine. Kliknite na satnice kada ste dostupni za razgovore sa studentima.
+            </p>
+            <div className="flex items-center gap-2 text-sm font-medium text-primary transition-all group-hover:gap-3">
+              Otvori <ArrowRight className="w-4 h-4" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       
-      <Card className="bg-primary/5 border-primary/20">
-        <CardHeader>
-          <CardTitle className="text-lg">Brzi savjeti</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <p>• Redovito ažurirajte svoju dostupnost kako bi studenti mogli lakše rezervirati termine.</p>
-          <p>• Odgovorite na zahtjeve studenata u roku od 24 sata za bolju korisničku procjenu.</p>
-          <p>• Provjerite svoj profil i osigurajte da su sve informacije ažurne.</p>
-        </CardContent>
-      </Card>
+      <div className="rounded-xl border border-[#eadfc3] bg-[linear-gradient(180deg,rgba(251,246,236,0.96)_0%,rgba(255,255,255,0.98)_100%)] p-5">
+        <div className="flex items-start gap-3">
+          <Info className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#b7791f]" />
+          <div>
+            <h2 className="text-lg font-semibold text-[#6b4f1d]">Brzi savjeti</h2>
+            <div className="mt-2 space-y-2 text-sm text-[#8a7448]">
+              <p>• Redovito ažurirajte svoju dostupnost kako bi studenti mogli lakše rezervirati termine.</p>
+              <p>• Odgovorite na zahtjeve studenata u roku od 24 sata za bolju korisničku procjenu.</p>
+              <p>• Provjerite svoj profil i osigurajte da su sve informacije ažurne.</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

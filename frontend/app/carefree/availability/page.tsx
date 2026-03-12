@@ -65,11 +65,11 @@ export default function AvailabilityPage() {
 
   const eventStyleGetter = useCallback((event: CalendarEvent) => {
     const status = event.resource.status;
-    let backgroundColor = "#3b82f6"; // default blue
+    let backgroundColor = "#2f7f73";
 
-    if (status === "completed") backgroundColor = "#10b981"; // green
+    if (status === "completed") backgroundColor = "#4b9f92";
     if (status === "cancelled") backgroundColor = "#ef4444"; // red
-    if (status === "confirmed") backgroundColor = "#8b5cf6"; // purple
+    if (status === "confirmed") backgroundColor = "#21423d";
 
     return {
       style: {
@@ -116,7 +116,7 @@ export default function AvailabilityPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <Card>
+          <Card className="border-border/80 border-t-[3px] border-l-[3px] border-t-primary/28 border-l-primary/28 bg-[linear-gradient(180deg,rgba(231,244,241,0.22)_0%,rgba(255,255,255,1)_24%)]">
             <CardHeader>
               <CardTitle className="flex items-center text-lg gap-2">
                 <CalendarIcon className="w-5 h-5" />
@@ -124,7 +124,7 @@ export default function AvailabilityPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="bg-white rounded-lg p-4" style={{ height: "600px" }}>
+              <div className="rounded-2xl border border-border bg-[linear-gradient(180deg,rgba(250,253,252,1)_0%,rgba(255,255,255,1)_100%)] p-4" style={{ height: "600px" }}>
                 <Calendar
                   localizer={localizer}
                   events={events}
@@ -203,7 +203,7 @@ export default function AvailabilityPage() {
                             onClick={() => onView(v)}
                             className={[
                               "px-3 py-1 rounded border transition",
-                              view === v ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted",
+                              view === v ? "bg-primary text-primary-foreground border-primary" : "hover:bg-secondary",
                             ].join(" ")}
                           >
                             {text}
@@ -224,13 +224,13 @@ export default function AvailabilityPage() {
                             </div>
 
                             <div className="flex gap-2">
-                              <button type="button" className="px-3 py-1 rounded border hover:bg-muted transition" onClick={() => onNavigate("PREV")}>
+                              <button type="button" className="rounded border border-border px-3 py-1 transition hover:bg-secondary" onClick={() => onNavigate("PREV")}>
                                 <ChevronLeft />
                               </button>
-                              <button type="button" className="px-3 py-1 rounded border hover:bg-muted transition" onClick={() => onNavigate("TODAY")}>
+                              <button type="button" className="rounded border border-border px-3 py-1 transition hover:bg-secondary" onClick={() => onNavigate("TODAY")}>
                                 Danas
                               </button>
-                              <button type="button" className="px-3 py-1 rounded border hover:bg-muted transition" onClick={() => onNavigate("NEXT")}>
+                              <button type="button" className="rounded border border-border px-3 py-1 transition hover:bg-secondary" onClick={() => onNavigate("NEXT")}>
                                 <ChevronRight />
                               </button>
                             </div>
@@ -247,7 +247,7 @@ export default function AvailabilityPage() {
         </div>
 
         <div>
-          <Card>
+          <Card className="border-border/80 border-t-[3px] border-l-[3px] border-t-primary/22 border-l-primary/22 bg-[linear-gradient(180deg,rgba(231,244,241,0.16)_0%,rgba(255,255,255,1)_30%)]">
             <CardHeader>
               <CardTitle>Detalji termina</CardTitle>
               <CardDescription
@@ -338,7 +338,7 @@ export default function AvailabilityPage() {
             </CardContent>
           </Card>
 
-          <Card className="mt-6">
+          <Card className="mt-6 border-border/80 border-t-[3px] border-l-[3px] border-t-primary/22 border-l-primary/22 bg-[linear-gradient(180deg,rgba(231,244,241,0.16)_0%,rgba(255,255,255,1)_30%)]">
             <CardHeader>
               <CardTitle>Statistika</CardTitle>
             </CardHeader>
@@ -353,7 +353,7 @@ export default function AvailabilityPage() {
                 <span className="text-sm text-muted-foreground">
                   Potvrđeni
                 </span>
-                <span className="font-semibold text-purple-600">
+                <span className="font-semibold text-primary">
                   {
                     appointments.filter((a) => a.status === "confirmed")
                       .length
@@ -364,7 +364,7 @@ export default function AvailabilityPage() {
                 <span className="text-sm text-muted-foreground">
                   Završeni
                 </span>
-                <span className="font-semibold text-green-600">
+                <span className="font-semibold text-[#4b9f92]">
                   {
                     appointments.filter((a) => a.status === "completed")
                       .length

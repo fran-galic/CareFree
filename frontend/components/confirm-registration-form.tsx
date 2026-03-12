@@ -235,11 +235,11 @@ export function ConfirmRegistrationForm({
                 >
                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
                     formData.role === "caretaker"
-                      ? "border-orange-500"
+                      ? "border-[#2f7f73]"
                       : "border-muted-foreground/30"
                   }`}>
                     {formData.role === "caretaker" && (
-                      <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                      <div className="w-3 h-3 rounded-full bg-[#2f7f73]"></div>
                     )}
                   </div>
                   <span className="font-medium">Psiholog</span>
