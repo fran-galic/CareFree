@@ -234,12 +234,12 @@ export default function SearchPageClient() {
                                             <div className="flex flex-wrap gap-4 mt-1 text-sm text-muted-foreground">
                                                 <div className="flex items-center gap-1.5">
                                                     <Briefcase className="w-4 h-4 text-primary/70" />
-                                                    <span className="font-medium">{caretaker.academic_title}</span>
+                                                    <span className="font-medium">Odobren psiholog</span>
                                                 </div>
-                                                {caretaker.working_since && (
+                                                {caretaker.grad_year && (
                                                     <div className="flex items-center gap-1.5">
                                                         <Clock className="w-4 h-4 text-primary/70" />
-                                                        <span>Iskustvo od {caretaker.working_since}.</span>
+                                                        <span>Diplomirao/la {caretaker.grad_year}.</span>
                                                     </div>
                                                 )}
                                             </div>
