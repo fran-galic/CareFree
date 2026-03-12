@@ -112,6 +112,109 @@ class GoogleCredential(models.Model):
         except Exception:
             return False
 
+
+class SystemGoogleCredential(models.Model):
+    """Store OAuth credentials for the shared project Google account."""
+
+    key = models.CharField(max_length=100, unique=True, default="shared_calendar")
+    google_account_email = models.EmailField(blank=True, null=True)
+    access_token = models.TextField(blank=True, null=True)
+    refresh_token = models.TextField(blank=True, null=True)
+    token_uri = models.CharField(max_length=255, blank=True, null=True)
+    client_id = models.CharField(max_length=255, blank=True, null=True)
+    client_secret = models.CharField(max_length=255, blank=True, null=True)
+    scopes = models.TextField(blank=True, null=True)
+    expires_at = models.DateTimeField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self) -> str:
+        return f"SystemGoogleCredential({self.google_account_email or self.key})"
+
+    def _get_fernet(self):
+        try:
+            from cryptography.fernet import Fernet
+        except Exception:
+            return None
+        from django.conf import settings
+        key = getattr(settings, 'ENCRYPTION_KEY', None)
+        if not key:
+            return None
+        try:
+            return Fernet(key.encode())
+        except Exception:
+            return None
+
+    def _encrypt(self, plaintext: str | None) -> str | None:
+        if not plaintext:
+            return plaintext
+        f = self._get_fernet()
+        if not f:
+            return plaintext
+        try:
+            return f.encrypt(plaintext.encode()).decode()
+        except Exception:
+            return plaintext
+
+    def _decrypt(self, ciphertext: str | None) -> str | None:
+        if not ciphertext:
+            return ciphertext
+        f = self._get_fernet()
+        if not f:
+            return ciphertext
+        try:
+            return f.decrypt(ciphertext.encode()).decode()
+        except Exception:
+            return ciphertext
+
+    def get_authorized_user_info(self) -> dict:
+        return {
+            'token': self._decrypt(self.access_token) if self.access_token else None,
+            'refresh_token': self._decrypt(self.refresh_token) if self.refresh_token else None,
+            'token_uri': self.token_uri,
+            'client_id': self.client_id,
+            'client_secret': self.client_secret,
+            'scopes': self.scopes.split(',') if self.scopes else [],
+        }
+
+    def refresh_if_needed(self, force: bool = False) -> bool:
+        try:
+            from google.oauth2.credentials import Credentials as UserCredentials
+            from google.auth.transport.requests import Request
+        except Exception:
+            return False
+
+        import datetime as _dt
+        now = _dt.datetime.utcnow()
+        if self.expires_at and not force:
+            if (self.expires_at - _dt.timedelta(minutes=5)) > now.replace(tzinfo=None):
+                return False
+
+        info = self.get_authorized_user_info()
+        creds = UserCredentials(
+            token=info.get('token'),
+            refresh_token=info.get('refresh_token'),
+            token_uri=info.get('token_uri'),
+            client_id=info.get('client_id'),
+            client_secret=info.get('client_secret'),
+            scopes=info.get('scopes') or None,
+        )
+        try:
+            creds.refresh(Request())
+        except Exception:
+            return False
+
+        try:
+            self.access_token = self._encrypt(creds.token) if creds.token else None
+            if getattr(creds, 'refresh_token', None):
+                self.refresh_token = self._encrypt(creds.refresh_token)
+            if getattr(creds, 'expiry', None):
+                self.expires_at = creds.expiry
+            self.save(update_fields=['access_token', 'refresh_token', 'expires_at', 'updated_at'])
+            return True
+        except Exception:
+            return False
+
         # decide whether to refresh
         import datetime as _dt
         now = _dt.datetime.utcnow()

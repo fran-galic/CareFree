@@ -3,14 +3,14 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Dovršite registraciju — CareFree</title>
+    <title>{{ title|default:"CareFree" }}</title>
   </head>
   <body
     style="
       margin: 0;
       padding: 0;
-      background: #fff;
-      color: #0f172a;
+      background: #f3f7f8;
+      color: #16303a;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
         'Helvetica Neue', Arial, sans-serif;
     "
@@ -26,13 +26,19 @@
         <td align="center">
           <table
             role="presentation"
-            width="600"
+            width="640"
             cellpadding="0"
             cellspacing="0"
-            style="max-width: 600px; width: 100%"
+            style="max-width: 640px; width: 100%"
           >
             <tr>
-              <td style="padding: 24px 24px 12px; text-align: left">
+              <td
+                style="
+                  padding: 18px 24px;
+                  background: linear-gradient(135deg, #66c2b5 0%, #f2a45b 100%);
+                  border-radius: 24px 24px 0 0;
+                "
+              >
                 <table
                   role="presentation"
                   width="100%"
@@ -45,14 +51,14 @@
                       <img
                         src="{{ logo_url }}"
                         alt="CareFree logo"
-                        width="48"
-                        height="48"
+                        width="46"
+                        height="46"
                         style="
-                          display: inline-block;
-                          width: 48px;
-                          height: 48px;
+                          display: block;
+                          width: 46px;
+                          height: 46px;
                           border-radius: 14px;
-                          vertical-align: middle;
+                          background: #ffffff;
                         "
                       />
                       {% endif %}
@@ -62,15 +68,15 @@
                         style="
                           margin: 0 0 4px;
                           font-size: 12px;
-                          letter-spacing: 0.12em;
-                          color: #7c8a98;
+                          letter-spacing: 0.14em;
                           text-transform: uppercase;
+                          color: rgba(255, 255, 255, 0.85);
                         "
                       >
                         CareFree
                       </p>
-                      <h1 style="margin: 0; font-size: 20px; color: #0b1220">
-                        Dovršite registraciju
+                      <h1 style="margin: 0; font-size: 24px; color: #ffffff">
+                        {{ title }}
                       </h1>
                     </td>
                   </tr>
@@ -81,80 +87,85 @@
             <tr>
               <td
                 style="
-                  background: #f8fafc;
-                  border: 1px solid #e6edf3;
-                  border-radius: 18px;
-                  padding: 22px 20px;
+                  background: #ffffff;
+                  border-left: 1px solid #d7e6e7;
+                  border-right: 1px solid #d7e6e7;
+                  padding: 28px 24px 24px;
                 "
               >
-                <p style="margin: 0 0 12px; font-size: 15px; color: #0f172a">
-                  Pozdrav,
+                <p style="margin: 0 0 12px; font-size: 15px; color: #45606a">
+                  Pozdrav{% if recipient_name %}, {{ recipient_name }}{% endif %},
                 </p>
                 <p
                   style="
                     margin: 0 0 18px;
-                    font-size: 14px;
-                    color: #334155;
-                    line-height: 1.5;
+                    font-size: 16px;
+                    line-height: 1.6;
+                    color: #16303a;
                   "
                 >
-                  Kliknite donji gumb da dovršite registraciju i potvrdite svoju
-                  email adresu.
+                  {{ intro }}
                 </p>
-                {% if expiry_hours is not none %}
+
+                {% for line in body_lines %}
                 <p
                   style="
                     margin: 0 0 14px;
                     font-size: 14px;
-                    color: #334155;
-                    line-height: 1.5;
+                    line-height: 1.7;
+                    color: #45606a;
                   "
                 >
-                  {% if expiry_hours >= 1 %} Link istječe za {{ expiry_hours }}
-                  sat{% if expiry_hours > 1 %}a{% endif %}. {% else %} Link
-                  istječe za manje od jednog sata. {% endif %}
+                  {{ line }}
                 </p>
-                {% endif %}
+                {% endfor %}
 
-                <div style="text-align: center; margin: 20px 0">
+                {% if action_label and action_url %}
+                <div style="margin: 24px 0 10px; text-align: center">
                   <a
-                    href="{{ registration_link }}"
+                    href="{{ action_url }}"
                     style="
                       display: inline-block;
-                      padding: 13px 20px;
+                      padding: 13px 22px;
                       border-radius: 999px;
-                      background: linear-gradient(135deg, #66c2b5 0%, #f2a45b 100%);
-                      color: #fff;
+                      background: #16303a;
+                      color: #ffffff;
                       text-decoration: none;
+                      font-size: 14px;
                       font-weight: 600;
                     "
-                    >Dovrši registraciju</a
+                    >{{ action_label }}</a
                   >
                 </div>
-
-                <p style="margin: 0 0 8px; font-size: 12px; color: #64748b">
-                  Ako gumb ne radi, kopirajte i zalijepite sljedeći link u
-                  preglednik:
-                </p>
                 <p
                   style="
-                    margin: 0;
+                    margin: 14px 0 0;
                     font-size: 12px;
-                    color: #0b1220;
+                    line-height: 1.6;
+                    color: #70848d;
                     word-break: break-all;
                   "
                 >
+                  Ako gumb ne radi, otvorite ovaj link:
                   <a
-                    href="{{ registration_link }}"
-                    style="color: #2563eb; text-decoration: underline"
-                    >{{ registration_link }}</a
+                    href="{{ action_url }}"
+                    style="color: #1d7185; text-decoration: underline"
+                    >{{ action_url }}</a
                   >
                 </p>
+                {% endif %}
               </td>
             </tr>
 
             <tr>
-              <td style="padding: 16px 24px 8px">
+              <td
+                style="
+                  background: #ffffff;
+                  border-left: 1px solid #d7e6e7;
+                  border-right: 1px solid #d7e6e7;
+                  padding: 0 24px 24px;
+                "
+              >
                 {% if hero_image_url %}
                 <img
                   src="{{ hero_image_url }}"
@@ -162,9 +173,9 @@
                   style="
                     display: block;
                     width: 100%;
-                    max-width: 552px;
-                    border-radius: 14px;
+                    max-width: 592px;
                     margin: 0 auto;
+                    border-radius: 18px;
                   "
                 />
                 {% endif %}
@@ -173,9 +184,25 @@
 
             <tr>
               <td
-                style="padding: 6px 24px 18px; color: #94a3b8; font-size: 11px"
+                style="
+                  background: #ffffff;
+                  border: 1px solid #d7e6e7;
+                  border-top: none;
+                  border-radius: 0 0 24px 24px;
+                  padding: 0 24px 24px;
+                "
               >
-                <p style="margin: 0">CareFree — Simple, private support</p>
+                <p
+                  style="
+                    margin: 0;
+                    font-size: 12px;
+                    line-height: 1.6;
+                    color: #7a8d96;
+                    text-align: center;
+                  "
+                >
+                  {{ footer_text }}
+                </p>
               </td>
             </tr>
           </table>

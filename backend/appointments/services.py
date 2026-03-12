@@ -12,7 +12,7 @@ from .tasks import summarize_appointment_request, sync_create_google_event
 from .tasks import expire_hold_task
 from .models import ReservationHold
 from django.utils import timezone as dj_timezone
-from backend.emailing import send_project_email
+from backend.emailing import render_branded_email, send_project_email
 from .google_sync import (
     build_appointment_payload,
     extract_conference_link,
@@ -39,11 +39,28 @@ def _send_appointment_confirmation_email(appt):
     else:
         body += "Termin je potvrđen, ali Meet link trenutno nije generiran."
 
+    action_url = appt.conference_link or f"{settings.FRONTEND_URL.rstrip('/')}/carefree/calendar?appointment={appt.id}"
+    html_message, plain_message = render_branded_email(
+        title="Termin je potvrđen",
+        intro=f"Vaš razgovor za termin {start_str} je potvrđen.",
+        body_lines=[
+            "Detalje termina možete otvoriti i unutar CareFree kalendara.",
+            "Google Meet link je uključen čim bude dostupan.",
+        ] if not appt.conference_link else [
+            "Termin je upisan u kalendar i spreman za pristup.",
+            f"Google Meet link: {appt.conference_link}",
+        ],
+        action_label="Otvori termin",
+        action_url=action_url,
+        recipient_name=(getattr(appt.student.user, "first_name", "") if appt.student else "") or getattr(appt.caretaker.user, "first_name", "") or None,
+    )
+
     try:
         send_project_email(
             subject='Potvrda termina - CareFree',
-            message=body,
+            message=plain_message or body,
             recipient_list=recipients,
+            html_message=html_message,
             fail_silently=True,
         )
     except Exception:
@@ -114,11 +131,24 @@ def create_appointment_request(student_user, caretaker_obj, requested_start, mes
             body += f"Vrijeme: {start_str}\n"
             body += f"Poruka: {message or '(bez poruke)'}\n\n"
             body += f"Molimo prijavite se u CareFree aplikaciju za potvrdu/odbijanje zahtjeva."
+            html_message, plain_message = render_branded_email(
+                title='Novi zahtjev za termin',
+                intro='Zaprimili ste novi zahtjev za razgovor u CareFree aplikaciji.',
+                body_lines=[
+                    f'Student: {student_name}',
+                    f'Vrijeme: {start_str}',
+                    f'Poruka: {message or "(bez poruke)"}',
+                ],
+                action_label='Otvori zahtjeve',
+                action_url=f"{settings.FRONTEND_URL.rstrip('/')}/carefree/requests",
+                recipient_name=getattr(caretaker_obj.user, 'first_name', '') or caretaker_obj.user.email,
+            )
             
             send_project_email(
                 subject='Novi zahtjev za termin - CareFree',
-                message=body,
+                message=plain_message or body,
                 recipient_list=[caretaker_obj.user.email],
+                html_message=html_message,
                 fail_silently=True
             )
     except Exception:

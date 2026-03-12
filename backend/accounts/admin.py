@@ -1,9 +1,9 @@
 from django.contrib import admin
 from .models import Certificate, User, Student, Caretaker, HelpCategory, CaretakerCV, Diploma
 from django.utils.html import format_html
+from backend.emailing import get_email_asset_urls, send_project_email
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
-from backend.emailing import send_project_email
 
 
 def _send_caretaker_status_email(caretaker, approved: bool):
@@ -27,6 +27,7 @@ def _send_caretaker_status_email(caretaker, approved: bool):
         'title': 'CareFree',
         'recipient_name': getattr(caretaker.user, 'first_name', '') or caretaker.user.email,
         'message': message_text,
+        **get_email_asset_urls(),
     }
 
     try:

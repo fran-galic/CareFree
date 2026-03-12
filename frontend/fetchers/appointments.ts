@@ -158,7 +158,7 @@ export async function createAppointmentRequest(data: {
  * Dohvaća termine trenutno ulogiranog korisnika (student ili psiholog)
  */
 export async function getMyAppointments(): Promise<Appointment[]> {
-  return fetcher(`${BACKEND_API}/api/appointments/`);
+  return fetcher(`${BACKEND_API}/api/appointments/calendar/my/`);
 }
 
 /**

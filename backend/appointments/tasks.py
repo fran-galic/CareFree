@@ -2,7 +2,7 @@ from celery import shared_task
 from django.utils import timezone
 from .models import Appointment, CalendarEventLog
 from calendar_integration.google_client import create_event, build_service
-from backend.emailing import send_project_email
+from backend.emailing import render_branded_email, send_project_email
 from .google_sync import (
     build_appointment_payload,
     extract_conference_link,
@@ -65,12 +65,26 @@ def sync_create_google_event(self, appointment_id):
                 body += f"Sastanku možete pristupiti putem ovog linka: {appt.conference_link}"
             else:
                 body += "Detalji sastanka bit će poslani uskoro."
+            action_url = appt.conference_link or f"{appt.calendar_id}"
+            html_message, plain_message = render_branded_email(
+                title='Termin je potvrđen',
+                intro=f'Vaš razgovor za termin {start_str} je potvrđen.',
+                body_lines=[
+                    f'Google Meet link: {appt.conference_link}',
+                ] if appt.conference_link else [
+                    'Detalji sastanka bit će poslani uskoro.',
+                ],
+                action_label='Otvori sastanak' if appt.conference_link else 'Otvori kalendar',
+                action_url=appt.conference_link or None,
+                recipient_name=(getattr(appt.student.user, "first_name", "") if appt.student else "") or getattr(appt.caretaker.user, "first_name", "") or None,
+            )
             
             try:
                 send_project_email(
                     subject='Potvrda termina - CareFree',
-                    message=body,
+                    message=plain_message or body,
                     recipient_list=recipients,
+                    html_message=html_message,
                     fail_silently=True
                 )
             except Exception:
