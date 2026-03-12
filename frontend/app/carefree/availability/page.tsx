@@ -8,8 +8,9 @@ import "react-big-calendar/lib/css/react-big-calendar.css";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Calendar as CalendarIcon, Video, User, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, Calendar as CalendarIcon, Video, User, Clock, ChevronLeft, ChevronRight, Info, AlertTriangle } from "lucide-react";
 import { getCaretakerAppointments, type Appointment } from "@/fetchers/appointments";
+
 const locales = {
   hr: hr,
 };
@@ -28,6 +29,42 @@ interface CalendarEvent {
   start: Date;
   end: Date;
   resource: Appointment;
+}
+
+interface CalendarToolbarProps {
+  view: View;
+  date: Date;
+  onNavigate: (action: any) => void;
+  onView: (view: View) => void;
+}
+
+function getStartOfWeekDate(d: Date): Date {
+  const copy = new Date(d);
+  const day = (copy.getDay() + 6) % 7;
+  copy.setDate(copy.getDate() - day);
+  copy.setHours(0, 0, 0, 0);
+  return copy;
+}
+
+function getEndOfWeekDate(d: Date): Date {
+  const end = new Date(getStartOfWeekDate(d));
+  end.setDate(end.getDate() + 6);
+  end.setHours(23, 59, 59, 999);
+  return end;
+}
+
+function formatToolbarMonthLabel(d: Date): string {
+  return new Intl.DateTimeFormat("hr", { month: "long", year: "numeric" }).format(d);
+}
+
+function formatToolbarDayLabel(d: Date): string {
+  return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
+}
+
+function formatToolbarWeekLabel(d: Date): string {
+  const start = getStartOfWeekDate(d);
+  const end = getEndOfWeekDate(d);
+  return `${start.getDate()}-${end.getDate()}/${end.getMonth() + 1}/${end.getFullYear()}`;
 }
 
 export default function AvailabilityPage() {
@@ -63,22 +100,65 @@ export default function AvailabilityPage() {
     }));
   }, [appointments]);
 
+  const agendaEvents = useMemo(() => {
+    const start = new Date(date);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 30);
+    end.setHours(23, 59, 59, 999);
+
+    return events
+      .filter((event) => event.start >= start && event.start <= end)
+      .sort((a, b) => a.start.getTime() - b.start.getTime());
+  }, [date, events]);
+
+  const getEventTitle = useCallback((event: CalendarEvent) => {
+    const student = event.resource.student;
+    if (!student) {
+      return "Student";
+    }
+
+    return `${student.first_name} ${student.last_name}`;
+  }, []);
+
+  const getEventDisplayTitle = useCallback((event: CalendarEvent) => {
+    const student = event.resource.student;
+    if (!student) {
+      return "Student";
+    }
+
+    const firstName = (student.first_name || "").trim();
+    const lastName = (student.last_name || "").trim();
+    const shortName = lastName ? `${firstName} ${lastName.charAt(0)}.` : firstName;
+    const fullName = `${firstName} ${lastName}`.trim();
+
+    if (view === "day" || view === "agenda") {
+      return fullName || "Student";
+    }
+
+    return shortName || fullName || "Student";
+  }, [view]);
+
   const eventStyleGetter = useCallback((event: CalendarEvent) => {
     const status = event.resource.status;
     let backgroundColor = "#2f7f73";
 
-    if (status === "completed") backgroundColor = "#4b9f92";
-    if (status === "cancelled") backgroundColor = "#ef4444"; // red
-    if (status === "confirmed") backgroundColor = "#21423d";
+    if (status === "confirmed") backgroundColor = "#245f54";
+    if (status === "confirmed_pending_sync") backgroundColor = "#b78945";
+    if (status === "confirmed_sync_failed") backgroundColor = "#a45344";
+    if (status === "completed") backgroundColor = "#5c9f94";
+    if (status === "cancelled") backgroundColor = "#c7644a";
 
     return {
       style: {
         backgroundColor,
-        borderRadius: "6px",
-        opacity: 0.9,
+        borderRadius: "10px",
+        opacity: 0.96,
         color: "white",
         border: "none",
         display: "block",
+        boxShadow: "0 10px 18px rgba(15, 23, 42, 0.10)",
+        padding: "0",
       },
     };
   }, []);
@@ -94,6 +174,89 @@ export default function AvailabilityPage() {
   const handleViewChange = useCallback((newView: View) => {
     setView(newView);
   }, []);
+
+  const handleAgendaNavigate = useCallback((action: any) => {
+    if (action === "TODAY") {
+      setDate(new Date());
+      return;
+    }
+
+    if (action !== "PREV" && action !== "NEXT") {
+      return;
+    }
+
+    setDate((current) => {
+      const next = new Date(current);
+      next.setDate(next.getDate() + (action === "NEXT" ? 30 : -30));
+      return next;
+    });
+  }, []);
+
+  const CalendarToolbar = ({ view, date, onNavigate, onView }: CalendarToolbarProps) => {
+    const label: string =
+      view === "agenda"
+        ? "Agenda termina"
+        : view === "month"
+          ? formatToolbarMonthLabel(date)
+          : view === "week"
+            ? formatToolbarWeekLabel(date)
+            : formatToolbarDayLabel(date);
+
+    const ViewBtn = ({
+      v,
+      text,
+    }: {
+      v: View;
+      text: string;
+    }) => (
+      <button
+        type="button"
+        onClick={() => onView(v)}
+        className={[
+          "px-3 py-1 rounded border transition",
+          view === v ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted",
+        ].join(" ")}
+      >
+        {text}
+      </button>
+    );
+
+    return (
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="flex gap-2">
+          <ViewBtn v="month" text="Mjesec" />
+          <ViewBtn v="week" text="Tjedan" />
+          <ViewBtn v="day" text="Dan" />
+          <ViewBtn v="agenda" text="Agenda" />
+        </div>
+
+        <div className="flex-1 text-center font-semibold">
+          {label}
+        </div>
+
+        <div className="flex gap-2">
+          <button type="button" className="px-3 py-1 rounded border hover:bg-muted transition" onClick={() => onNavigate("PREV")}>
+            <ChevronLeft />
+          </button>
+          <button type="button" className="px-3 py-1 rounded border hover:bg-muted transition" onClick={() => onNavigate("TODAY")}>
+            Danas
+          </button>
+          <button type="button" className="px-3 py-1 rounded border hover:bg-muted transition" onClick={() => onNavigate("NEXT")}>
+            <ChevronRight />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const CalendarEventContent = ({ event }: { event: CalendarEvent }) => (
+    <div
+      className={`calendar-event-chip calendar-event-chip--${view}`}
+      title={getEventTitle(event)}
+    >
+      <span className={`calendar-event-title calendar-event-title--${view}`}>{getEventDisplayTitle(event)}</span>
+    </div>
+  );
 
   if (loading) {
     return (
@@ -125,122 +288,89 @@ export default function AvailabilityPage() {
             </CardHeader>
             <CardContent>
               <div className="rounded-2xl border border-border bg-[linear-gradient(180deg,rgba(250,253,252,1)_0%,rgba(255,255,255,1)_100%)] p-4" style={{ height: "600px" }}>
-                <Calendar
-                  localizer={localizer}
-                  events={events}
-                  startAccessor="start"
-                  endAccessor="end"
-                  style={{ height: "100%" }}
-                  view={view}
-                  onView={handleViewChange}
-                  date={date}
-                  onNavigate={handleNavigate}
-                  onSelectEvent={handleSelectEvent}
-                  eventPropGetter={eventStyleGetter}
-                  messages={{
-                    next: "Sljedeći",
-                    previous: "Prethodni",
-                    today: "Danas",
-                    month: "Mjesec",
-                    week: "Tjedan",
-                    day: "Dan",
-                    agenda: "Agenda",
-                    date: "Datum",
-                    time: "Vrijeme",
-                    event: "Događaj",
-                    noEventsInRange: "Nema događaja u ovom periodu.",
-                    showMore: (total) => `+ još ${total}`,
-                  }}
-                    components={{
-                      toolbar: (props: ToolbarProps<CalendarEvent, object>) => {
-                        const { view, date, onNavigate, onView } = props;
-
-                        const formatMonthLabel = (d: Date): string =>
-                          new Intl.DateTimeFormat("hr", { month: "long", year: "numeric" }).format(d);
-
-                        const formatDayLabel = (d: Date): string =>
-                          `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
-
-                        const getStartOfWeek = (d: Date): Date => {
-                          const copy = new Date(d);
-                          const day = (copy.getDay() + 6) % 7;
-                          copy.setDate(copy.getDate() - day);
-                          copy.setHours(0, 0, 0, 0);
-                          return copy;
-                        };
-
-                        const getEndOfWeek = (d: Date): Date => {
-                          const start = getStartOfWeek(d);
-                          const end = new Date(start);
-                          end.setDate(start.getDate() + 6);
-                          return end;
-                        };
-
-                        const formatWeekLabel = (d: Date): string => {
-                          const start = getStartOfWeek(d);
-                          const end = getEndOfWeek(d);
-                          return `${start.getDate()}-${end.getDate()}/${end.getMonth() + 1}/${end.getFullYear()}`;
-                        };
-
-                        const label: string =
-                          view === "agenda"
-                            ? ""
-                            : view === "month"
-                              ? formatMonthLabel(date)
-                              : view === "week"
-                                ? formatWeekLabel(date)
-                                : formatDayLabel(date);
-
-                        const ViewBtn = ({
-                          v,
-                          text,
-                        }: {
-                          v: View;
-                          text: string;
-                        }) => (
-                          <button
-                            type="button"
-                            onClick={() => onView(v)}
-                            className={[
-                              "px-3 py-1 rounded border transition",
-                              view === v ? "bg-primary text-primary-foreground border-primary" : "hover:bg-secondary",
-                            ].join(" ")}
-                          >
-                            {text}
-                          </button>
-                        );
-
-                        return (
-                          <div className="flex items-center justify-between mb-3 gap-3">
-                            <div className="flex gap-2">
-                              <ViewBtn v="month" text="Mjesec" />
-                              <ViewBtn v="week" text="Tjedan" />
-                              <ViewBtn v="day" text="Dan" />
-                              <ViewBtn v="agenda" text="Agenda" />
-                            </div>
-
-                            <div className="flex-1 text-center font-semibold">
-                              {label}
-                            </div>
-
-                            <div className="flex gap-2">
-                              <button type="button" className="rounded border border-border px-3 py-1 transition hover:bg-secondary" onClick={() => onNavigate("PREV")}>
-                                <ChevronLeft />
-                              </button>
-                              <button type="button" className="rounded border border-border px-3 py-1 transition hover:bg-secondary" onClick={() => onNavigate("TODAY")}>
-                                Danas
-                              </button>
-                              <button type="button" className="rounded border border-border px-3 py-1 transition hover:bg-secondary" onClick={() => onNavigate("NEXT")}>
-                                <ChevronRight />
-                              </button>
-                            </div>
-
+                {view === "agenda" ? (
+                  <div className="flex h-full flex-col">
+                    <CalendarToolbar
+                      view={view}
+                      date={date}
+                      onNavigate={handleAgendaNavigate}
+                      onView={handleViewChange}
+                    />
+                    <div className="flex-1 overflow-auto rounded-2xl border border-border">
+                      {agendaEvents.length === 0 ? (
+                        <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                          Nema termina u ovom periodu.
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-[1.05fr_0.8fr_1.4fr] border-b border-border/80 bg-muted/30 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          <div>Datum</div>
+                          <div>Vrijeme</div>
+                          <div>Student</div>
+                        </div>
+                      )}
+                      {agendaEvents.map((event) => (
+                        <button
+                          key={event.id}
+                          type="button"
+                          onClick={() => handleSelectEvent(event)}
+                          className="grid w-full grid-cols-[1.05fr_0.8fr_1.4fr] items-center gap-3 border-b border-border/70 px-4 py-4 text-left transition hover:bg-primary/5"
+                        >
+                          <div className="text-sm font-medium text-foreground">
+                            {format(event.start, "dd.MM.yyyy", { locale: hr })}
                           </div>
-                        );
-                      },
+                          <div className="text-sm text-muted-foreground">
+                            {format(event.start, "HH:mm")} - {format(event.end, "HH:mm")}
+                          </div>
+                          <div className="min-w-0 text-sm font-semibold text-foreground">
+                            <span className="block truncate">{getEventTitle(event)}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <Calendar
+                    localizer={localizer}
+                    events={events}
+                    titleAccessor={(event) => getEventDisplayTitle(event as CalendarEvent)}
+                    startAccessor="start"
+                    endAccessor="end"
+                    style={{ height: "100%" }}
+                    view={view}
+                    onView={handleViewChange}
+                    date={date}
+                    onNavigate={handleNavigate}
+                    onSelectEvent={handleSelectEvent}
+                    popup
+                    eventPropGetter={eventStyleGetter}
+                    messages={{
+                      next: "Sljedeći",
+                      previous: "Prethodni",
+                      today: "Danas",
+                      month: "Mjesec",
+                      week: "Tjedan",
+                      day: "Dan",
+                      agenda: "Agenda",
+                      date: "Datum",
+                      time: "Vrijeme",
+                      event: "Događaj",
+                      noEventsInRange: "Nema događaja u ovom periodu.",
+                      showMore: (total) => `+ još ${total}`,
                     }}
-                  culture="hr"
-                />
+                    components={{
+                      event: CalendarEventContent,
+                      toolbar: (props: ToolbarProps<CalendarEvent, object>) => (
+                        <CalendarToolbar
+                          view={props.view}
+                          date={props.date}
+                          onNavigate={props.onNavigate}
+                          onView={props.onView}
+                        />
+                      ),
+                    }}
+                    culture="hr"
+                  />
+                )}
               </div>
             </CardContent>
           </Card>
@@ -300,18 +430,55 @@ export default function AvailabilityPage() {
                           ? "default"
                           : selectedEvent.resource.status === "cancelled"
                           ? "destructive"
+                          : selectedEvent.resource.status === "confirmed_sync_failed"
+                          ? "outline"
                           : "secondary"
                       }
                     >
                       {selectedEvent.resource.status === "confirmed" && "Potvrđeno"}
                       {selectedEvent.resource.status === "completed" && "Završeno"}
                       {selectedEvent.resource.status === "cancelled" && "Otkazano"}
-                      {selectedEvent.resource.status === "scheduled" && "Zakazano"}
+                      {selectedEvent.resource.status === "confirmed_pending_sync" && "Potvrda u tijeku"}
+                      {selectedEvent.resource.status === "confirmed_sync_failed" && "Potvrđeno bez Meet linka"}
                     </Badge>
                   </div>
 
+                  {selectedEvent.resource.status === "confirmed_pending_sync" && !selectedEvent.resource.conference_link && (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-4">
+                      <div className="flex items-start gap-2">
+                        <Info className="mt-0.5 h-4 w-4 text-amber-700" />
+                        <div>
+                          <p className="text-sm font-medium text-amber-900">Google Meet link se priprema</p>
+                          <p className="mt-1 text-sm text-amber-800">
+                            Termin je potvrđen, a Meet link će se pojaviti ovdje čim sinkronizacija završi.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedEvent.resource.status === "confirmed_sync_failed" && !selectedEvent.resource.conference_link && (
+                    <div className="rounded-xl border border-red-200 bg-red-50/80 p-4">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="mt-0.5 h-4 w-4 text-red-700" />
+                        <div>
+                          <p className="text-sm font-medium text-red-900">Meet link trenutno nije dostupan</p>
+                          <p className="mt-1 text-sm text-red-800">
+                            Termin postoji u kalendaru, ali Google Meet link nije uspješno spremljen.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {selectedEvent.resource.conference_link && (
-                    <div>
+                    <div className="space-y-3 rounded-xl border border-primary/15 bg-primary/5 p-4">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-primary">Google Meet</p>
+                        <p className="mt-1 break-all text-sm text-foreground">
+                          {selectedEvent.resource.conference_link}
+                        </p>
+                      </div>
                       <Button
                         className="w-full gap-2"
                         onClick={() =>

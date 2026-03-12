@@ -78,6 +78,12 @@ def build_service():
         )
         return build("calendar", "v3", credentials=creds)
 
+    shared_email = (getattr(settings, "GOOGLE_SHARED_CALENDAR_ACCOUNT_EMAIL", "") or "").strip().lower()
+    if shared_email:
+        raise ImproperlyConfigured(
+            "Shared Google Calendar OAuth credential is missing. Reconnect the shared Google account via /api/calendar/system/connect/."
+        )
+
     info = _load_credentials()
     creds = None
     if info:

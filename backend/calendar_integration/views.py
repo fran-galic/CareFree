@@ -69,6 +69,41 @@ class GoogleCalendarStatusView(APIView):
         return Response({'connected': False})
 
 
+class SharedGoogleCalendarStatusView(APIView):
+    """Return status of the shared Google Calendar OAuth credential."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        expected_email = (getattr(settings, "GOOGLE_SHARED_CALENDAR_ACCOUNT_EMAIL", "") or "").strip().lower()
+        calendar_id = (getattr(settings, "GOOGLE_CALENDAR_ID", "") or "").strip()
+
+        cred = SystemGoogleCredential.objects.filter(key="shared_calendar").first()
+        if not cred:
+            return Response(
+                {
+                    "connected": False,
+                    "mode": "shared_oauth",
+                    "expected_email": expected_email or None,
+                    "calendar_id": calendar_id or None,
+                    "detail": "Shared Google OAuth credential is not connected.",
+                }
+            )
+
+        stored_email = (cred.google_account_email or "").strip().lower()
+        return Response(
+            {
+                "connected": True,
+                "mode": "shared_oauth",
+                "expected_email": expected_email or None,
+                "connected_email": stored_email or None,
+                "calendar_id": calendar_id or None,
+                "email_matches_expected": (not expected_email) or stored_email == expected_email,
+                "has_refresh_token": bool(cred.refresh_token),
+                "updated_at": cred.updated_at.isoformat() if cred.updated_at else None,
+            }
+        )
+
+
 class GoogleDisconnectView(APIView):
     """Disconnect the authenticated caretaker's Google account and (best-effort) revoke tokens."""
     permission_classes = [IsAuthenticated]

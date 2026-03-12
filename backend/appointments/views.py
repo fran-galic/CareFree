@@ -129,18 +129,20 @@ class AppointmentRequestCreateView(APIView):
 
 
 class CaretakerAppointmentRequestListView(generics.ListAPIView):
-    """List pending (or filtered) appointment requests for the authenticated caretaker."""
+    """List appointment requests for the authenticated caretaker."""
     permission_classes = [IsAuthenticated, IsCaretaker]
     serializer_class = AppointmentRequestSerializer
 
     def get_queryset(self):
         caretaker = getattr(self.request.user, 'caretaker', None)
-        qs = AppointmentRequest.objects.filter(caretaker=caretaker)
+        qs = AppointmentRequest.objects.filter(caretaker=caretaker).select_related(
+            'caretaker__user',
+            'student__user',
+            'appointment',
+        )
         status_q = self.request.query_params.get('status')
         if status_q:
             qs = qs.filter(status=status_q)
-        else:
-            qs = qs.filter(status=AppointmentRequest.STATUS_PENDING)
         return qs.order_by('-created_at')
 
 
@@ -230,6 +232,24 @@ class StudentAppointmentListView(generics.ListAPIView):
         else:
             qs = qs.filter(status__in=[Appointment.STATUS_CONFIRMED, Appointment.STATUS_CONFIRMED_PENDING])
         return qs.order_by('start')
+
+
+class StudentAppointmentRequestListView(generics.ListAPIView):
+    """List appointment requests for the authenticated student."""
+    permission_classes = [IsAuthenticated, IsStudent]
+    serializer_class = AppointmentRequestSerializer
+
+    def get_queryset(self):
+        student = getattr(self.request.user, 'student', None)
+        qs = AppointmentRequest.objects.filter(student=student).select_related(
+            'caretaker__user',
+            'student__user',
+            'appointment',
+        )
+        status_q = self.request.query_params.get('status')
+        if status_q:
+            qs = qs.filter(status=status_q)
+        return qs.order_by('-created_at')
 
 
 class CaretakerSlotsView(APIView):

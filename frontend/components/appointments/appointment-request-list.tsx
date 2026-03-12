@@ -5,12 +5,16 @@ import useSWR from "swr";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Inbox, AlertCircle } from "lucide-react";
+import { Inbox, AlertCircle, CheckCircle2, XCircle } from "lucide-react";
 import { getCaretakerRequests } from "@/fetchers/appointments";
 import { AppointmentRequestCard } from "./appointment-request-card";
 
 export function AppointmentRequestList() {
   const [activeTab, setActiveTab] = useState<"pending" | "all">("pending");
+  const [flashMessage, setFlashMessage] = useState<{
+    type: "success" | "warning";
+    text: string;
+  } | null>(null);
 
   // Dohvaćanje zahtjeva
   const { data: pendingRequests, error: pendingError, mutate: mutatePending } = useSWR(
@@ -23,7 +27,32 @@ export function AppointmentRequestList() {
     () => getCaretakerRequests()
   );
 
-  const handleStatusChange = () => {
+  const handleStatusChange = (result?: {
+    action: "approved" | "rejected";
+    request: { requested_start: string };
+    appointment?: { conference_link?: string | null; status?: string };
+  }) => {
+    if (result) {
+      const start = new Date(result.request.requested_start).toLocaleString("hr-HR", {
+        day: "numeric",
+        month: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      setFlashMessage(
+        result.action === "approved"
+          ? {
+              type: "success",
+              text: result.appointment?.conference_link
+                ? `Zahtjev je prihvaćen za termin ${start}. Google Meet link je generiran i dostupan u kalendaru i detaljima zahtjeva.`
+                : `Zahtjev je prihvaćen za termin ${start}. Detalji termina i Google Meet link prikazat će se u vašem kalendaru čim budu spremni.`,
+            }
+          : {
+              type: "warning",
+              text: `Zahtjev za termin ${start} je odbijen. Student sada može odabrati drugi termin.`,
+            }
+      );
+    }
     mutatePending();
     mutateAll();
   };
@@ -47,6 +76,21 @@ export function AppointmentRequestList() {
       </TabsList>
 
       <TabsContent value={activeTab} className="space-y-4 mt-6">
+        {flashMessage && (
+          <Card className={flashMessage.type === "success" ? "border-green-200 bg-green-50/80" : "border-amber-200 bg-amber-50/80"}>
+            <CardContent className="flex items-start gap-3 p-4">
+              {flashMessage.type === "success" ? (
+                <CheckCircle2 className="mt-0.5 h-5 w-5 text-green-700" />
+              ) : (
+                <XCircle className="mt-0.5 h-5 w-5 text-amber-700" />
+              )}
+              <p className={flashMessage.type === "success" ? "text-sm text-green-900" : "text-sm text-amber-900"}>
+                {flashMessage.text}
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         {error && (
           <Card className="border-red-200 bg-red-50/70">
             <CardContent className="flex items-center gap-3 p-6">

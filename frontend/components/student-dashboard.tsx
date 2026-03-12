@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { fetcher } from "@/fetchers/fetcher";
 import { useState } from "react";
+import { getStudentRequests, type AppointmentRequest } from "@/fetchers/appointments";
 import { 
   Card, 
   CardContent, 
@@ -22,10 +23,14 @@ import {
   Search, 
   ArrowRight, 
   ChevronUp,
-  Video
+  Video,
+  Clock3,
+  CheckCircle2,
+  AlertCircle
 } from "lucide-react";
 
 const BACKEND_API = process.env.NEXT_PUBLIC_BACKEND_URL;
+const SEEN_APPOINTMENTS_KEY = "carefree-seen-appointment-ids";
 
 interface Caretaker {
   user_id: number;
@@ -39,10 +44,42 @@ interface Appointment {
   end: string;
   caretaker: Caretaker;
   status: string;
+  conference_link?: string;
 }
 
 interface StudentDashboardProps {
   firstName: string;
+}
+
+function readSeenAppointmentIds(): number[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const raw = window.localStorage.getItem(SEEN_APPOINTMENTS_KEY);
+    if (!raw) {
+      return [];
+    }
+    const parsed = JSON.parse(raw) as number[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function markAppointmentAsSeen(appointmentId: number) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    const current = new Set(readSeenAppointmentIds());
+    current.add(appointmentId);
+    window.localStorage.setItem(SEEN_APPOINTMENTS_KEY, JSON.stringify([...current]));
+  } catch {
+    // Best effort only.
+  }
 }
 
 export function StudentDashboard({ firstName }: StudentDashboardProps) {
@@ -60,8 +97,18 @@ export function StudentDashboard({ firstName }: StudentDashboardProps) {
     }
   );
 
+  const { data: requests, isLoading: requestsLoading } = useSWR<AppointmentRequest[]>(
+    "student-requests",
+    () => getStudentRequests(),
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+    }
+  );
+
   // Show first item (appointments are already ordered by start date)
   const itemToShow = appointments?.[0];
+  const latestRequest = requests?.[0];
   const isLoading = appointmentsLoading;
 
   const formatDate = (dateString: string) => {
@@ -69,6 +116,54 @@ export function StudentDashboard({ firstName }: StudentDashboardProps) {
       day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"
     });
   };
+
+  const getRequestStatusCopy = (request: AppointmentRequest) => {
+    const caretakerName = `${request.caretaker?.first_name ?? ""} ${request.caretaker?.last_name ?? ""}`.trim();
+    const slot = formatDate(request.requested_start);
+
+    if (request.status === "pending") {
+      return {
+        title: "Čeka se potvrda psihologa",
+        body: `${caretakerName} još nije odgovorio/la na vaš zahtjev za termin ${slot}.`,
+        tone: "warning" as const,
+      };
+    }
+
+    if (request.status === "accepted") {
+      const appointmentId = request.appointment_id;
+      const isSeen = appointmentId ? readSeenAppointmentIds().includes(appointmentId) : false;
+
+      if (isSeen) {
+        return null;
+      }
+
+      if (request.appointment_status === "confirmed_pending_sync") {
+        return {
+          title: "Termin je prihvaćen",
+          body: `Psiholog je prihvatio zahtjev za ${slot}. Google Meet link se upravo priprema i uskoro će biti vidljiv u kalendaru.`,
+          tone: "success" as const,
+        };
+      }
+
+      return {
+        title: "Termin je potvrđen",
+        body: `Psiholog je prihvatio zahtjev za ${slot}. Detalje i Meet link možete otvoriti u kalendaru.`,
+        tone: "success" as const,
+      };
+    }
+
+    if (request.status === "rejected") {
+      return {
+        title: "Zahtjev nije prihvaćen",
+        body: `Za termin ${slot} psiholog trenutno nije dostupan. Možete odabrati drugi termin.`,
+        tone: "error" as const,
+      };
+    }
+
+    return null;
+  };
+
+  const latestRequestCopy = latestRequest ? getRequestStatusCopy(latestRequest) : null;
 
   return (
     <div className="container mx-auto p-6 max-w-6xl space-y-8 animate-in fade-in duration-500">
@@ -82,6 +177,48 @@ export function StudentDashboard({ firstName }: StudentDashboardProps) {
           Dobrodošao/la u svoj sigurni kutak. Kako ti možemo pomoći danas?
         </p>
       </div>
+
+      {latestRequestCopy && !requestsLoading && (
+        <Card
+          className={
+            latestRequestCopy.tone === "success"
+              ? "border-primary/20 bg-primary/10"
+              : latestRequestCopy.tone === "error"
+                ? "border-red-200 bg-red-50/80"
+                : "border-[#eadfc3] bg-[linear-gradient(180deg,rgba(251,246,236,0.96)_0%,rgba(255,255,255,0.98)_100%)]"
+          }
+        >
+          <CardContent className="flex items-start gap-3 p-4">
+            {latestRequestCopy.tone === "success" ? (
+              <CheckCircle2 className="mt-0.5 h-5 w-5 text-primary" />
+            ) : latestRequestCopy.tone === "error" ? (
+              <AlertCircle className="mt-0.5 h-5 w-5 text-red-700" />
+            ) : (
+              <Clock3 className="mt-0.5 h-5 w-5 text-[#b7791f]" />
+            )}
+            <div className="space-y-1">
+              <p className={`font-medium ${
+                latestRequestCopy.tone === "success"
+                  ? "text-primary"
+                  : latestRequestCopy.tone === "error"
+                    ? "text-red-900"
+                    : "text-[#6b4f1d]"
+              }`}>
+                {latestRequestCopy.title}
+              </p>
+              <p className={`text-sm ${
+                latestRequestCopy.tone === "success"
+                  ? "text-foreground/80"
+                  : latestRequestCopy.tone === "error"
+                    ? "text-red-800"
+                    : "text-[#8a7448]"
+              }`}>
+                {latestRequestCopy.body}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:auto-rows-[23rem]">
         
@@ -166,14 +303,28 @@ export function StudentDashboard({ firstName }: StudentDashboardProps) {
                       <Skeleton className="h-4 w-3/4" />
                     </div>
                   ) : !itemToShow ? (
-                    <div className="text-center py-4">
-                      <p className="text-muted-foreground text-sm mb-3">Nemaš zakazanih termina.</p>
-                      <Link href="/carefree/search">
-                        <Button variant="outline" size="sm" className="w-full gap-2 border-dashed">
-                          <Search className="w-4 h-4" /> Pronađi CareTakera
-                        </Button>
-                      </Link>
-                    </div>
+                    latestRequest && latestRequest.status === "pending" ? (
+                      <div className="border-l-2 border-amber-300 space-y-2 py-2">
+                        <p className="px-3 text-sm font-medium text-foreground">
+                          {latestRequest.caretaker?.first_name} {latestRequest.caretaker?.last_name}
+                        </p>
+                        <p className="px-3 text-xs text-muted-foreground">
+                          Zahtjev poslan za {formatDate(latestRequest.requested_start)}
+                        </p>
+                        <p className="px-3 text-xs text-amber-700">
+                          Čeka se potvrda psihologa.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="text-center py-4">
+                        <p className="text-muted-foreground text-sm mb-3">Nemaš zakazanih termina.</p>
+                        <Link href="/carefree/search">
+                          <Button variant="outline" size="sm" className="w-full gap-2 border-dashed">
+                            <Search className="w-4 h-4" /> Pronađi CareTakera
+                          </Button>
+                        </Link>
+                      </div>
+                    )
                   ) : (
                     <div className="border-l-2 border-primary/30 space-y-2 py-2">
                       <p className="text-sm font-medium text-foreground px-3">
@@ -216,6 +367,7 @@ export function StudentDashboard({ firstName }: StudentDashboardProps) {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
+                                markAppointmentAsSeen(apt.id);
                                 router.push(`/carefree/calendar?appointment=${apt.id}`);
                               }}
                               className="p-1.5 bg-primary hover:bg-primary/90 rounded-md transition-colors"
@@ -230,8 +382,71 @@ export function StudentDashboard({ firstName }: StudentDashboardProps) {
                   )}
                 </div>
               ) : (
-                <div className="text-center py-4">
-                  <p className="text-sm text-muted-foreground">Nema poslanih zahtjeva.</p>
+                <div className="flex-1 min-h-0 overflow-y-auto pr-2 custom-scrollbar">
+                  {requestsLoading ? (
+                    <div className="space-y-3">
+                      {[1, 2].map((i) => (
+                        <div key={i} className="space-y-2">
+                          <Skeleton className="h-4 w-full" />
+                          <Skeleton className="h-3 w-3/4" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : !requests || requests.length === 0 ? (
+                    <div className="text-center py-4">
+                      <p className="text-sm text-muted-foreground">Nema poslanih zahtjeva.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 mr-4">
+                      {requests.map((request) => (
+                        <div key={request.id} className="rounded-xl border border-border/70 bg-background/70 p-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-medium text-foreground">
+                                {request.caretaker?.first_name} {request.caretaker?.last_name}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {formatDate(request.requested_start)}
+                              </p>
+                            </div>
+                            <span
+                              className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${
+                                request.status === "accepted"
+                                  ? "bg-green-100 text-green-800"
+                                  : request.status === "rejected"
+                                    ? "bg-red-100 text-red-800"
+                                    : "bg-amber-100 text-amber-800"
+                              }`}
+                            >
+                              {request.status === "accepted"
+                                ? "Prihvaćen"
+                                : request.status === "rejected"
+                                  ? "Odbijen"
+                                  : "Na čekanju"}
+                            </span>
+                          </div>
+                          {request.status === "accepted" && request.appointment_id ? (
+                            <div className="mt-3">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full gap-2"
+                                onClick={() => {
+                                  if (request.appointment_id) {
+                                    markAppointmentAsSeen(request.appointment_id);
+                                  }
+                                  router.push(`/carefree/calendar?appointment=${request.appointment_id}`);
+                                }}
+                              >
+                                <CalendarDays className="w-4 h-4" />
+                                Otvori u kalendaru
+                              </Button>
+                            </div>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>

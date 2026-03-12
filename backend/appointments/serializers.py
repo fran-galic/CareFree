@@ -22,15 +22,36 @@ class AppointmentRequestSerializer(serializers.ModelSerializer):
     caretaker = CaretakerInfoSerializer(read_only=True)
     student_id = serializers.IntegerField(write_only=True, required=False)
     caretaker_id = serializers.IntegerField(write_only=True, required=False)
+    appointment_id = serializers.SerializerMethodField()
+    appointment_status = serializers.SerializerMethodField()
+    appointment_conference_link = serializers.SerializerMethodField()
     
     class Meta:
         model = AppointmentRequest
         fields = [
             'id', 'student', 'student_id', 'caretaker', 'caretaker_id', 
             'requested_start', 'requested_end', 'message', 'ai_summary', 
-            'status', 'created_at'
+            'status', 'created_at', 'appointment_id', 'appointment_status', 'appointment_conference_link'
         ]
         read_only_fields = ['ai_summary', 'status', 'created_at']
+
+    def _get_appointment(self, obj):
+        try:
+            return obj.appointment
+        except Appointment.DoesNotExist:
+            return None
+
+    def get_appointment_id(self, obj):
+        appointment = self._get_appointment(obj)
+        return appointment.id if appointment else None
+
+    def get_appointment_status(self, obj):
+        appointment = self._get_appointment(obj)
+        return appointment.status if appointment else None
+
+    def get_appointment_conference_link(self, obj):
+        appointment = self._get_appointment(obj)
+        return appointment.conference_link if appointment else None
 
 
 class AppointmentSerializer(serializers.ModelSerializer):
