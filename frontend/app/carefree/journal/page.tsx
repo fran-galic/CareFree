@@ -100,7 +100,7 @@ export default function JournalPage() {
   };
 
   return (
-    <div className="container mx-auto py-8 max-w-5xl px-4 min-h-screen">
+    <div className="container mx-auto max-w-5xl px-4 py-8 pb-10">
       
       {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import Link from "next/link";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { Calendar, dateFnsLocalizer, View, ToolbarProps } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay } from "date-fns";
@@ -39,6 +40,9 @@ export default function CalendarPage() {
   const [view, setView] = useState<View>("month");
   const [date, setDate] = useState(new Date());
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [hoveredEvent, setHoveredEvent] = useState<CalendarEvent | null>(null);
+  const [hoverPosition, setHoverPosition] = useState<{ top: number; left: number } | null>(null);
+  const hoverTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -92,22 +96,41 @@ export default function CalendarPage() {
     }));
   }, [appointments]);
 
+  const getEventTitle = useCallback((event: CalendarEvent) => {
+    const caretaker = event.resource.caretaker;
+    if (!caretaker) {
+      return "Termin";
+    }
+
+    return `${caretaker.first_name} ${caretaker.last_name}`;
+  }, []);
+
+  const getStatusLabel = useCallback((status: string) => {
+    if (status === "confirmed") return "Potvrđeno";
+    if (status === "completed") return "Završeno";
+    if (status === "cancelled") return "Otkazano";
+    if (status === "confirmed_pending_sync") return "Potvrda u tijeku";
+    return "Zakazano";
+  }, []);
+
   const eventStyleGetter = useCallback((event: CalendarEvent) => {
     const status = event.resource.status;
-    let backgroundColor = "#3b82f6"; // default blue
+    let backgroundColor = "#58c7bb";
 
-    if (status === "completed") backgroundColor = "#10b981"; // green
-    if (status === "cancelled") backgroundColor = "#ef4444"; // red
-    if (status === "confirmed") backgroundColor = "#8b5cf6"; // purple
+    if (status === "completed") backgroundColor = "#4fa89d";
+    if (status === "cancelled") backgroundColor = "#e77f51";
+    if (status === "confirmed") backgroundColor = "#f0a35d";
 
     return {
       style: {
         backgroundColor,
-        borderRadius: "6px",
-        opacity: 0.9,
+        borderRadius: "12px",
+        opacity: 0.96,
         color: "white",
         border: "none",
         display: "block",
+        boxShadow: "0 10px 22px rgba(15, 23, 42, 0.12)",
+        padding: "0",
       },
     };
   }, []);
@@ -123,6 +146,51 @@ export default function CalendarPage() {
   const handleViewChange = useCallback((newView: View) => {
     setView(newView);
   }, []);
+
+  const clearHoverTimeout = () => {
+    if (hoverTimeoutRef.current) {
+      window.clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+  };
+
+  const handleEventMouseEnter = useCallback((event: CalendarEvent, target: HTMLElement) => {
+    clearHoverTimeout();
+
+    const rect = target.getBoundingClientRect();
+    const tooltipWidth = 320;
+    const top = Math.min(rect.bottom + 12, window.innerHeight - 220);
+    const left = Math.min(rect.left, window.innerWidth - tooltipWidth - 16);
+
+    setHoveredEvent(event);
+    setHoverPosition({
+      top: Math.max(16, top),
+      left: Math.max(16, left),
+    });
+  }, []);
+
+  const handleEventMouseLeave = useCallback(() => {
+    clearHoverTimeout();
+    hoverTimeoutRef.current = window.setTimeout(() => {
+      setHoveredEvent(null);
+      setHoverPosition(null);
+    }, 120);
+  }, []);
+
+  useEffect(() => {
+    return () => clearHoverTimeout();
+  }, []);
+
+  const CalendarEventContent = ({ event }: { event: CalendarEvent }) => (
+    <div
+      className="calendar-event-chip"
+      onMouseEnter={(e) => handleEventMouseEnter(event, e.currentTarget as HTMLDivElement)}
+      onMouseLeave={handleEventMouseLeave}
+    >
+      <span className="calendar-event-time">{format(event.start, "HH:mm")}</span>
+      <span className="calendar-event-title">{getEventTitle(event)}</span>
+    </div>
+  );
 
   if (loading) {
     return (
@@ -181,6 +249,7 @@ export default function CalendarPage() {
                     showMore: (total) => `+ još ${total}`,
                   }}
                     components={{
+                      event: CalendarEventContent,
                       toolbar: (props: ToolbarProps<CalendarEvent, object>) => {
                         const { view, date, onNavigate, onView } = props;
 
@@ -327,10 +396,7 @@ export default function CalendarPage() {
                           : "secondary"
                       }
                     >
-                      {selectedEvent.resource.status === "confirmed" && "Potvrđeno"}
-                      {selectedEvent.resource.status === "completed" && "Završeno"}
-                      {selectedEvent.resource.status === "cancelled" && "Otkazano"}
-                      {selectedEvent.resource.status === "scheduled" && "Zakazano"}
+                      {getStatusLabel(selectedEvent.resource.status)}
                     </Badge>
                   </div>
 
@@ -363,6 +429,69 @@ export default function CalendarPage() {
           </Card>
         </div>
       </div>
+
+      {hoveredEvent && hoverPosition ? (
+        <div
+          className="fixed z-50 w-[320px] rounded-2xl border border-border bg-card/98 p-4 shadow-2xl supports-[backdrop-filter]:backdrop-blur-md"
+          style={{ top: hoverPosition.top, left: hoverPosition.left }}
+          onMouseEnter={clearHoverTimeout}
+          onMouseLeave={handleEventMouseLeave}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+                Zakazani susret
+              </p>
+              <h3 className="mt-1 text-base font-semibold text-foreground">
+                {getEventTitle(hoveredEvent)}
+              </h3>
+            </div>
+            <Badge variant="secondary">{getStatusLabel(hoveredEvent.resource.status)}</Badge>
+          </div>
+
+          <div className="mt-4 space-y-3 text-sm">
+            <div className="flex items-start gap-2 text-muted-foreground">
+              <Clock className="mt-0.5 h-4 w-4 text-primary" />
+              <div>
+                <p className="text-foreground">
+                  {format(hoveredEvent.start, "PPP", { locale: hr })}
+                </p>
+                <p>
+                  {format(hoveredEvent.start, "HH:mm")} - {format(hoveredEvent.end, "HH:mm")}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-2 text-muted-foreground">
+              <User className="mt-0.5 h-4 w-4 text-primary" />
+              <div>
+                <p className="text-foreground">
+                  {hoveredEvent.resource.caretaker.first_name} {hoveredEvent.resource.caretaker.last_name}
+                </p>
+                <p>Pogledaj profil ili detalje termina.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button asChild size="sm" variant="outline">
+              <Link href={`/carefree/caretaker/${hoveredEvent.resource.caretaker.user_id}`}>
+                Profil psihologa
+              </Link>
+            </Button>
+            {hoveredEvent.resource.conference_link ? (
+              <Button
+                size="sm"
+                className="gap-2"
+                onClick={() => window.open(hoveredEvent.resource.conference_link, "_blank")}
+              >
+                <Video className="h-4 w-4" />
+                Meet link
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

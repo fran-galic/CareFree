@@ -170,7 +170,7 @@ export function StudentDashboard({ firstName }: StudentDashboardProps) {
                       <p className="text-muted-foreground text-sm mb-3">Nemaš zakazanih termina.</p>
                       <Link href="/carefree/search">
                         <Button variant="outline" size="sm" className="w-full gap-2 border-dashed">
-                          <Search className="w-4 h-4" /> Pronađi stručnjaka
+                          <Search className="w-4 h-4" /> Pronađi CareTakera
                         </Button>
                       </Link>
                     </div>

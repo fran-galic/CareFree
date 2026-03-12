@@ -1,6 +1,7 @@
 "use client";
 
 import Link from 'next/link';
+import { useMemo } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import useSWR from "swr";
 import SearchBar from "@/components/search-bar";
@@ -33,6 +34,19 @@ export default function SearchPageClient() {
   const totalCount = caretakersData?.count ?? 0;
   const pageSize = 20; // Backend vraća 20 po stranici
   const totalPages = Math.ceil(totalCount / pageSize);
+  const sortedCategories = useMemo(() => {
+    const categories = categoriesData?.categories ?? [];
+    return [...categories].sort((a, b) => {
+      const aIsOther = a.slug === "ostalo" || a.label.trim().toLowerCase() === "ostalo";
+      const bIsOther = b.slug === "ostalo" || b.label.trim().toLowerCase() === "ostalo";
+
+      if (aIsOther === bIsOther) {
+        return a.label.localeCompare(b.label, "hr");
+      }
+
+      return aIsOther ? 1 : -1;
+    });
+  }, [categoriesData]);
 
   const handleCategoryChange = (slug: string, isChecked: boolean) => {
     const current = new URLSearchParams(Array.from(searchParams.entries()));
@@ -70,10 +84,10 @@ export default function SearchPageClient() {
       {/* HEADER SEKCIJA */}
       <div className="mb-12 text-center space-y-6">
         <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight text-primary">
-            Pronađi svog stručnjaka
+            Pronađi svog CareTakera
         </h1>
         <p className="text-muted-foreground text-lg max-w-3xl mx-auto">
-            Pretražite našu bazu licenciranih psihologa i pronađite osobu s kojom se osjećate sigurno.
+            Pretražite našu bazu licenciranih psihologa i pronađite osobu uz koju se osjećate sigurno, viđeno i podržano.
         </p>
         <div className="max-w-2xl mx-auto pt-4">
              <SearchBar initial={q} />
@@ -83,7 +97,7 @@ export default function SearchPageClient() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
         {/* SIDEBAR FILTERI - STICKY POZICIJA */}
-        <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-2 h-fit">
+        <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-28 h-fit">
             <div className="bg-card border rounded-xl shadow-sm p-6">
                 <div className="flex items-center gap-2 mb-4 text-primary font-semibold">
                     <Filter className="w-4 h-4" /> 
@@ -92,36 +106,35 @@ export default function SearchPageClient() {
                 <Separator className="mb-4" />
                 
                 <div className="space-y-6 max-h-[80vh] overflow-y-auto pr-2 custom-scrollbar">
-                    {categoriesData?.categories.map((cat) => (
-                        <div key={cat.id}>
-                            <h4 className="font-bold text-xs mb-3 text-foreground/80 uppercase tracking-wide">
-                                {cat.label}
-                            </h4>
-                            <div className="space-y-2.5">
-                                <div className="flex items-center space-x-3 group">
-                                    <Checkbox 
-                                        id={cat.slug} 
-                                        checked={categoriesParam.includes(cat.slug)}
-                                        onCheckedChange={(checked) => handleCategoryChange(cat.slug, checked as boolean)}
-                                        className="data-[state=checked]:bg-primary data-[state=checked]:border-primary transition-colors"
-                                    />
-                                    <Label htmlFor={cat.slug} className="text-sm cursor-pointer group-hover:text-primary transition-colors font-medium">
-                                        Sve iz {cat.label}
-                                    </Label>
-                                </div>
-                                {cat.subcategories.map(sub => (
-                                    <div key={sub.id} className="flex items-center space-x-3 ml-3 group pl-2 border-l-2 border-muted hover:border-primary/50 transition-colors">
-                                        <Checkbox 
-                                            id={sub.slug}
-                                            checked={categoriesParam.includes(sub.slug)}
-                                            onCheckedChange={(checked) => handleCategoryChange(sub.slug, checked as boolean)}
-                                        />
-                                        <Label htmlFor={sub.slug} className="text-sm text-muted-foreground cursor-pointer group-hover:text-foreground transition-colors">
-                                            {sub.label}
-                                        </Label>
-                                    </div>
-                                ))}
+                    {sortedCategories.map((cat) => (
+                        <div key={cat.id} className="rounded-xl border border-border/70 bg-background/70 p-4 shadow-sm">
+                            <div className="flex items-center space-x-3 group">
+                                <Checkbox 
+                                    id={cat.slug} 
+                                    checked={categoriesParam.includes(cat.slug)}
+                                    onCheckedChange={(checked) => handleCategoryChange(cat.slug, checked as boolean)}
+                                    className="data-[state=checked]:bg-primary data-[state=checked]:border-primary transition-colors"
+                                />
+                                <Label htmlFor={cat.slug} className="text-sm cursor-pointer font-semibold text-foreground group-hover:text-primary transition-colors">
+                                    {cat.label}
+                                </Label>
                             </div>
+                            {cat.subcategories.length > 0 ? (
+                                <div className="mt-3 space-y-2.5 border-l-2 border-muted pl-4">
+                                    {cat.subcategories.map(sub => (
+                                        <div key={sub.id} className="flex items-start space-x-3 group">
+                                            <Checkbox 
+                                                id={sub.slug}
+                                                checked={categoriesParam.includes(sub.slug)}
+                                                onCheckedChange={(checked) => handleCategoryChange(sub.slug, checked as boolean)}
+                                            />
+                                            <Label htmlFor={sub.slug} className="text-sm text-muted-foreground cursor-pointer leading-snug group-hover:text-foreground transition-colors">
+                                                {sub.label}
+                                            </Label>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : null}
                         </div>
                     ))}
                 </div>
@@ -133,7 +146,7 @@ export default function SearchPageClient() {
             {isLoading ? (
                 <div className="flex flex-col items-center justify-center py-20 space-y-4">
                     <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-muted-foreground">Tražimo najbolje stručnjake za vas...</p>
+                    <p className="text-muted-foreground">Tražimo CareTakera koji najbolje odgovara vašim potrebama...</p>
                 </div>
             ) : caretakerList.length === 0 ? (
                 <div className="text-center py-20 border-2 border-dashed rounded-xl bg-muted/30">
@@ -215,7 +228,7 @@ export default function SearchPageClient() {
                     {!isLoading && caretakerList.length > 0 && (
                         <div className="mt-8 pt-6 border-t">
                             <div className="text-sm text-center text-muted-foreground">
-                                Ukupno pronađeno: <span className="font-semibold text-foreground">{totalCount}</span> {totalCount === 1 ? 'stručnjak' : totalCount < 5 ? 'stručnjaka' : 'stručnjaka'}
+                                Ukupno pronađeno: <span className="font-semibold text-foreground">{totalCount}</span> {totalCount === 1 ? 'CareTaker' : 'CareTakera'}
                             </div>
                         </div>
                     )}
