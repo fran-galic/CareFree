@@ -19,9 +19,10 @@ type AuthSession = {
 
 const googleClientId = process.env.GOOGLE_CLIENT_ID
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET
+const nextAuthGoogleEnabled = process.env.NEXTAUTH_GOOGLE_ENABLED === "true"
 
 const providers =
-  googleClientId && googleClientSecret
+  nextAuthGoogleEnabled && googleClientId && googleClientSecret
     ? [
         GoogleProvider({
           clientId: googleClientId,

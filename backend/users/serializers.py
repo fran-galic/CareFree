@@ -60,10 +60,12 @@ class MeSerializer(BaseUserSerializer):
 
     caretaker = CaretakerShortSerializer(read_only=True)
     student = serializers.SerializerMethodField()
+    auth_provider = serializers.SerializerMethodField()
+    needs_onboarding = serializers.SerializerMethodField()
 
     class Meta(BaseUserSerializer.Meta):
         model = User
-        fields = BaseUserSerializer.Meta.fields + ["caretaker", "student"]
+        fields = BaseUserSerializer.Meta.fields + ["caretaker", "student", "auth_provider", "needs_onboarding"]
         read_only_fields = BaseUserSerializer.Meta.read_only_fields
 
     def get_student(self, obj):
@@ -73,6 +75,12 @@ class MeSerializer(BaseUserSerializer):
             return None
 
         return StudentSerializer(student).data
+
+    def get_auth_provider(self, obj):
+        return "google" if getattr(obj, "google_sub", None) else "password"
+
+    def get_needs_onboarding(self, obj):
+        return not bool(getattr(obj, "role", None))
 
 
 class UpdateUserSerializer(serializers.ModelSerializer):
@@ -113,5 +121,4 @@ class CategoryWithSubcategoriesSerializer(serializers.ModelSerializer):
     class Meta:
         model = HelpCategory
         fields = ("id", "label", "slug", "subcategories")
-
 
