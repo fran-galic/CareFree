@@ -123,10 +123,34 @@ export function PersistentAvatar({
 
   const resolvedSrc = useMemo(() => {
     if (imageFailed) {
+      if (src && src !== cachedEntry?.src) {
+        return src;
+      }
       return null;
     }
     return cachedEntry?.src || src || null;
   }, [cachedEntry?.src, imageFailed, src]);
+
+  const handleImageError = () => {
+    if (src && cachedEntry?.src && cachedEntry.src !== src) {
+      const nextEntry: CachedAvatarEntry = {
+        src,
+        assetKey: getAssetKey(src),
+      };
+      setCachedEntry(nextEntry);
+      avatarMemoryCache.set(cacheKey, nextEntry);
+      try {
+        if (typeof window !== "undefined") {
+          window.sessionStorage.setItem(cacheKey, JSON.stringify(nextEntry));
+        }
+      } catch {
+        // Best effort cache only.
+      }
+      return;
+    }
+
+    setImageFailed(true);
+  };
 
   return (
     <Avatar className={className}>
@@ -137,7 +161,7 @@ export function PersistentAvatar({
           src={resolvedSrc}
           alt={alt || ""}
           className={cn("absolute inset-0 h-full w-full object-cover", imageClassName)}
-          onError={() => setImageFailed(true)}
+          onError={handleImageError}
         />
       ) : null}
       {!resolvedSrc ? (

@@ -367,9 +367,9 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
                                 disabled={!slot.is_available}
                                 className={`h-9 w-full px-2 text-xs ${slot.is_available 
                                   ? selectedSlot?.start === slot.start
-                                      ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary' 
-                                      : 'hover:border-primary hover:text-primary' 
-                                  : 'opacity-40 cursor-not-allowed bg-muted/50'
+                                      ? 'border-[#256b61] bg-[#256b61] text-white ring-1 ring-[#256b61] shadow-sm'
+                                      : 'border-[#4a9a8d] bg-[#69b3a6] text-white shadow-sm hover:border-[#256b61] hover:bg-[#5ba698] hover:text-white'
+                                  : 'border border-border/80 bg-[#fbfcfb] text-muted-foreground opacity-100'
                                 }`}
                                 onClick={() => setSelectedSlot(slot)}
                               >

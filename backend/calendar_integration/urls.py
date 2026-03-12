@@ -3,7 +3,7 @@
 from django.urls import path
 
 from .views import CalendarEventList, CreateEventView, SyncNowView, GoogleConnectView, GoogleOAuthCallbackView
-from .views import GoogleDisconnectView, GoogleCalendarStatusView
+from .views import GoogleDisconnectView, GoogleCalendarStatusView, SharedGoogleCalendarStatusView
 from .views import SystemGoogleConnectView
 
 urlpatterns = [
@@ -46,5 +46,10 @@ urlpatterns = [
         "status/",
         GoogleCalendarStatusView.as_view(),
         name="calendar-google-status",
+    ),
+    path(
+        "shared-status/",
+        SharedGoogleCalendarStatusView.as_view(),
+        name="calendar-shared-google-status",
     ),
 ]

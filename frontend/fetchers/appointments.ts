@@ -23,6 +23,9 @@ export interface AppointmentRequest {
   ai_category?: string;
   crisis_flag: boolean;
   status: "pending" | "accepted" | "rejected" | "cancelled";
+  appointment_id?: number | null;
+  appointment_status?: "confirmed_pending_sync" | "confirmed" | "confirmed_sync_failed" | "cancelled" | "completed" | null;
+  appointment_conference_link?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -62,6 +65,14 @@ export async function getCaretakerRequests(status?: string): Promise<Appointment
     ? `${BACKEND_API}/api/appointments/caretaker/requests/?status=${status}`
     : `${BACKEND_API}/api/appointments/caretaker/requests/`;
   
+  return fetcher(url);
+}
+
+export async function getStudentRequests(status?: string): Promise<AppointmentRequest[]> {
+  const url = status
+    ? `${BACKEND_API}/api/appointments/student/requests/?status=${status}`
+    : `${BACKEND_API}/api/appointments/student/requests/`;
+
   return fetcher(url);
 }
 

@@ -92,6 +92,7 @@ class Command(BaseCommand):
 
     def _check_shared_calendar(self) -> dict[str, str]:
         calendar_id = (getattr(settings, "GOOGLE_CALENDAR_ID", "") or "").strip()
+        shared_email = (getattr(settings, "GOOGLE_SHARED_CALENDAR_ACCOUNT_EMAIL", "") or "").strip().lower()
         service_account_file = (getattr(settings, "GOOGLE_SERVICE_ACCOUNT_FILE", "") or "").strip()
         service_account_info = getattr(settings, "GOOGLE_SERVICE_ACCOUNT_INFO", None)
 
@@ -100,6 +101,50 @@ class Command(BaseCommand):
                 "name": "Shared Google Calendar",
                 "status": "missing",
                 "message": "GOOGLE_CALENDAR_ID must be set to the shared calendar ID, not primary.",
+            }
+
+        if shared_email:
+            try:
+                from calendar_integration.models import SystemGoogleCredential
+                cred = SystemGoogleCredential.objects.filter(key="shared_calendar").first()
+            except Exception as exc:
+                return {
+                    "name": "Shared Google Calendar",
+                    "status": "missing",
+                    "message": f"Shared OAuth credential could not be checked: {exc}",
+                }
+
+            if not cred:
+                return {
+                    "name": "Shared Google Calendar",
+                    "status": "missing",
+                    "message": (
+                        "GOOGLE_SHARED_CALENDAR_ACCOUNT_EMAIL is configured, but no SystemGoogleCredential is stored. "
+                        "Reconnect the shared Google account via /api/calendar/system/connect/."
+                    ),
+                }
+
+            stored_email = (cred.google_account_email or "").strip().lower()
+            if stored_email and stored_email != shared_email:
+                return {
+                    "name": "Shared Google Calendar",
+                    "status": "missing",
+                    "message": (
+                        f"Stored shared credential belongs to {stored_email}, expected {shared_email}."
+                    ),
+                }
+
+            if not cred.refresh_token:
+                return {
+                    "name": "Shared Google Calendar",
+                    "status": "warning",
+                    "message": "Shared OAuth credential exists, but refresh token is missing.",
+                }
+
+            return {
+                "name": "Shared Google Calendar",
+                "status": "ok",
+                "message": f"Shared OAuth credential is present for {shared_email}.",
             }
 
         if service_account_file:

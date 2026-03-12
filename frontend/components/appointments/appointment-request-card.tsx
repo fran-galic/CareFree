@@ -13,14 +13,19 @@ import {
   AlertCircle,
   CheckCircle2,
   XCircle,
-  MessageSquare
+  MessageSquare,
+  Video
 } from "lucide-react";
 import { AppointmentRequest } from "@/fetchers/appointments";
-import { approveRequest, rejectRequest } from "@/fetchers/appointments";
+import { approveRequest, rejectRequest, type Appointment } from "@/fetchers/appointments";
 
 interface AppointmentRequestCardProps {
   request: AppointmentRequest;
-  onStatusChange: () => void;
+  onStatusChange: (result?: {
+    action: "approved" | "rejected";
+    request: AppointmentRequest;
+    appointment?: Appointment;
+  }) => void;
 }
 
 export function AppointmentRequestCard({ request, onStatusChange }: AppointmentRequestCardProps) {
@@ -50,8 +55,8 @@ export function AppointmentRequestCard({ request, onStatusChange }: AppointmentR
   const handleApprove = async () => {
     setIsApproving(true);
     try {
-      await approveRequest(request.id);
-      onStatusChange();
+      const appointment = await approveRequest(request.id);
+      onStatusChange({ action: "approved", request, appointment });
     } catch (error) {
       console.error("Failed to approve:", error);
       alert("Greška pri odobravanju zahtjeva");
@@ -64,7 +69,7 @@ export function AppointmentRequestCard({ request, onStatusChange }: AppointmentR
     setIsRejecting(true);
     try {
       await rejectRequest(request.id, rejectReason || undefined);
-      onStatusChange();
+      onStatusChange({ action: "rejected", request });
     } catch (error) {
       console.error("Failed to reject:", error);
       alert("Greška pri odbijanju zahtjeva");
@@ -80,7 +85,7 @@ export function AppointmentRequestCard({ request, onStatusChange }: AppointmentR
       case "pending":
         return <Badge variant="outline" className="border-primary/30 bg-secondary text-primary">Na čekanju</Badge>;
       case "accepted":
-        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">Prihvaćen</Badge>;
+        return <Badge variant="outline" className="border-primary/25 bg-primary/10 text-primary">Prihvaćen</Badge>;
       case "rejected":
         return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-300">Odbijen</Badge>;
       case "cancelled":
@@ -162,6 +167,38 @@ export function AppointmentRequestCard({ request, onStatusChange }: AppointmentR
           </div>
         )}
 
+        {request.status !== "pending" && (
+          <div className="space-y-2 rounded-xl border border-border/70 bg-background/80 p-4">
+            <p className="text-sm font-medium text-foreground">Status zahtjeva</p>
+            {request.status === "accepted" ? (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  Zahtjev je prihvaćen i termin je kreiran. Daljnji detalji nalaze se u kalendaru.
+                </p>
+                {request.appointment_status === "confirmed_pending_sync" ? (
+                  <p className="text-sm text-amber-700">
+                    Google Meet link se još priprema i pojavit će se u kalendaru čim sinkronizacija završi.
+                  </p>
+                ) : null}
+                {request.appointment_conference_link ? (
+                  <div className="rounded-lg border border-primary/15 bg-primary/5 p-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-primary">Google Meet</p>
+                    <p className="mt-1 break-all text-sm text-foreground">{request.appointment_conference_link}</p>
+                  </div>
+                ) : null}
+              </>
+            ) : request.status === "rejected" ? (
+              <p className="text-sm text-muted-foreground">
+                Zahtjev je odbijen. Student može odabrati drugi termin.
+              </p>
+            ) : request.status === "cancelled" ? (
+              <p className="text-sm text-muted-foreground">
+                Ovaj zahtjev je otkazan.
+              </p>
+            ) : null}
+          </div>
+        )}
+
         {/* Forma za odbijanje */}
         {showRejectForm && (
           <div className="space-y-2 pt-2 border-t">
@@ -219,6 +256,19 @@ export function AppointmentRequestCard({ request, onStatusChange }: AppointmentR
               </Button>
             </>
           )}
+        </CardFooter>
+      )}
+
+      {request.status === "accepted" && request.appointment_conference_link && (
+        <CardFooter>
+          <Button
+            variant="outline"
+            className="w-full gap-2"
+            onClick={() => window.open(request.appointment_conference_link!, "_blank")}
+          >
+            <Video className="w-4 h-4" />
+            Otvori Google Meet
+          </Button>
         </CardFooter>
       )}
     </Card>
