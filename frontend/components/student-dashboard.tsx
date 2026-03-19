@@ -145,6 +145,14 @@ export function StudentDashboard({ firstName }: StudentDashboardProps) {
         };
       }
 
+      if (request.appointment_status === "confirmed_sync_failed") {
+        return {
+          title: "Termin je potvrđen",
+          body: `Psiholog je prihvatio zahtjev za ${slot}. Termin je vidljiv u kalendaru, ali Google Meet link trenutno nije generiran.`,
+          tone: "warning" as const,
+        };
+      }
+
       return {
         title: "Termin je potvrđen",
         body: `Psiholog je prihvatio zahtjev za ${slot}. Detalje i Meet link možete otvoriti u kalendaru.`,

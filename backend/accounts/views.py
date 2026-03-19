@@ -975,20 +975,52 @@ class StudentCompleteRegistrationView(APIView):
     """
     permission_classes = [AllowAny]
 
+    def _resolve_user(self, request):
+        requested_user_id = request.data.get('user_id')
+
+        if request.user.is_authenticated:
+            user = request.user
+            if requested_user_id and str(user.id) != str(requested_user_id):
+                return None, Response({'error': 'Nije dopušteno mijenjati drugi korisnički račun.'}, status=status.HTTP_403_FORBIDDEN)
+            return user, None
+
+        token = request.data.get('token')
+        if not token:
+            return None, Response({'error': 'Potreban je aktivni korisnik ili valjan registracijski token.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+        except jwt.ExpiredSignatureError:
+            return None, Response({'error': 'Registracijski token je istekao.'}, status=status.HTTP_400_BAD_REQUEST)
+        except jwt.InvalidTokenError:
+            return None, Response({'error': 'Registracijski token nije valjan.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        email = payload.get('email')
+        if not email:
+            return None, Response({'error': 'Registracijski token ne sadrži email.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(email__iexact=email)
+        except User.DoesNotExist:
+            return None, Response({'error': 'Korisnik nije pronađen.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if requested_user_id and str(user.id) != str(requested_user_id):
+            return None, Response({'error': 'Registracijski token ne odgovara traženom korisniku.'}, status=status.HTTP_403_FORBIDDEN)
+
+        return user, None
+
     def post(self, request, format=None):
-        user_id = request.data.get('user_id')
         studying_at = request.data.get('studying_at')
         year_of_study = request.data.get('year_of_study')
         sex = request.data.get('sex')
         age = request.data.get('age')
 
-        if not user_id:
-            return Response({'error': 'user_id je obavezan.'}, status=status.HTTP_400_BAD_REQUEST)
+        user, error_response = self._resolve_user(request)
+        if error_response:
+            return error_response
 
-        try:
-            user = User.objects.get(id=user_id)
-        except User.DoesNotExist:
-            return Response({'error': 'Korisnik nije pronađen.'}, status=status.HTTP_404_NOT_FOUND)
+        if getattr(user, 'role', None) != 'student':
+            return Response({'error': 'Student profil može dovršiti samo korisnik sa student ulogom.'}, status=status.HTTP_400_BAD_REQUEST)
 
         
         if sex:

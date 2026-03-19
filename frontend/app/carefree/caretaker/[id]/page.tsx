@@ -29,13 +29,28 @@ import {
   Phone,
   GraduationCap,
   Sparkles,
-  ShieldCheck
+  ShieldCheck,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
+import { getTwoWeekWindowDays, isPastDay } from "@/lib/calendar";
 
 interface SlotsByDay {
   date: Date;
   dateStr: string;
   slots: Slot[];
+}
+
+function toLocalDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function fromLocalDateKey(dateKey: string): Date {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  return new Date(year, month - 1, day);
 }
 
 export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: string }> }) {
@@ -48,12 +63,13 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
   // Dohvat dostupnih slotova
   const { data: slotsData, error: slotsError, isLoading: slotsLoading } = useSWR(
     caretaker ? `slots-${id}` : null,
-    () => getCaretakerSlots(Number(id), 7)
+    () => getCaretakerSlots(Number(id), 14)
   );
   
   // State za formu
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
   const [bookingNote, setBookingNote] = useState("");
+  const [visibleWeekIndex, setVisibleWeekIndex] = useState(0);
   
   // State za loading i uspjeh
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -63,25 +79,30 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
   // Grupiraj slotove po danima
   const slotsByDay: SlotsByDay[] = React.useMemo(() => {
     if (!slotsData) return [];
-    
-    const grouped = new Map<string, Slot[]>();
-    
+
+    const grouped = new Map<string, Slot[]>(
+      getTwoWeekWindowDays(new Date()).map((date) => [toLocalDateKey(date), []])
+    );
+
     slotsData.forEach((slot: Slot) => {
       const date = new Date(slot.start);
-      const dateStr = date.toISOString().split('T')[0];
-      
-      if (!grouped.has(dateStr)) {
-        grouped.set(dateStr, []);
+      const dateStr = toLocalDateKey(date);
+      if (grouped.has(dateStr)) {
+        grouped.get(dateStr)!.push(slot);
       }
-      grouped.get(dateStr)!.push(slot);
     });
-    
+
     return Array.from(grouped.entries()).map(([dateStr, slots]) => ({
-      date: new Date(dateStr),
+      date: fromLocalDateKey(dateStr),
       dateStr,
       slots: slots.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
     }));
   }, [slotsData]);
+
+  const visibleSlotsByDay = React.useMemo(() => {
+    const startIndex = visibleWeekIndex * 7;
+    return slotsByDay.slice(startIndex, startIndex + 7);
+  }, [slotsByDay, visibleWeekIndex]);
 
   // --- RUKOVANJE GREŠKAMA I LOADINGOM ---
   if (error) return (
@@ -345,7 +366,7 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
                     </div>
                   )}
 
-                  {!slotsLoading && !slotsError && slotsByDay.length === 0 && (
+                  {!slotsLoading && !slotsError && slotsByDay.every((day) => day.slots.length === 0) && (
                     <div className="text-center py-12 text-muted-foreground">
                       <Clock className="w-12 h-12 mx-auto mb-3 opacity-20" />
                       <p>Trenutno nema dostupnih termina</p>
@@ -353,32 +374,81 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
                   )}
 
                   {!slotsLoading && !slotsError && slotsByDay.length > 0 && (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-card/80 px-3 py-2.5">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="h-9 w-9 cursor-pointer disabled:cursor-not-allowed"
+                          disabled={visibleWeekIndex === 0}
+                          onClick={() => setVisibleWeekIndex(0)}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <div className="text-center">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+                            {visibleWeekIndex === 0 ? "Ovaj tjedan" : "Sljedeći tjedan"}
+                          </p>
+                          {visibleSlotsByDay.length > 0 ? (
+                            <p className="mt-1 text-sm text-muted-foreground">
+                              {visibleSlotsByDay[0].date.toLocaleDateString("hr-HR", { day: "numeric", month: "long" })}
+                              {" - "}
+                              {visibleSlotsByDay[visibleSlotsByDay.length - 1].date.toLocaleDateString("hr-HR", { day: "numeric", month: "long" })}
+                            </p>
+                          ) : null}
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="h-9 w-9 cursor-pointer disabled:cursor-not-allowed"
+                          disabled={visibleWeekIndex === 1}
+                          onClick={() => setVisibleWeekIndex(1)}
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+
                     <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
-                      {slotsByDay.map((day, dayIdx) => (
+                      {visibleSlotsByDay.map((day, dayIdx) => (
                         <div key={dayIdx} className="space-y-2 rounded-2xl border border-border/70 bg-card/80 p-2.5">
-                          <h4 className="rounded-md bg-muted py-2 text-center text-xs font-semibold">
+                          <h4 className={`rounded-md py-2 text-center text-xs font-semibold ${isPastDay(day.date) ? "bg-slate-200 text-slate-500" : "bg-muted"}`}>
                             {day.date.toLocaleDateString('hr-HR', { weekday: 'short', day: 'numeric', month: 'numeric' })}
                           </h4>
                           <div className="grid grid-cols-1 gap-2">
-                            {day.slots.map((slot, slotIdx) => (
+                            {day.slots.length > 0 ? day.slots.map((slot, slotIdx) => {
+                              const slotDate = new Date(slot.start);
+                              const isPastSlot = slotDate.getTime() < Date.now();
+                              const isDisabled = !slot.is_available || isPastSlot;
+
+                              return (
                               <Button
                                 key={slotIdx}
                                 variant={slot.is_available ? "outline" : "ghost"}
-                                disabled={!slot.is_available}
-                                className={`h-9 w-full px-2 text-xs ${slot.is_available 
+                                disabled={isDisabled}
+                                className={`h-9 w-full px-2 text-xs ${isPastSlot
+                                  ? "border border-slate-200 bg-slate-100 text-slate-400"
+                                  : slot.is_available 
                                   ? selectedSlot?.start === slot.start
                                       ? 'border-[#256b61] bg-[#256b61] text-white ring-1 ring-[#256b61] shadow-sm'
                                       : 'border-[#4a9a8d] bg-[#69b3a6] text-white shadow-sm hover:border-[#256b61] hover:bg-[#5ba698] hover:text-white'
                                   : 'border border-border/80 bg-[#fbfcfb] text-muted-foreground opacity-100'
                                 }`}
-                                onClick={() => setSelectedSlot(slot)}
+                                onClick={() => !isDisabled && setSelectedSlot(slot)}
                               >
                                 {slot.time}
                               </Button>
-                            ))}
+                              );
+                            }) : (
+                              <div className="rounded-md border border-dashed border-slate-200 bg-slate-50 px-2 py-3 text-center text-[11px] text-slate-400">
+                                {isPastDay(day.date) ? "Prošlo" : "Nema termina"}
+                              </div>
+                            )}
                           </div>
                         </div>
                       ))}
+                    </div>
                     </div>
                   )}
               </CardContent>

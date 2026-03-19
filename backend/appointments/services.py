@@ -20,6 +20,13 @@ from .google_sync import (
 )
 
 
+ACTIVE_APPOINTMENT_STATUSES = (
+    Appointment.STATUS_CONFIRMED,
+    Appointment.STATUS_CONFIRMED_PENDING,
+    Appointment.STATUS_SYNC_FAILED,
+)
+
+
 def _send_appointment_confirmation_email(appt):
     recipients = []
     if appt.student and getattr(appt.student, 'user', None) and appt.student.user.email:
@@ -87,7 +94,7 @@ def create_appointment_request(student_user, caretaker_obj, requested_start, mes
             caretaker=caretaker_obj,
             start__lt=requested_end,
             end__gt=requested_start,
-            status__in=[Appointment.STATUS_CONFIRMED, Appointment.STATUS_CONFIRMED_PENDING],
+            status__in=ACTIVE_APPOINTMENT_STATUSES,
         )
         if overlapping.exists():
             raise ValidationError("Requested slot is already taken")
@@ -179,7 +186,12 @@ def create_hold(student_user, caretaker_obj, slot_start, hold_minutes=10):
         raise ValidationError('Slot marked unavailable by caretaker')
 
     # check confirmed appointments
-    if Appointment.objects.filter(caretaker=caretaker_obj, start__lt=slot_end, end__gt=slot_start, status__in=[Appointment.STATUS_CONFIRMED, Appointment.STATUS_CONFIRMED_PENDING]).exists():
+    if Appointment.objects.filter(
+        caretaker=caretaker_obj,
+        start__lt=slot_end,
+        end__gt=slot_start,
+        status__in=ACTIVE_APPOINTMENT_STATUSES,
+    ).exists():
         raise ValidationError('Slot already taken')
 
     # check active holds
@@ -231,7 +243,7 @@ def approve_appointment_request(approver_user, request_id):
             caretaker=req.caretaker,
             start__lt=req.requested_end,
             end__gt=req.requested_start,
-            status__in=[Appointment.STATUS_CONFIRMED, Appointment.STATUS_CONFIRMED_PENDING]
+            status__in=ACTIVE_APPOINTMENT_STATUSES,
         )
         if overlapping.exists():
             raise Exception("Slot already taken")
@@ -329,7 +341,7 @@ def get_caretaker_slots(caretaker_obj, days=3, start_hour=8, end_hour=16, tz_nam
                 caretaker=caretaker_obj,
                 start__lt=utc_end,
                 end__gt=utc_start,
-                status__in=[Appointment.STATUS_CONFIRMED, Appointment.STATUS_CONFIRMED_PENDING],
+                status__in=ACTIVE_APPOINTMENT_STATUSES,
             ).exists()
 
             # check for explicit override
@@ -387,7 +399,7 @@ def toggle_availability(caretaker_user, slot_starts, tz_name="Europe/Zagreb", ma
             caretaker=caretaker,
             start__lt=utc_end,
             end__gt=utc_start,
-            status__in=[Appointment.STATUS_CONFIRMED, Appointment.STATUS_CONFIRMED_PENDING],
+            status__in=ACTIVE_APPOINTMENT_STATUSES,
         ).exists()
 
         if occupied:
