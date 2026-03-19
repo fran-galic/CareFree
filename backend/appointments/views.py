@@ -30,6 +30,13 @@ from rest_framework import permissions
 from backend.emailing import render_branded_email, send_project_email
 
 
+ACTIVE_APPOINTMENT_STATUSES = (
+    Appointment.STATUS_CONFIRMED,
+    Appointment.STATUS_CONFIRMED_PENDING,
+    Appointment.STATUS_SYNC_FAILED,
+)
+
+
 class HoldCreateView(APIView):
     """Create a temporary hold on a slot for the authenticated student."""
     permission_classes = [permissions.IsAuthenticated, IsStudent]
@@ -230,7 +237,7 @@ class StudentAppointmentListView(generics.ListAPIView):
         if status_q:
             qs = qs.filter(status=status_q)
         else:
-            qs = qs.filter(status__in=[Appointment.STATUS_CONFIRMED, Appointment.STATUS_CONFIRMED_PENDING])
+            qs = qs.filter(status__in=ACTIVE_APPOINTMENT_STATUSES)
         return qs.order_by('start')
 
 
@@ -343,7 +350,7 @@ class CaretakerAvailabilityBulkSaveView(APIView):
                     caretaker=caretaker,
                     start__lt=utc_end,
                     end__gt=utc_start,
-                    status__in=[Appointment.STATUS_CONFIRMED, Appointment.STATUS_CONFIRMED_PENDING],
+                    status__in=ACTIVE_APPOINTMENT_STATUSES,
                 ).exists()
                 if occupied:
                     failed.append({'slot': slot_iso, 'reason': 'occupied'})
@@ -396,7 +403,7 @@ class CaretakerMyAvailabilityView(APIView):
             caretaker=caretaker,
             start__gte=now,
             start__lt=end_date,
-            status__in=[Appointment.STATUS_CONFIRMED, Appointment.STATUS_CONFIRMED_PENDING]
+            status__in=ACTIVE_APPOINTMENT_STATUSES
         ).values_list('start', flat=True)
 
         confirmed_starts = set(confirmed_appts)
@@ -430,9 +437,15 @@ class MyCalendarView(APIView):
 
         appts = None
         if getattr(request.user, 'student', None):
-            appts = Appointment.objects.filter(student=request.user.student, status__in=[Appointment.STATUS_CONFIRMED, Appointment.STATUS_COMPLETED, Appointment.STATUS_CONFIRMED_PENDING])
+            appts = Appointment.objects.filter(
+                student=request.user.student,
+                status__in=ACTIVE_APPOINTMENT_STATUSES + (Appointment.STATUS_COMPLETED,),
+            )
         elif getattr(request.user, 'caretaker', None):
-            appts = Appointment.objects.filter(caretaker=request.user.caretaker, status__in=[Appointment.STATUS_CONFIRMED, Appointment.STATUS_COMPLETED, Appointment.STATUS_CONFIRMED_PENDING])
+            appts = Appointment.objects.filter(
+                caretaker=request.user.caretaker,
+                status__in=ACTIVE_APPOINTMENT_STATUSES + (Appointment.STATUS_COMPLETED,),
+            )
         else:
             return Response({'detail': 'No calendar for this user'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -468,5 +481,5 @@ class CaretakerAppointmentListView(generics.ListAPIView):
         if status_q:
             qs = qs.filter(status=status_q)
         else:
-            qs = qs.filter(status__in=[Appointment.STATUS_CONFIRMED, Appointment.STATUS_CONFIRMED_PENDING])
+            qs = qs.filter(status__in=ACTIVE_APPOINTMENT_STATUSES)
         return qs.order_by('start')

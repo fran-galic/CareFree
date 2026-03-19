@@ -37,6 +37,25 @@ export function ConfirmRegistrationForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const completeStudentProfile = async (userId: number | undefined, studentData: Record<string, unknown>) => {
+    if (!userId || Object.keys(studentData).length === 0) {
+      return;
+    }
+
+    await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/register/student/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({
+        user_id: userId,
+        ...(token ? { token } : {}),
+        ...studentData,
+      }),
+    });
+  };
+
   const redirectToLogin = async () => {
     try {
       await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/logout/`, {
@@ -133,16 +152,7 @@ export function ConfirmRegistrationForm({
 
           if (Object.keys(studentData).length > 0) {
             try {
-              await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/register/student/`, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  user_id: registerData.user.id,
-                  ...studentData
-                }),
-              });
+              await completeStudentProfile(registerData.user.id, studentData);
             } catch (err) {
               console.error("Failed to update student profile:", err);
             }
@@ -161,16 +171,7 @@ export function ConfirmRegistrationForm({
 
         if (Object.keys(studentData).length > 0 && registerData.user?.id) {
           try {
-            await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/register/student/`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                user_id: registerData.user.id,
-                ...studentData
-              }),
-            });
+            await completeStudentProfile(registerData.user.id, studentData);
           } catch (err) {
             console.error("Failed to update student profile:", err);
           }

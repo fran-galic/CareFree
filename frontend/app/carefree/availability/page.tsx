@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Calendar, dateFnsLocalizer, View, ToolbarProps } from "react-big-calendar";
-import { format, parse, startOfWeek, getDay } from "date-fns";
+import { format, parse, startOfWeek, getDay, isSameMonth, isToday } from "date-fns";
 import { hr } from "date-fns/locale";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -10,6 +10,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Calendar as CalendarIcon, Video, User, Clock, ChevronLeft, ChevronRight, Info, AlertTriangle } from "lucide-react";
 import { getCaretakerAppointments, type Appointment } from "@/fetchers/appointments";
+import {
+  CALENDAR_LOCALE,
+  clampCalendarDate,
+  getCalendarWeekStart,
+  getCalendarWindowEnd,
+  getCalendarWindowStart,
+  isOutsideCalendarWindow,
+  isPastDay,
+  isPastEvent,
+} from "@/lib/calendar";
 
 const locales = {
   hr: hr,
@@ -18,7 +28,8 @@ const locales = {
 const localizer = dateFnsLocalizer({
   format,
   parse,
-  startOfWeek,
+  startOfWeek: (date, culture) =>
+    startOfWeek(date, { locale: culture === "hr" ? CALENDAR_LOCALE : hr, weekStartsOn: 1 }),
   getDay,
   locales,
 });
@@ -39,11 +50,7 @@ interface CalendarToolbarProps {
 }
 
 function getStartOfWeekDate(d: Date): Date {
-  const copy = new Date(d);
-  const day = (copy.getDay() + 6) % 7;
-  copy.setDate(copy.getDate() - day);
-  copy.setHours(0, 0, 0, 0);
-  return copy;
+  return getCalendarWeekStart(d);
 }
 
 function getEndOfWeekDate(d: Date): Date {
@@ -68,10 +75,13 @@ function formatToolbarWeekLabel(d: Date): string {
 }
 
 export default function AvailabilityPage() {
+  const now = useMemo(() => new Date(), []);
+  const minCalendarDate = useMemo(() => getCalendarWindowStart(now), [now]);
+  const maxCalendarDate = useMemo(() => getCalendarWindowEnd(now), [now]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>("month");
-  const [date, setDate] = useState(new Date());
+  const [date, setDate] = useState(clampCalendarDate(new Date(), now));
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
 
   useEffect(() => {
@@ -101,16 +111,10 @@ export default function AvailabilityPage() {
   }, [appointments]);
 
   const agendaEvents = useMemo(() => {
-    const start = new Date(date);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(start);
-    end.setDate(end.getDate() + 30);
-    end.setHours(23, 59, 59, 999);
-
     return events
-      .filter((event) => event.start >= start && event.start <= end)
+      .filter((event) => event.end >= now)
       .sort((a, b) => a.start.getTime() - b.start.getTime());
-  }, [date, events]);
+  }, [events, now]);
 
   const getEventTitle = useCallback((event: CalendarEvent) => {
     const student = event.resource.student;
@@ -141,6 +145,7 @@ export default function AvailabilityPage() {
 
   const eventStyleGetter = useCallback((event: CalendarEvent) => {
     const status = event.resource.status;
+    const eventEnded = isPastEvent(event.end, new Date());
     let backgroundColor = "#2f7f73";
 
     if (status === "confirmed") backgroundColor = "#245f54";
@@ -150,14 +155,15 @@ export default function AvailabilityPage() {
     if (status === "cancelled") backgroundColor = "#c7644a";
 
     return {
+      className: eventEnded ? "calendar-event-past" : undefined,
       style: {
         backgroundColor,
         borderRadius: "10px",
-        opacity: 0.96,
+        opacity: eventEnded ? 0.5 : 0.96,
         color: "white",
         border: "none",
         display: "block",
-        boxShadow: "0 10px 18px rgba(15, 23, 42, 0.10)",
+        boxShadow: eventEnded ? "none" : "0 10px 18px rgba(15, 23, 42, 0.10)",
         padding: "0",
       },
     };
@@ -168,8 +174,8 @@ export default function AvailabilityPage() {
   }, []);
 
   const handleNavigate = useCallback((newDate: Date) => {
-    setDate(newDate);
-  }, []);
+    setDate(clampCalendarDate(newDate, now));
+  }, [now]);
 
   const handleViewChange = useCallback((newView: View) => {
     setView(newView);
@@ -185,17 +191,38 @@ export default function AvailabilityPage() {
       return;
     }
 
-    setDate((current) => {
-      const next = new Date(current);
-      next.setDate(next.getDate() + (action === "NEXT" ? 30 : -30));
-      return next;
-    });
-  }, []);
+      setDate((current) => {
+        const next = new Date(current);
+        next.setDate(next.getDate() + (action === "NEXT" ? 30 : -30));
+        return clampCalendarDate(next, now);
+      });
+  }, [now]);
+
+  const dayPropGetter = useCallback((value: Date) => {
+    const inPast = isPastDay(value, now);
+    const offCurrentMonth = view === "month" && !isSameMonth(value, date);
+
+    return {
+      className: [
+        inPast ? "calendar-day-past" : "",
+        view !== "month" && isOutsideCalendarWindow(value, now) ? "calendar-day-outside-window" : "",
+        offCurrentMonth ? "calendar-day-off-range" : "",
+        isToday(value) ? "calendar-day-today" : "",
+      ]
+        .filter(Boolean)
+        .join(" "),
+    };
+  }, [date, now, view]);
+
+  const selectedEventIsPast = selectedEvent ? isPastEvent(selectedEvent.end, new Date()) : false;
 
   const CalendarToolbar = ({ view, date, onNavigate, onView }: CalendarToolbarProps) => {
+    const canGoPrev = getStartOfWeekDate(date).getTime() > minCalendarDate.getTime();
+    const canGoNext = getStartOfWeekDate(date).getTime() < getStartOfWeekDate(maxCalendarDate).getTime();
+
     const label: string =
       view === "agenda"
-        ? "Agenda termina"
+        ? "Nadolazeći termini"
         : view === "month"
           ? formatToolbarMonthLabel(date)
           : view === "week"
@@ -235,13 +262,13 @@ export default function AvailabilityPage() {
         </div>
 
         <div className="flex gap-2">
-          <button type="button" className="px-3 py-1 rounded border hover:bg-muted transition" onClick={() => onNavigate("PREV")}>
+          <button type="button" disabled={!canGoPrev} className="px-3 py-1 rounded border hover:bg-muted transition disabled:cursor-not-allowed disabled:opacity-40" onClick={() => onNavigate("PREV")}>
             <ChevronLeft />
           </button>
           <button type="button" className="px-3 py-1 rounded border hover:bg-muted transition" onClick={() => onNavigate("TODAY")}>
             Danas
           </button>
-          <button type="button" className="px-3 py-1 rounded border hover:bg-muted transition" onClick={() => onNavigate("NEXT")}>
+          <button type="button" disabled={!canGoNext} className="px-3 py-1 rounded border hover:bg-muted transition disabled:cursor-not-allowed disabled:opacity-40" onClick={() => onNavigate("NEXT")}>
             <ChevronRight />
           </button>
         </div>
@@ -298,8 +325,12 @@ export default function AvailabilityPage() {
                     />
                     <div className="flex-1 overflow-auto rounded-2xl border border-border">
                       {agendaEvents.length === 0 ? (
-                        <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                          Nema termina u ovom periodu.
+                        <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center">
+                          <CalendarIcon className="h-10 w-10 text-muted-foreground/30" />
+                          <p className="text-sm font-medium text-foreground">Nemate nadolazećih termina.</p>
+                          <p className="text-sm text-muted-foreground">
+                            Novi potvrđeni susreti pojavit će se ovdje čim budu zakazani.
+                          </p>
                         </div>
                       ) : (
                         <div className="grid grid-cols-[1.05fr_0.8fr_1.4fr] border-b border-border/80 bg-muted/30 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -343,6 +374,9 @@ export default function AvailabilityPage() {
                     onSelectEvent={handleSelectEvent}
                     popup
                     eventPropGetter={eventStyleGetter}
+                    dayPropGetter={dayPropGetter}
+                    min={new Date(0, 0, 0, 8, 0, 0)}
+                    max={new Date(0, 0, 0, 16, 0, 0)}
                     messages={{
                       next: "Sljedeći",
                       previous: "Prethodni",
@@ -393,6 +427,19 @@ export default function AvailabilityPage() {
             <CardContent>
               {selectedEvent ? (
                 <div className="space-y-4">
+                  {selectedEventIsPast && (
+                    <div className="rounded-xl border border-slate-200 bg-slate-50/90 p-4">
+                      <div className="flex items-start gap-2">
+                        <Info className="mt-0.5 h-4 w-4 text-slate-600" />
+                        <div>
+                          <p className="text-sm font-medium text-slate-900">Termin je završen</p>
+                          <p className="mt-1 text-sm text-slate-700">
+                            Prošli termin ostaje u kalendaru radi pregleda povijesti, ali više nije aktivan za pridruživanje.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   <div>
                     <div className="flex items-center gap-2 mb-2">
                       <User className="w-4 h-4 text-muted-foreground" />
@@ -471,7 +518,7 @@ export default function AvailabilityPage() {
                     </div>
                   )}
 
-                  {selectedEvent.resource.conference_link && (
+                  {selectedEvent.resource.conference_link && !selectedEventIsPast && (
                     <div className="space-y-3 rounded-xl border border-primary/15 bg-primary/5 p-4">
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-wide text-primary">Google Meet</p>

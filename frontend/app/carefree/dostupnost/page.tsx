@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Calendar as CalendarIcon, Save, RefreshCw, Info } from "lucide-react";
-import { format, addDays, startOfDay, setHours, isSameDay, parseISO } from "date-fns";
+import { format, setHours, isSameDay, parseISO } from "date-fns";
 import { hr } from "date-fns/locale";
+import { getTwoWeekWindowDays, isPastDay } from "@/lib/calendar";
 
 interface AvailabilitySlot {
   start: string;
@@ -24,7 +25,7 @@ interface GridSlot {
 }
 
 const HOURS = Array.from({ length: 9 }, (_, i) => i + 8); // 8-16 (8:00-15:00, last slot ends at 16:00)
-const DAYS_TO_SHOW = 7;
+const DAYS_TO_SHOW = 14;
 
 export default function DostupnostPage() {
   const [gridSlots, setGridSlots] = useState<GridSlot[]>([]);
@@ -33,7 +34,7 @@ export default function DostupnostPage() {
   const [hasChanges, setHasChanges] = useState(false);
 
   const days = useMemo(
-    () => Array.from({ length: DAYS_TO_SHOW }, (_, i) => addDays(startOfDay(new Date()), i)),
+    () => getTwoWeekWindowDays(new Date()),
     []
   );
 
@@ -162,7 +163,7 @@ export default function DostupnostPage() {
         <div>
           <h1 className="text-3xl text-primary font-bold">Dostupnost</h1>
           <p className="text-muted-foreground">
-            Postavite svoju dostupnost za sljedećih 7 dana
+            Postavite svoju dostupnost za trenutni i sljedeći tjedan
           </p>
         </div>
         <div className="flex gap-2">
@@ -211,6 +212,7 @@ export default function DostupnostPage() {
                   <li>Kliknite na slobodne satnice da ih označite kao dostupne (teal)</li>
                   <li>Kliknite ponovno da poništite dostupnost (svijetlo sivo)</li>
                   <li>Tamne teal satnice imaju zakazan termin i ne mogu se mijenjati</li>
+                  <li>Prošli dani ostaju vidljivi, ali su zasivljeni i zaključani</li>
                   <li>Promjene se spremaju tek kada kliknete &quot;Spremi promjene&quot;</li>
                 </ul>
               </div>
@@ -234,6 +236,10 @@ export default function DostupnostPage() {
                 <div className="w-4 h-4 bg-yellow-300 rounded border-2 border-yellow-500"></div>
                 <span>Izmijenjeno (nespremljeno)</span>
               </div>
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-4 rounded bg-slate-200"></div>
+                <span>Prošli dan / zaključano</span>
+              </div>
             </div>
 
             {/* Grid */}
@@ -243,7 +249,7 @@ export default function DostupnostPage() {
                 <div className="grid grid-cols-8 gap-1 mb-2">
                   <div className="font-medium text-sm text-center py-2">Vrijeme</div>
                   {days.map((day, idx) => (
-                    <div key={idx} className="font-medium text-sm text-center py-2">
+                    <div key={idx} className={`font-medium text-sm text-center py-2 ${isPastDay(day) ? "opacity-55" : ""}`}>
                       <div>{format(day, "EEEE", { locale: hr })}</div>
                       <div className="text-xs text-muted-foreground">
                         {format(day, "d.M.", { locale: hr })}
@@ -266,8 +272,11 @@ export default function DostupnostPage() {
                       if (!slot) return <div key={dayIdx} className="h-12" />;
 
                       const isPast = slot.date < new Date();
+                      const pastDay = isPastDay(slot.date);
                       const bgColor = slot.hasAppointment
                         ? "bg-[#21423d] text-white cursor-not-allowed"
+                        : pastDay
+                          ? "bg-slate-200 text-slate-500 cursor-not-allowed"
                         : slot.isAvailable
                           ? slot.isChanged
                             ? "bg-[#5fafa1] border-2 border-yellow-500 text-white"

@@ -4,14 +4,25 @@ import Link from "next/link";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { Calendar, dateFnsLocalizer, View, ToolbarProps } from "react-big-calendar";
-import { format, parse, startOfWeek, getDay } from "date-fns";
+import { addMonths, format, parse, startOfWeek, getDay, isAfter, isSameMonth, isToday, startOfDay, startOfMonth } from "date-fns";
 import { hr } from "date-fns/locale";
+import { createPortal } from "react-dom";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Calendar as CalendarIcon, Video, User, Clock, ChevronLeft, ChevronRight, Info, AlertTriangle } from "lucide-react";
 import { getMyAppointments, type Appointment } from "@/fetchers/appointments";
 import { Button } from "@/components/ui/button";
+import {
+  CALENDAR_LOCALE,
+  clampCalendarDate,
+  getCalendarWeekStart,
+  getCalendarWindowEnd,
+  getCalendarWindowStart,
+  isOutsideCalendarWindow,
+  isPastDay,
+  isPastEvent,
+} from "@/lib/calendar";
 const SEEN_APPOINTMENTS_KEY = "carefree-seen-appointment-ids";
 
 const locales = {
@@ -21,7 +32,8 @@ const locales = {
 const localizer = dateFnsLocalizer({
   format,
   parse,
-  startOfWeek,
+  startOfWeek: (date, culture) =>
+    startOfWeek(date, { locale: culture === "hr" ? CALENDAR_LOCALE : hr, weekStartsOn: 1 }),
   getDay,
   locales,
 });
@@ -41,12 +53,13 @@ interface CalendarToolbarProps {
   onView: (view: View) => void;
 }
 
+interface CalendarHeaderProps {
+  date?: Date;
+  label?: string;
+}
+
 function getStartOfWeekDate(d: Date): Date {
-  const copy = new Date(d);
-  const day = (copy.getDay() + 6) % 7;
-  copy.setDate(copy.getDate() - day);
-  copy.setHours(0, 0, 0, 0);
-  return copy;
+  return getCalendarWeekStart(d);
 }
 
 function getEndOfWeekDate(d: Date): Date {
@@ -72,13 +85,19 @@ function formatToolbarWeekLabel(d: Date): string {
 
 export default function CalendarPage() {
   const searchParams = useSearchParams();
+  const now = useMemo(() => new Date(), []);
+  const maxMonthDate = useMemo(() => startOfMonth(addMonths(now, 1)), [now]);
+  const minCalendarDate = useMemo(() => getCalendarWindowStart(now), [now]);
+  const maxCalendarDate = useMemo(() => getCalendarWindowEnd(now), [now]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>("month");
-  const [date, setDate] = useState(new Date());
+  const [date, setDate] = useState(clampCalendarDate(new Date(), now));
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [hoveredEvent, setHoveredEvent] = useState<CalendarEvent | null>(null);
   const [hoverPosition, setHoverPosition] = useState<{ top: number; left: number } | null>(null);
+  const hoveredAnchorRef = useRef<HTMLElement | null>(null);
+  const hoverCardRef = useRef<HTMLDivElement | null>(null);
   const hoverTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -127,7 +146,7 @@ export default function CalendarPage() {
           resource: apt,
         };
         setSelectedEvent(event);
-        setDate(new Date(apt.start));
+        setDate(clampCalendarDate(new Date(apt.start), now));
         
         // Clean up URL parameter
         const url = new URL(window.location.href);
@@ -135,7 +154,7 @@ export default function CalendarPage() {
         window.history.replaceState({}, '', url.pathname);
       }
     }
-  }, [searchParams, appointments]);
+  }, [searchParams, appointments, now]);
 
   const events: CalendarEvent[] = useMemo(() => {
     return appointments.map((apt) => ({
@@ -150,16 +169,10 @@ export default function CalendarPage() {
   }, [appointments]);
 
   const agendaEvents = useMemo(() => {
-    const start = new Date(date);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(start);
-    end.setDate(end.getDate() + 30);
-    end.setHours(23, 59, 59, 999);
-
     return events
-      .filter((event) => event.start >= start && event.start <= end)
+      .filter((event) => event.end >= now)
       .sort((a, b) => a.start.getTime() - b.start.getTime());
-  }, [date, events]);
+  }, [events, now]);
 
   const getEventTitle = useCallback((event: CalendarEvent) => {
     const caretaker = event.resource.caretaker;
@@ -211,6 +224,7 @@ export default function CalendarPage() {
 
   const eventStyleGetter = useCallback((event: CalendarEvent) => {
     const status = event.resource.status;
+    const eventEnded = isPastEvent(event.end, new Date());
     let backgroundColor = "#6bb5a8";
 
     if (status === "completed") backgroundColor = "#5b9f94";
@@ -220,14 +234,15 @@ export default function CalendarPage() {
     if (status === "confirmed_sync_failed") backgroundColor = "#b56454";
 
     return {
+      className: eventEnded ? "calendar-event-past" : undefined,
       style: {
         backgroundColor,
         borderRadius: "12px",
-        opacity: 0.96,
+        opacity: eventEnded ? 0.5 : 0.96,
         color: "white",
         border: "none",
         display: "block",
-        boxShadow: "0 10px 22px rgba(15, 23, 42, 0.12)",
+        boxShadow: eventEnded ? "none" : "0 10px 22px rgba(15, 23, 42, 0.12)",
         padding: "0",
       },
     };
@@ -238,8 +253,20 @@ export default function CalendarPage() {
   }, []);
 
   const handleNavigate = useCallback((newDate: Date) => {
-    setDate(newDate);
-  }, []);
+    if (view === "month") {
+      setDate(isAfter(startOfMonth(newDate), maxMonthDate) ? maxMonthDate : newDate);
+      return;
+    }
+
+    if (view === "day") {
+      const nextDay = startOfDay(newDate);
+      const today = startOfDay(now);
+      setDate(nextDay.getTime() < today.getTime() ? today : clampCalendarDate(newDate, now));
+      return;
+    }
+
+    setDate(clampCalendarDate(newDate, now));
+  }, [maxMonthDate, now, view]);
 
   const handleViewChange = useCallback((newView: View) => {
     setView(newView);
@@ -255,17 +282,69 @@ export default function CalendarPage() {
       return;
     }
 
-    setDate((current) => {
-      const next = new Date(current);
-      next.setDate(next.getDate() + (action === "NEXT" ? 30 : -30));
-      return next;
-    });
-  }, []);
+      setDate((current) => {
+        const next = new Date(current);
+        next.setDate(next.getDate() + (action === "NEXT" ? 30 : -30));
+        return clampCalendarDate(next, now);
+      });
+  }, [now]);
+
+  const dayPropGetter = useCallback((value: Date) => {
+    const inPast = isPastDay(value, now);
+    const offCurrentMonth = view === "month" && !isSameMonth(value, date);
+
+    const classNames = [
+      view !== "day" && inPast ? "calendar-day-past" : "",
+      view !== "month" && isOutsideCalendarWindow(value, now) ? "calendar-day-outside-window" : "",
+      offCurrentMonth ? "calendar-day-off-range" : "",
+      view !== "day" && isToday(value) ? "calendar-day-today" : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    return { className: classNames };
+  }, [date, now, view]);
+
+  const slotPropGetter = useCallback((value: Date) => {
+    if (view !== "week") {
+      return {};
+    }
+
+    const classNames = [
+      value.getTime() < now.getTime() ? "calendar-slot-past" : "",
+      isToday(value) ? "calendar-slot-today" : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    return classNames ? { className: classNames } : {};
+  }, [now, view]);
+
+  const selectedEventIsPast = selectedEvent ? isPastEvent(selectedEvent.end, new Date()) : false;
+  const hoveredEventIsPast = hoveredEvent ? isPastEvent(hoveredEvent.end, new Date()) : false;
 
   const CalendarToolbar = ({ view, date, onNavigate, onView }: CalendarToolbarProps) => {
+    const currentDayStart = startOfDay(now);
+    const viewedDayStart = startOfDay(date);
+    const currentWeekStart = getStartOfWeekDate(now);
+    const viewedWeekStart = getStartOfWeekDate(date);
+
+    const canGoPrev =
+      view === "month"
+        ? true
+        : view === "day"
+          ? viewedDayStart.getTime() > currentDayStart.getTime()
+          : getStartOfWeekDate(date).getTime() > currentWeekStart.getTime();
+    const canGoNext =
+      view === "month"
+        ? !isAfter(startOfMonth(addMonths(date, 1)), maxMonthDate)
+        : view === "day"
+          ? viewedDayStart.getTime() < startOfDay(maxCalendarDate).getTime()
+          : viewedWeekStart.getTime() < getStartOfWeekDate(maxCalendarDate).getTime();
+
     const label: string =
       view === "agenda"
-        ? "Agenda termina"
+        ? "Nadolazeći termini"
         : view === "month"
           ? formatToolbarMonthLabel(date)
           : view === "week"
@@ -305,13 +384,13 @@ export default function CalendarPage() {
         </div>
 
         <div className="flex gap-2">
-          <button type="button" className="px-3 py-1 rounded border hover:bg-muted transition" onClick={() => onNavigate("PREV")}>
+          <button type="button" disabled={!canGoPrev} className="px-3 py-1 rounded border hover:bg-muted transition disabled:cursor-not-allowed disabled:opacity-40" onClick={() => onNavigate("PREV")}>
             <ChevronLeft />
           </button>
           <button type="button" className="px-3 py-1 rounded border hover:bg-muted transition" onClick={() => onNavigate("TODAY")}>
             Danas
           </button>
-          <button type="button" className="px-3 py-1 rounded border hover:bg-muted transition" onClick={() => onNavigate("NEXT")}>
+          <button type="button" disabled={!canGoNext} className="px-3 py-1 rounded border hover:bg-muted transition disabled:cursor-not-allowed disabled:opacity-40" onClick={() => onNavigate("NEXT")}>
             <ChevronRight />
           </button>
         </div>
@@ -326,32 +405,111 @@ export default function CalendarPage() {
     }
   };
 
-  const handleEventMouseEnter = useCallback((event: CalendarEvent, target: HTMLElement) => {
-    clearHoverTimeout();
-
+  const getHoverPosition = useCallback((target: HTMLElement) => {
     const rect = target.getBoundingClientRect();
     const tooltipWidth = 320;
-    const top = Math.min(rect.bottom + 12, window.innerHeight - 220);
-    const left = Math.min(rect.left, window.innerWidth - tooltipWidth - 16);
+    const tooltipHeight = 240;
+    const top =
+      rect.bottom + tooltipHeight + 12 <= window.innerHeight
+        ? rect.bottom + 10
+        : Math.max(12, rect.top - tooltipHeight - 10);
+    const left = Math.min(
+      Math.max(12, rect.left),
+      window.innerWidth - tooltipWidth - 12
+    );
 
-    setHoveredEvent(event);
-    setHoverPosition({
-      top: Math.max(16, top),
-      left: Math.max(16, left),
-    });
+    return {
+      top,
+      left,
+    };
   }, []);
+
+  const handleEventMouseEnter = useCallback((event: CalendarEvent, target: HTMLElement) => {
+    clearHoverTimeout();
+    hoveredAnchorRef.current = target;
+    setHoveredEvent(event);
+    setHoverPosition(getHoverPosition(target));
+  }, [getHoverPosition]);
 
   const handleEventMouseLeave = useCallback(() => {
     clearHoverTimeout();
     hoverTimeoutRef.current = window.setTimeout(() => {
+      hoveredAnchorRef.current = null;
       setHoveredEvent(null);
       setHoverPosition(null);
-    }, 120);
+    }, 100);
   }, []);
 
   useEffect(() => {
     return () => clearHoverTimeout();
   }, []);
+
+  useEffect(() => {
+    if (!hoveredEvent) {
+      return;
+    }
+
+    const syncHoverPosition = () => {
+      const anchor = hoveredAnchorRef.current;
+      if (!anchor || !anchor.isConnected) {
+        hoveredAnchorRef.current = null;
+        setHoveredEvent(null);
+        setHoverPosition(null);
+        return;
+      }
+
+      setHoverPosition(getHoverPosition(anchor));
+    };
+
+    const handleViewportChange = () => {
+      window.requestAnimationFrame(syncHoverPosition);
+    };
+
+    window.addEventListener("scroll", handleViewportChange, true);
+    window.addEventListener("resize", handleViewportChange);
+
+    return () => {
+      window.removeEventListener("scroll", handleViewportChange, true);
+      window.removeEventListener("resize", handleViewportChange);
+    };
+  }, [getHoverPosition, hoveredEvent]);
+
+  useEffect(() => {
+    if (!hoveredEvent) {
+      return;
+    }
+
+    const maxDistance = 140;
+
+    const distanceFromRect = (x: number, y: number, rect: DOMRect) => {
+      const dx = Math.max(rect.left - x, 0, x - rect.right);
+      const dy = Math.max(rect.top - y, 0, y - rect.bottom);
+      return Math.hypot(dx, dy);
+    };
+
+    const handleMouseMove = (event: MouseEvent) => {
+      const anchor = hoveredAnchorRef.current;
+      const card = hoverCardRef.current;
+      if (!anchor || !card) {
+        return;
+      }
+
+      const x = event.clientX;
+      const y = event.clientY;
+      const anchorDistance = distanceFromRect(x, y, anchor.getBoundingClientRect());
+      const cardDistance = distanceFromRect(x, y, card.getBoundingClientRect());
+
+      if (anchorDistance > maxDistance && cardDistance > maxDistance) {
+        clearHoverTimeout();
+        hoveredAnchorRef.current = null;
+        setHoveredEvent(null);
+        setHoverPosition(null);
+      }
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, [hoveredEvent]);
 
   const CalendarEventContent = ({ event }: { event: CalendarEvent }) => (
     <div
@@ -363,6 +521,21 @@ export default function CalendarPage() {
       <span className={`calendar-event-title calendar-event-title--${view}`}>{getEventDisplayTitle(event)}</span>
     </div>
   );
+
+  const CalendarHeaderCell = ({ date: headerDate, label }: CalendarHeaderProps) => {
+    const headerClasses =
+      headerDate && view === "week"
+        ? [
+            "calendar-header-cell",
+            startOfDay(headerDate).getTime() < startOfDay(now).getTime() ? "calendar-header-past" : "",
+            isToday(headerDate) ? "calendar-header-today" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")
+        : "calendar-header-cell";
+
+    return <div className={headerClasses}>{label}</div>;
+  };
 
   if (loading) {
     return (
@@ -393,7 +566,10 @@ export default function CalendarPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="bg-white rounded-lg p-4" style={{ height: "600px" }}>
+              <div
+                className="relative rounded-lg bg-white p-4"
+                style={{ height: "600px" }}
+              >
                 {view === "agenda" ? (
                   <div className="flex h-full flex-col">
                     <CalendarToolbar
@@ -404,8 +580,12 @@ export default function CalendarPage() {
                     />
                     <div className="flex-1 overflow-auto rounded-2xl border border-border">
                       {agendaEvents.length === 0 ? (
-                        <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                          Nema termina u ovom periodu.
+                        <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center">
+                          <CalendarIcon className="h-10 w-10 text-muted-foreground/30" />
+                          <p className="text-sm font-medium text-foreground">Nemate nadolazećih termina.</p>
+                          <p className="text-sm text-muted-foreground">
+                            Kada dogovorite novi susret, pojavit će se ovdje u agendi.
+                          </p>
                         </div>
                       ) : (
                         <div className="grid grid-cols-[1.05fr_0.8fr_1.4fr] border-b border-border/80 bg-muted/30 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -449,6 +629,10 @@ export default function CalendarPage() {
                     onSelectEvent={handleSelectEvent}
                     popup
                     eventPropGetter={eventStyleGetter}
+                    dayPropGetter={dayPropGetter}
+                    slotPropGetter={slotPropGetter}
+                    min={new Date(0, 0, 0, 8, 0, 0)}
+                    max={new Date(0, 0, 0, 16, 0, 0)}
                     messages={{
                       next: "Sljedeći",
                       previous: "Prethodni",
@@ -465,6 +649,7 @@ export default function CalendarPage() {
                     }}
                     components={{
                       event: CalendarEventContent,
+                      header: CalendarHeaderCell,
                       toolbar: (props: ToolbarProps<CalendarEvent, object>) => (
                         <CalendarToolbar
                           view={props.view}
@@ -477,6 +662,7 @@ export default function CalendarPage() {
                     culture="hr"
                   />
                 )}
+
               </div>
             </CardContent>
           </Card>
@@ -499,6 +685,19 @@ export default function CalendarPage() {
             <CardContent>
               {selectedEvent ? (
                 <div className="space-y-4">
+                  {selectedEventIsPast && (
+                    <div className="rounded-xl border border-slate-200 bg-slate-50/90 p-4">
+                      <div className="flex items-start gap-2">
+                        <Info className="mt-0.5 h-4 w-4 text-slate-600" />
+                        <div>
+                          <p className="text-sm font-medium text-slate-900">Ovaj termin je završen</p>
+                          <p className="mt-1 text-sm text-slate-700">
+                            Termin je ostao u kalendaru radi pregleda povijesti. Detalji su informativni, a pridruživanje sastanku više nije dostupno.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   <div>
                     <div className="flex items-center gap-2 mb-2">
                       <User className="w-4 h-4 text-muted-foreground" />
@@ -568,7 +767,7 @@ export default function CalendarPage() {
                     </div>
                   )}
 
-                  {selectedEvent.resource.conference_link && (
+                  {selectedEvent.resource.conference_link && !selectedEventIsPast && (
                     <div className="space-y-3 rounded-xl border border-primary/15 bg-primary/5 p-4">
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-wide text-primary">Google Meet</p>
@@ -604,68 +803,73 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {hoveredEvent && hoverPosition ? (
-        <div
-          className="fixed z-50 w-[320px] rounded-2xl border border-border bg-card/98 p-4 shadow-2xl supports-[backdrop-filter]:backdrop-blur-md"
-          style={{ top: hoverPosition.top, left: hoverPosition.left }}
-          onMouseEnter={clearHoverTimeout}
-          onMouseLeave={handleEventMouseLeave}
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-                Zakazani susret
-              </p>
-              <h3 className="mt-1 text-base font-semibold text-foreground">
-                {getEventTitle(hoveredEvent)}
-              </h3>
-            </div>
-            <Badge variant="secondary">{getStatusLabel(hoveredEvent.resource.status)}</Badge>
-          </div>
-
-          <div className="mt-4 space-y-3 text-sm">
-            <div className="flex items-start gap-2 text-muted-foreground">
-              <Clock className="mt-0.5 h-4 w-4 text-primary" />
-              <div>
-                <p className="text-foreground">
-                  {format(hoveredEvent.start, "PPP", { locale: hr })}
-                </p>
-                <p>
-                  {format(hoveredEvent.start, "HH:mm")} - {format(hoveredEvent.end, "HH:mm")}
-                </p>
+      {typeof document !== "undefined" && hoveredEvent && hoverPosition
+        ? createPortal(
+            <div
+              ref={hoverCardRef}
+              className="pointer-events-auto fixed z-50 w-[320px] rounded-2xl border border-border bg-card/98 p-4 shadow-2xl supports-[backdrop-filter]:backdrop-blur-md"
+              style={{ top: hoverPosition.top, left: hoverPosition.left }}
+              onMouseEnter={clearHoverTimeout}
+              onMouseLeave={handleEventMouseLeave}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+                    Zakazani susret
+                  </p>
+                  <h3 className="mt-1 text-base font-semibold text-foreground">
+                    {getEventTitle(hoveredEvent)}
+                  </h3>
+                </div>
+                <Badge variant="secondary">{getStatusLabel(hoveredEvent.resource.status)}</Badge>
               </div>
-            </div>
 
-            <div className="flex items-start gap-2 text-muted-foreground">
-              <User className="mt-0.5 h-4 w-4 text-primary" />
-              <div>
-                <p className="text-foreground">
-                  {hoveredEvent.resource.caretaker.first_name} {hoveredEvent.resource.caretaker.last_name}
-                </p>
-                <p>Pogledaj profil ili detalje termina.</p>
+              <div className="mt-4 space-y-3 text-sm">
+                <div className="flex items-start gap-2 text-muted-foreground">
+                  <Clock className="mt-0.5 h-4 w-4 text-primary" />
+                  <div>
+                    <p className="text-foreground">
+                      {format(hoveredEvent.start, "PPP", { locale: hr })}
+                    </p>
+                    <p>
+                      {format(hoveredEvent.start, "HH:mm")} - {format(hoveredEvent.end, "HH:mm")}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2 text-muted-foreground">
+                  <User className="mt-0.5 h-4 w-4 text-primary" />
+                  <div>
+                    <p className="text-foreground">
+                      {hoveredEvent.resource.caretaker.first_name} {hoveredEvent.resource.caretaker.last_name}
+                    </p>
+                    <p>Pogledaj profil ili detalje termina.</p>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button asChild size="sm" variant="outline">
-              <Link href={`/carefree/caretaker/${hoveredEvent.resource.caretaker.user_id}`}>
-                Profil psihologa
-              </Link>
-            </Button>
-            {hoveredEvent.resource.conference_link ? (
-              <Button
-                size="sm"
-                className="gap-2"
-                onClick={() => window.open(hoveredEvent.resource.conference_link, "_blank")}
-              >
-                <Video className="h-4 w-4" />
-                Meet link
-              </Button>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button asChild size="sm" variant="outline">
+                  <Link href={`/carefree/caretaker/${hoveredEvent.resource.caretaker.user_id}`}>
+                    Profil psihologa
+                  </Link>
+                </Button>
+                {hoveredEvent.resource.conference_link && !hoveredEventIsPast ? (
+                  <Button
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => window.open(hoveredEvent.resource.conference_link, "_blank")}
+                  >
+                    <Video className="h-4 w-4" />
+                    Meet link
+                  </Button>
+                ) : null}
+              </div>
+            </div>,
+            document.body
+          )
+        : null}
+
     </div>
   );
 }

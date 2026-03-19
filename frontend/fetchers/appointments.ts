@@ -133,7 +133,7 @@ export async function getCaretakerAppointments(): Promise<Appointment[]> {
  */
 export async function getCaretakerSlots(
   caretakerId: number,
-  days: number = 3
+  days: number = 14
 ): Promise<Slot[]> {
   const url = `${BACKEND_API}/api/appointments/caretaker/slots/?caretaker_id=${caretakerId}&days=${days}`;
   return fetcher(url);

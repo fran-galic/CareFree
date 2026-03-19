@@ -180,6 +180,11 @@ export function AppointmentRequestCard({ request, onStatusChange }: AppointmentR
                     Google Meet link se još priprema i pojavit će se u kalendaru čim sinkronizacija završi.
                   </p>
                 ) : null}
+                {request.appointment_status === "confirmed_sync_failed" ? (
+                  <p className="text-sm text-red-700">
+                    Termin je potvrđen, ali Google Meet link trenutno nije generiran. Termin je i dalje vidljiv u kalendaru.
+                  </p>
+                ) : null}
                 {request.appointment_conference_link ? (
                   <div className="rounded-lg border border-primary/15 bg-primary/5 p-3">
                     <p className="text-xs font-semibold uppercase tracking-wide text-primary">Google Meet</p>
