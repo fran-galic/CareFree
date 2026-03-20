@@ -4,7 +4,9 @@ Current state
 - App is in late polish / pre-deploy phase.
 - Core booking flow, psychologist/student dashboards, Google Calendar integration, and most UX polish are implemented.
 - Calendar and availability UX are now more tightly constrained to a shared 2-week scheduling window.
+- Working-hours handling is now aligned more consistently across booking, availability, and both in-app calendars.
 - Registration / onboarding flow is more consistent end-to-end and now returns users to login after successful account activation.
+- Student search UX is now more stable during first load and no longer briefly falls into an empty/error-looking state before psychologist data arrives.
 - Remaining work is mostly:
   - final testing
   - a few smaller fixes/additions
@@ -108,12 +110,15 @@ Student calendar status
   - better event titles / shortening behavior
   - explicit Meet status messaging
   - dedicated Google Meet block when link exists
+  - working hours aligned to `08:00-18:00`
 - Calendar navigation is now clamped to the current + next week window instead of allowing free browsing far outside the active scheduling range.
 - A shared frontend helper now centralizes calendar window logic:
   - `frontend/lib/calendar.ts`
 - Calendar event layout was polished through:
   - `frontend/app/carefree/calendar/page.tsx`
   - `frontend/app/globals.css`
+- Student calendar event chips were compacted slightly so the longer day range still fits cleanly in week/day views.
+- Student calendar still supports click-to-open details in the side panel, and hover preview remains available for quick inspection.
 
 Psychologist-side changes completed
 - Caretaker / psychologist visual system was redesigned into a calmer teal-based direction.
@@ -167,6 +172,28 @@ Avatar / image handling improvements
   - public psychologist profile
   - search cards
   - recommendations / messages areas
+- Psychologist image handling was further hardened after local demo-data work:
+  - backend serializer now builds absolute image URLs for local media files
+  - frontend avatar component also normalizes relative `/media/...` paths against backend base URL as a fallback
+- This fixed the issue where demo or uploaded psychologist images were present in backend media but still did not render correctly on frontend pages running on another port.
+
+Student search / listing updates
+- Search page now keeps a fair randomized ordering of approved psychologists through a stable `seed` query param across pagination.
+- Page size is currently:
+  - `6`
+- Search cards now show at most:
+  - `4` category chips
+  and collapse the remainder into a compact `+N` chip.
+- Previous / next pagination now smooth-scrolls to the top of the results section instead of jumping to the top of the whole page.
+- Search first-load behavior was improved:
+  - before seed/query initialization finishes, the page now shows a proper loading spinner
+  - search route `Suspense` fallback was also upgraded from plain text loading into a real loader
+- Relevant files:
+  - `frontend/app/carefree/search/SearchPageClient.tsx`
+  - `frontend/app/carefree/search/page.tsx`
+  - `frontend/fetchers/users.ts`
+  - `backend/users/views.py`
+  - `backend/users/serializers.py`
 
 Appointment request handling completed
 - Psychologist request tabs now make more sense:
@@ -193,7 +220,10 @@ Psychologist calendar status
   - shortened names where useful
   - full name on day view
   - explicit Meet state / link handling in details panel
+  - working hours aligned to `08:00-18:00`
 - Just like the student calendar, navigation is now limited to the active 2-week scheduling window.
+- Hover preview cards were added on event hover so psychologist calendar behavior now matches the student calendar more closely.
+- Calendar event chips / slot density were compacted slightly to keep the expanded hour range readable.
 
 Availability / slot-setting status
 - Caretaker availability grid (`frontend/app/carefree/dostupnost/page.tsx`) is now explicitly based on the same shared 2-week calendar window helper as the booking calendars.
@@ -202,6 +232,12 @@ Availability / slot-setting status
   - caretaker slot setup
   - student slot browsing
   - in-app calendar navigation
+- The slot-setting UI no longer shows the full 14-day wall at once.
+- Instead, it now shows a 1-week view with arrow navigation between:
+  - current week
+  - next week
+- Slot-setting working hours are now aligned to `08:00-18:00`.
+- Slot cells were made a bit more compact so the longer working day still fits cleanly.
 
 Booking page / request UX updates
 - Public caretaker page (`/carefree/caretaker/[id]`) was further cleaned up after the previous summary.
@@ -212,7 +248,21 @@ Booking page / request UX updates
 - Week switching on the booking page is now intentionally constrained to:
   - this week
   - next week
+- Booking slot cards on the public caretaker page were compacted slightly so the denser daily schedule remains readable after extending working hours.
 - Privacy / safety / expectation-setting copy on the caretaker page is clearer than before.
+
+Working-hours alignment
+- Shared frontend constants now define standard working hours in:
+  - `frontend/lib/calendar.ts`
+- Current intended standard range is:
+  - `08:00-18:00`
+- Backend caretaker slot generation was aligned with the same range in:
+  - `backend/appointments/services.py`
+- Frontend views aligned to that range include:
+  - student in-app calendar
+  - psychologist in-app calendar
+  - caretaker availability grid
+  - public caretaker booking page
 
 Auth / onboarding flow updates
 - Account completion flow now consistently redirects users back to login after successful registration instead of leaving them in an ambiguous authenticated state.
@@ -230,6 +280,27 @@ Local reset / utility work completed
 - Default local superuser credentials after reset script:
   - email: `admin@carefree.com`
   - password: `admin123`
+- Demo psychologist seeding was also upgraded in:
+  - `backend/accounts/management/commands/seed_demo_caretakers.py`
+  - `scripts/seed_demo_caretakers.sh`
+  - `scripts/LOCAL_SETUP_AND_SEEDING.md`
+- Current demo-seed behavior:
+  - uses demo profile images from `demo_profiles/`
+  - expects file prefixes:
+    - `m_` for male profiles
+    - `w_` for female profiles
+  - assigns Croatian first names consistent with image sex prefix
+  - keeps more realistic psychologist descriptions
+  - seeds availability for the current and next week for all demo psychologists
+  - removes stale demo users that no longer have a matching image file
+  - no longer hard-fails if the old demo PDF is missing; it now falls back to a generated placeholder PDF for CV/diploma/certificate records
+- Current default demo psychologist password:
+  - `DemoPsiholog123!`
+- Local demo state after latest reseed:
+  - `21` demo psychologists total
+  - `13` female
+  - `8` male
+  - all have future availability
 
 Current important caveats
 - If Google Meet suddenly stops generating again after local DB reset, first suspect missing `SystemGoogleCredential`.

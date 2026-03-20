@@ -677,7 +677,7 @@ export default function AvailabilityPage() {
                     </Badge>
                   </div>
 
-                  {selectedEvent.resource.status === "confirmed_pending_sync" && !selectedEvent.resource.conference_link && (
+                  {selectedEvent.resource.status === "confirmed_pending_sync" && !selectedEvent.resource.conference_link && !selectedEventIsPast && (
                     <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-4">
                       <div className="flex items-start gap-2">
                         <Info className="mt-0.5 h-4 w-4 text-amber-700" />
@@ -691,7 +691,7 @@ export default function AvailabilityPage() {
                     </div>
                   )}
 
-                  {selectedEvent.resource.status === "confirmed_sync_failed" && !selectedEvent.resource.conference_link && (
+                  {selectedEvent.resource.status === "confirmed_sync_failed" && !selectedEvent.resource.conference_link && !selectedEventIsPast && (
                     <div className="rounded-xl border border-red-200 bg-red-50/80 p-4">
                       <div className="flex items-start gap-2">
                         <AlertTriangle className="mt-0.5 h-4 w-4 text-red-700" />

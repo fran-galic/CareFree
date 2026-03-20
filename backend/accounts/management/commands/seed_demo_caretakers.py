@@ -16,10 +16,13 @@ from accounts.models import Caretaker, CaretakerCV, Certificate, Diploma, HelpCa
 from appointments.models import AvailabilitySlot
 
 
-FIRST_NAMES = [
-    "Ana", "Petra", "Iva", "Marija", "Katarina", "Lucija", "Ivana", "Matea",
-    "Tea", "Nika", "Tena", "Dora", "Ema", "Sara", "Lea", "Filip", "Ivan",
-    "Luka", "Marko", "Josip", "Karlo", "Matej", "Tin",
+FEMALE_FIRST_NAMES = [
+    "Ana", "Petra", "Iva", "Marija", "Katarina", "Lucija", "Ivana",
+    "Matea", "Tea", "Nika", "Tena", "Dora", "Ema", "Sara", "Lea",
+]
+
+MALE_FIRST_NAMES = [
+    "Filip", "Ivan", "Luka", "Marko", "Josip", "Karlo", "Matej", "Tin", "Domagoj", "Ante",
 ]
 
 LAST_NAMES = [
@@ -29,13 +32,13 @@ LAST_NAMES = [
 ]
 
 ABOUT_ME_OPTIONS = [
-    "Radim sa studentima koji prolaze kroz anksioznost, akademski pritisak i osjećaj preopterećenosti. Fokus mi je na mirnom, strukturiranom razgovoru i konkretnim koracima koji pomažu vratiti osjećaj kontrole.",
-    "Posebno me zanimaju teme samopouzdanja, perfekcionizma i odnosa prema vlastitim očekivanjima. U radu nastojim stvoriti siguran prostor u kojem student može bez pritiska govoriti o onome što ga muči.",
-    "Imam iskustvo u savjetovanju mladih odraslih osoba koje se nose s promjenama, usamljenosti i krizama motivacije. Važno mi je da razgovor bude topao, jasan i praktično koristan.",
-    "Najčešće radim s temama stresa, emocionalne iscrpljenosti i poteškoća u organizaciji obaveza. Volim kombinirati podršku, psihoedukaciju i male izvedive korake između susreta.",
-    "U radu sam smirena, direktna i usmjerena na to da osoba osjeti kako nije sama u onome što prolazi. Bliske su mi teme odnosa, granica, samopoštovanja i prilagodbe na nove životne faze.",
-    "Studentima najčešće pomažem kada se osjećaju blokirano, izgubljeno ili preopterećeno. Zajedno radimo na razumijevanju obrasca, regulaciji stresa i traženju održivog ritma.",
-    "Volim raditi s osobama koje osjećaju unutarnji pritisak, strah od neuspjeha ili poteškoće u donošenju odluka. Moj pristup je podržavajući, ali i dovoljno strukturiran da razgovor vodi prema promjeni.",
+    "U radu sa studentima nastojim ponuditi siguran, smiren i povjerljiv prostor u kojem je moguce otvoreno govoriti o onome sto opterecuje, bez pritiska i bez osjecaja da se sve mora odmah rijesiti.",
+    "Vazno mi je da se student tijekom susreta osjeca saslusano i razumijeno. Razgovor vodim mirno i strukturirano, s fokusom na ono sto osobi u tom trenutku moze donijeti vise jasnoce, olaksanja i oslonca.",
+    "U savjetovanju mi je cilj pomoci studentu da bolje razumije vlastite obrasce, emocije i izvore pritiska, te da kroz razgovor pronade odrziviji i sigurniji nacin nosenja s onim kroz sto prolazi.",
+    "Pristupam radu profesionalno, toplo i nenametljivo. Posebno mi je vazno da susret ne ostane samo na razgovoru, nego da student iz njega ponese veci osjecaj stabilnosti, usmjerenja i povjerenja u vlastite kapacitete.",
+    "Studentima nastojim pruziti prostor u kojem mogu stati, predahnuti i jasnije sagledati ono sto ih opterecuje. U radu njegujem strpljenje, postovanje i tempo koji je prilagoden osobi s kojom radim.",
+    "Vjerujem da kvalitetan terapijski odnos pocinje osjecajem sigurnosti i prihvacenosti. Zato mi je vazno graditi suradnju u kojoj student moze iskreno govoriti o svojim brigama, dilemama i unutarnjem pritisku.",
+    "U radu kombiniram razumijevanje, jasnu strukturu i prakticnu usmjerenost. Cilj mi je da student kroz susrete dobije vise unutarnje jasnoce, bolju emocionalnu regulaciju i osjecaj da nije sam u onome sto prozivljava.",
 ]
 
 FOCUS_AREAS = [
@@ -51,11 +54,10 @@ FOCUS_AREAS = [
     "organizacija vremena i prokrastinacija",
 ]
 
-DEGREE_TITLES = [
-    "mag. psych.",
-    "univ. mag. psych.",
-    "magistra psihologije",
-]
+DEGREE_TITLES_BY_SEX = {
+    "F": ["mag. psych.", "univ. mag. psych.", "magistra psihologije"],
+    "M": ["mag. psych.", "univ. mag. psych.", "magistar psihologije"],
+}
 
 CERTIFICATE_NAMES = [
     "uvod u kognitivno-bihevioralne tehnike",
@@ -64,6 +66,54 @@ CERTIFICATE_NAMES = [
     "emocionalna regulacija i rad sa stresom",
     "komunikacijske i relacijske vještine u savjetovanju",
 ]
+
+SPECIAL_EXPERIENCE_YEARS = {
+    "m_5.jpg": 17,
+    "w_2.jpg": 15,
+    "w_9.jpg": 18,
+    "w_10.jpg": 16,
+}
+
+FALLBACK_PDF_BYTES = b"""%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 97 >>
+stream
+BT
+/F1 18 Tf
+72 760 Td
+(CareFree Demo Dokument) Tj
+0 -28 Td
+/F1 11 Tf
+(Automatski generirani placeholder za lokalni seed.) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000010 00000 n 
+0000000063 00000 n 
+0000000122 00000 n 
+0000000248 00000 n 
+0000000396 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+466
+%%EOF
+"""
 
 
 class Command(BaseCommand):
@@ -86,10 +136,14 @@ class Command(BaseCommand):
 
         image_paths = sorted(
             path for path in demo_dir.iterdir()
-            if path.is_file() and path.suffix.lower() in {".jpg", ".jpeg", ".png"}
+            if path.is_file()
+            and path.suffix.lower() in {".jpg", ".jpeg", ".png"}
+            and path.name.lower().startswith(("m_", "w_"))
         )
         if not image_paths:
-            raise CommandError(f"No demo images found in {demo_dir}")
+            raise CommandError(f"No prefixed demo images found in {demo_dir}. Expected files like m_1.jpg or w_1.jpg.")
+
+        image_paths = sorted(image_paths, key=self._image_sort_key)
 
         count = options["count"] or len(image_paths)
         if count <= 0:
@@ -100,10 +154,6 @@ class Command(BaseCommand):
             ))
             count = len(image_paths)
 
-        pdf_path = demo_dir / "moguce_teme_za_projekt.pdf"
-        if not pdf_path.exists():
-            raise CommandError(f"Missing mock PDF file: {pdf_path}")
-
         call_command("seed_help_categories")
         leaf_categories = list(HelpCategory.objects.filter(parent__isnull=False).order_by("id"))
         root_categories = list(HelpCategory.objects.filter(parent__isnull=True).order_by("id"))
@@ -112,21 +162,28 @@ class Command(BaseCommand):
             raise CommandError("No HelpCategory records available even after seeding.")
 
         image_paths = image_paths[:count]
-        pdf_bytes = pdf_path.read_bytes()
+        pdf_path = demo_dir / "moguce_teme_za_projekt.pdf"
+        pdf_bytes = pdf_path.read_bytes() if pdf_path.exists() else FALLBACK_PDF_BYTES
         User = get_user_model()
         tz = ZoneInfo("Europe/Zagreb")
 
         created = 0
         updated = 0
+        generated_emails = []
+        gender_counters = {"F": 0, "M": 0}
 
         for index, image_path in enumerate(image_paths, start=1):
-            first_name = FIRST_NAMES[(index - 1) % len(FIRST_NAMES)]
+            sex = self._sex_from_image_name(image_path.name)
+            gender_counters[sex] += 1
+            first_name = self._first_name_for_sex(sex, gender_counters[sex])
             last_name = LAST_NAMES[(index - 1) % len(LAST_NAMES)]
-            grad_year = 2010 + ((index * 2) % 13)
-            age = max(27, min(58, timezone.now().year - grad_year + 24 + (index % 4)))
-            sex = "F" if index <= 15 else "M"
+            experience_years = self._experience_years_for_image(image_path.name, index)
+            current_year = timezone.now().year
+            grad_year = current_year - experience_years
+            age = max(31, min(58, experience_years + 24 + (index % 5)))
             username = f"demo-caretaker-{index:02d}-{slugify(first_name)}-{slugify(last_name)}"
             email = f"{slugify(first_name)}.{slugify(last_name)}.{index:02d}@demo.carefree.local"
+            generated_emails.append(email)
 
             user, was_created = User.objects.update_or_create(
                 email=email,
@@ -148,12 +205,8 @@ class Command(BaseCommand):
                 updated += 1
 
             focus = FOCUS_AREAS[(index - 1) % len(FOCUS_AREAS)]
-            degree = DEGREE_TITLES[(index - 1) % len(DEGREE_TITLES)]
-            about_me = (
-                f"{ABOUT_ME_OPTIONS[(index - 1) % len(ABOUT_ME_OPTIONS)]} "
-                f"Područja rada uključuju {focus}. "
-                f"Završio/la sam psihologiju {grad_year}. godine i njegujem topao, profesionalan i nenametljiv pristup."
-            )
+            degree = DEGREE_TITLES_BY_SEX[sex][(index - 1) % len(DEGREE_TITLES_BY_SEX[sex])]
+            about_me = self._build_about_me(index, sex, focus, grad_year)
 
             caretaker, _ = Caretaker.objects.get_or_create(user=user)
             caretaker.tel_num = self._build_phone(index)
@@ -186,13 +239,57 @@ class Command(BaseCommand):
             self.stdout.write(
                 self.style.SUCCESS(
                     f"{'Created' if was_created else 'Updated'} demo caretaker {index:02d}: "
-                    f"{first_name} {last_name} ({email})"
+                    f"{first_name} {last_name} ({email}, {image_path.name})"
                 )
             )
+
+        stale_demo_users = User.objects.filter(email__endswith="@demo.carefree.local").exclude(email__in=generated_emails)
+        stale_count = stale_demo_users.count()
+        if stale_count:
+            stale_demo_users.delete()
+            self.stdout.write(self.style.WARNING(f"Removed {stale_count} stale demo caretaker user(s) without a matching image."))
 
         self.stdout.write("")
         self.stdout.write(self.style.SUCCESS(f"Demo caretaker seeding complete. Created: {created}, updated: {updated}."))
         self.stdout.write(f"Shared password for demo caretakers: {options['password']}")
+
+    def _image_sort_key(self, path: Path):
+        stem = path.stem.lower()
+        prefix = stem[:2]
+        numeric_part = stem[2:]
+        try:
+            number = int(numeric_part)
+        except ValueError:
+            number = 10_000
+        return prefix, number, path.name.lower()
+
+    def _sex_from_image_name(self, filename: str) -> str:
+        lowered = filename.lower()
+        if lowered.startswith("w_"):
+            return "F"
+        if lowered.startswith("m_"):
+            return "M"
+        raise CommandError(f"Unsupported demo image filename: {filename}")
+
+    def _first_name_for_sex(self, sex: str, counter: int) -> str:
+        names = FEMALE_FIRST_NAMES if sex == "F" else MALE_FIRST_NAMES
+        return names[(counter - 1) % len(names)]
+
+    def _build_about_me(self, index: int, sex: str, focus: str, grad_year: int) -> str:
+        completed_studies = "završila" if sex == "F" else "završio"
+        return (
+            f"{ABOUT_ME_OPTIONS[(index - 1) % len(ABOUT_ME_OPTIONS)]} "
+            f"Teme s kojima najčešće radim uključuju {focus}. "
+            f"Psihologiju sam {completed_studies} {grad_year}. godine, a u radu njegujem profesionalan, smiren i nenametljiv pristup."
+        )
+
+    def _experience_years_for_image(self, filename: str, index: int) -> int:
+        special_value = SPECIAL_EXPERIENCE_YEARS.get(filename.lower())
+        if special_value is not None:
+            return special_value
+
+        baseline_years = [8, 9, 10, 11, 12, 13, 14]
+        return baseline_years[(index - 1) % len(baseline_years)]
 
     def _build_phone(self, index: int) -> str:
         prefixes = ["91", "92", "95", "97", "98", "99"]
@@ -242,34 +339,31 @@ class Command(BaseCommand):
     def _replace_availability(self, caretaker: Caretaker, index: int, tz: ZoneInfo):
         now_local = timezone.now().astimezone(tz)
         start_day = now_local.date()
+        end_day = start_day + timedelta(days=(13 - start_day.weekday()) % 7 + 7)
         future_start = timezone.now()
         caretaker.availability_slots.filter(start__gte=future_start).delete()
 
-        preferred_days = [
-            [0, 2, 4],
-            [1, 3, 4],
-            [0, 1, 3],
-            [2, 4, 5],
-            [0, 2, 3],
-        ][(index - 1) % 5]
         hour_sets = [
-            [9, 10, 14, 15],
-            [10, 11, 16, 17],
-            [8, 9, 13, 14],
-            [11, 12, 17, 18],
-            [9, 13, 15, 18],
+            [8, 9, 13, 14, 16],
+            [9, 10, 14, 15, 17],
+            [8, 10, 12, 15, 16],
+            [9, 11, 13, 16, 17],
+            [8, 9, 12, 14, 17],
         ][(index - 1) % 5]
 
-        for day_offset in range(14):
+        total_days = (end_day - start_day).days + 1
+
+        for day_offset in range(total_days):
             current_day = start_day + timedelta(days=day_offset)
-            if current_day.weekday() not in preferred_days:
+            weekday = current_day.weekday()
+            if weekday == 6:
                 continue
 
             daily_hours = hour_sets[:]
-            if (day_offset + index) % 4 == 0:
-                daily_hours = daily_hours[:-1]
-            if current_day.weekday() == 5:
+            if weekday == 5:
                 daily_hours = daily_hours[:2]
+            elif (day_offset + index) % 3 == 0:
+                daily_hours = daily_hours[:-1]
 
             for hour in daily_hours:
                 local_start = datetime(
@@ -280,6 +374,8 @@ class Command(BaseCommand):
                     0,
                     tzinfo=tz,
                 )
+                if local_start <= now_local:
+                    continue
                 utc_start = local_start.astimezone(ZoneInfo("UTC"))
                 utc_end = utc_start + timedelta(hours=1)
                 AvailabilitySlot.objects.update_or_create(

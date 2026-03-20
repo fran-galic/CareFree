@@ -51,6 +51,8 @@ export function AppointmentRequestCard({ request, onStatusChange }: AppointmentR
   };
 
   const { date, time } = formatDateTime(request.requested_start);
+  const appointmentEnd = new Date(request.requested_end);
+  const isPastAppointment = appointmentEnd.getTime() < Date.now();
 
   const handleApprove = async () => {
     setIsApproving(true);
@@ -175,17 +177,22 @@ export function AppointmentRequestCard({ request, onStatusChange }: AppointmentR
                 <p className="text-sm text-muted-foreground">
                   Zahtjev je prihvaćen i termin je kreiran. Daljnji detalji nalaze se u kalendaru.
                 </p>
-                {request.appointment_status === "confirmed_pending_sync" ? (
+                {isPastAppointment ? (
+                  <p className="text-sm text-slate-600">
+                    Ovaj termin je prošao i prikazuje se samo kao dio povijesti zahtjeva.
+                  </p>
+                ) : null}
+                {request.appointment_status === "confirmed_pending_sync" && !isPastAppointment ? (
                   <p className="text-sm text-amber-700">
                     Google Meet link se još priprema i pojavit će se u kalendaru čim sinkronizacija završi.
                   </p>
                 ) : null}
-                {request.appointment_status === "confirmed_sync_failed" ? (
+                {request.appointment_status === "confirmed_sync_failed" && !isPastAppointment ? (
                   <p className="text-sm text-red-700">
                     Termin je potvrđen, ali Google Meet link trenutno nije generiran. Termin je i dalje vidljiv u kalendaru.
                   </p>
                 ) : null}
-                {request.appointment_conference_link ? (
+                {request.appointment_conference_link && !isPastAppointment ? (
                   <div className="rounded-lg border border-primary/15 bg-primary/5 p-3">
                     <p className="text-xs font-semibold uppercase tracking-wide text-primary">Google Meet</p>
                     <p className="mt-1 break-all text-sm text-foreground">{request.appointment_conference_link}</p>
@@ -264,7 +271,7 @@ export function AppointmentRequestCard({ request, onStatusChange }: AppointmentR
         </CardFooter>
       )}
 
-      {request.status === "accepted" && request.appointment_conference_link && (
+      {request.status === "accepted" && request.appointment_conference_link && !isPastAppointment && (
         <CardFooter>
           <Button
             variant="outline"

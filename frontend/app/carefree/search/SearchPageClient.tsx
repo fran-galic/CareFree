@@ -1,7 +1,7 @@
 "use client";
 
 import Link from 'next/link';
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import useSWR from "swr";
 import SearchBar from "@/components/search-bar";
@@ -14,6 +14,10 @@ import { Filter, Briefcase, Clock, ChevronRight, Stethoscope, ChevronLeft, Arrow
 import { Button } from '@/components/ui/button';
 import { PersistentAvatar } from '@/components/persistent-avatar-image';
 
+function createSearchSeed() {
+  return globalThis.crypto.randomUUID();
+}
+
 export default function SearchPageClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -22,18 +26,33 @@ export default function SearchPageClient() {
   const q = searchParams.get("q") ?? "";
   const categoriesParam = searchParams.getAll("categories");
   const currentPage = parseInt(searchParams.get("page") ?? "1");
+  const seedParam = searchParams.get("seed") ?? "";
+  const shouldScrollToResultsRef = useRef(false);
+
+  useEffect(() => {
+    if (seedParam) {
+      return;
+    }
+
+    const current = new URLSearchParams(Array.from(searchParams.entries()));
+    current.set("seed", createSearchSeed());
+    const search = current.toString();
+    router.replace(`${pathname}?${search}`, { scroll: false });
+  }, [pathname, router, searchParams, seedParam]);
 
   const { data: categoriesData } = useSWR('help-categories', getHelpCategories);
   
-  const { data: caretakersData, isLoading } = useSWR(
-    [`search`, q, categoriesParam, currentPage], 
-    ([, query, cats, page]) => searchCaretakers(query, cats, page)
+  const { data: caretakersData, error: searchError, isLoading } = useSWR(
+    seedParam ? [`search`, q, categoriesParam, currentPage, seedParam] : null,
+    ([, query, cats, page, seed]) => searchCaretakers(query, cats, page, seed)
   );
 
   const caretakerList = caretakersData?.results ?? [];
   const totalCount = caretakersData?.count ?? 0;
-  const pageSize = 20; // Backend vraća 20 po stranici
+  const pageSize = 6;
   const totalPages = Math.ceil(totalCount / pageSize);
+  const isSearchBootstrapping = !seedParam;
+  const isSearchPending = isSearchBootstrapping || isLoading || (!caretakersData && !searchError);
   const sortedCategories = useMemo(() => {
     const categories = categoriesData?.categories ?? [];
     return [...categories].sort((a, b) => {
@@ -48,6 +67,22 @@ export default function SearchPageClient() {
     });
   }, [categoriesData]);
 
+  useEffect(() => {
+    if (!shouldScrollToResultsRef.current || isSearchPending) {
+      return;
+    }
+
+    const section = document.getElementById("search-results-section");
+    if (!section) {
+      return;
+    }
+
+    shouldScrollToResultsRef.current = false;
+    const headerOffset = 96;
+    const top = section.getBoundingClientRect().top + window.scrollY - headerOffset;
+    window.scrollTo({ top, behavior: "smooth" });
+  }, [currentPage, isSearchPending]);
+
   const handleCategoryChange = (slug: string, isChecked: boolean) => {
     const current = new URLSearchParams(Array.from(searchParams.entries()));
     if (isChecked) {
@@ -59,6 +94,7 @@ export default function SearchPageClient() {
     }
     // Reset na prvu stranicu kad se mijenjaju filtri
     current.delete("page");
+    current.set("seed", createSearchSeed());
     const search = current.toString();
     const query = search ? `?${search}` : "";
     router.push(`${pathname}${query}`);
@@ -73,9 +109,8 @@ export default function SearchPageClient() {
     }
     const search = current.toString();
     const query = search ? `?${search}` : "";
-    router.push(`${pathname}${query}`);
-    // Scroll na vrh stranice
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    shouldScrollToResultsRef.current = true;
+    router.push(`${pathname}${query}`, { scroll: false });
   };
 
   const handleJumpToResults = () => {
@@ -186,10 +221,16 @@ export default function SearchPageClient() {
 
         {/* LISTA REZULTATA */}
         <div className="lg:col-span-7">
-            {isLoading ? (
+            {isSearchPending ? (
                 <div className="flex flex-col items-center justify-center py-20 space-y-4">
                     <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
                     <p className="text-muted-foreground">Tražimo CareTakera koji najbolje odgovara vašim potrebama...</p>
+                </div>
+            ) : searchError ? (
+                <div className="text-center py-20 border-2 border-dashed rounded-xl bg-muted/30">
+                    <Stethoscope className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-50" />
+                    <h3 className="text-xl font-semibold text-foreground">Pretraga trenutno nije dostupna</h3>
+                    <p className="text-muted-foreground mt-2">Pokušajte ponovno za nekoliko trenutaka.</p>
                 </div>
             ) : caretakerList.length === 0 ? (
                 <div className="text-center py-20 border-2 border-dashed rounded-xl bg-muted/30">
@@ -253,7 +294,7 @@ export default function SearchPageClient() {
 
                                         {/* KATEGORIJE - CHIPS */}
                                         <div className="flex flex-wrap gap-2">
-                                            {caretaker.help_categories.slice(0, 5).map((cat) => (
+                                            {caretaker.help_categories.slice(0, 4).map((cat) => (
                                                 <span 
                                                     key={cat} 
                                                     className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-secondary text-secondary-foreground border border-secondary-foreground/10 group-hover:bg-primary/10 group-hover:text-primary group-hover:border-primary/20 transition-colors"
@@ -261,9 +302,9 @@ export default function SearchPageClient() {
                                                     {cat}
                                                 </span>
                                             ))}
-                                            {caretaker.help_categories.length > 5 && (
-                                                <span className="text-xs text-muted-foreground self-center px-2">
-                                                    +{caretaker.help_categories.length - 5} ostalo
+                                            {caretaker.help_categories.length > 4 && (
+                                                <span className="inline-flex items-center rounded-md border border-dashed border-border px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors group-hover:border-primary/20 group-hover:bg-primary/5 group-hover:text-primary">
+                                                    +{caretaker.help_categories.length - 4}
                                                 </span>
                                             )}
                                         </div>
@@ -274,7 +315,7 @@ export default function SearchPageClient() {
                     ))}
 
                     {/* INFO O BROJU REZULTATA (uvijek prikaži) */}
-                    {!isLoading && caretakerList.length > 0 && (
+                    {!isSearchPending && !searchError && caretakerList.length > 0 && (
                         <div className="mt-8 pt-6 border-t">
                             <div className="text-sm text-center text-muted-foreground">
                                 Ukupno pronađeno: <span className="font-semibold text-foreground">{totalCount}</span> {totalCount === 1 ? 'CareTaker' : 'CareTakera'}
@@ -283,7 +324,7 @@ export default function SearchPageClient() {
                     )}
 
                     {/* PAGINATION KONTROLE (samo ako ima više stranica) */}
-                    {!isLoading && caretakerList.length > 0 && totalPages > 1 && (
+                    {!isSearchPending && !searchError && caretakerList.length > 0 && totalPages > 1 && (
                         <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4 pb-2">
                             {/* Info o stranici */}
                             <div className="text-sm text-muted-foreground">
@@ -302,23 +343,6 @@ export default function SearchPageClient() {
                                     <ChevronLeft className="w-4 h-4" />
                                     Prethodna
                                 </Button>
-
-                                {/* Page numbers (opcionalno, prikaži samo ako ima manje od 7 stranica) */}
-                                {totalPages <= 7 && (
-                                    <div className="hidden sm:flex gap-1">
-                                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                                            <Button
-                                                key={page}
-                                                variant={page === currentPage ? "default" : "ghost"}
-                                                size="sm"
-                                                onClick={() => handlePageChange(page)}
-                                                className="w-9"
-                                            >
-                                                {page}
-                                            </Button>
-                                        ))}
-                                    </div>
-                                )}
 
                                 <Button
                                     variant="outline"

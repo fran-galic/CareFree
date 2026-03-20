@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { BACKEND_URL } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
 interface PersistentAvatarProps {
@@ -20,6 +21,22 @@ type CachedAvatarEntry = {
 };
 
 const avatarMemoryCache = new Map<string, CachedAvatarEntry>();
+
+function normalizeAvatarSrc(src: string | null | undefined) {
+  if (!src) {
+    return null;
+  }
+
+  if (/^https?:\/\//i.test(src)) {
+    return src;
+  }
+
+  if (src.startsWith("/")) {
+    return `${BACKEND_URL.replace(/\/$/, "")}${src}`;
+  }
+
+  return src;
+}
 
 function getAssetKey(src: string) {
   return src.split("?")[0] || src;
@@ -47,14 +64,15 @@ function readCachedAvatar(cacheKey: string): CachedAvatarEntry | null {
 }
 
 export function setPersistentAvatarCache(cacheKey: string, src: string | null | undefined) {
-  if (typeof window === "undefined" || !src) {
+  const normalizedSrc = normalizeAvatarSrc(src);
+  if (typeof window === "undefined" || !normalizedSrc) {
     return;
   }
 
   try {
     const entry: CachedAvatarEntry = {
-      src,
-      assetKey: getAssetKey(src),
+      src: normalizedSrc,
+      assetKey: getAssetKey(normalizedSrc),
     };
     avatarMemoryCache.set(cacheKey, entry);
     window.sessionStorage.setItem(cacheKey, JSON.stringify(entry));
@@ -95,11 +113,12 @@ export function PersistentAvatar({
   }, [cacheKey]);
 
   useEffect(() => {
-    if (!src || typeof window === "undefined") {
+    const normalizedSrc = normalizeAvatarSrc(src);
+    if (!normalizedSrc || typeof window === "undefined") {
       return;
     }
 
-    const nextAssetKey = getAssetKey(src);
+    const nextAssetKey = getAssetKey(normalizedSrc);
     const currentAssetKey = cachedEntry?.assetKey;
 
     if (currentAssetKey === nextAssetKey) {
@@ -107,7 +126,7 @@ export function PersistentAvatar({
     }
 
     const entry: CachedAvatarEntry = {
-      src,
+      src: normalizedSrc,
       assetKey: nextAssetKey,
     };
 
@@ -122,20 +141,22 @@ export function PersistentAvatar({
   }, [cacheKey, cachedEntry?.assetKey, src]);
 
   const resolvedSrc = useMemo(() => {
+    const normalizedSrc = normalizeAvatarSrc(src);
     if (imageFailed) {
-      if (src && src !== cachedEntry?.src) {
-        return src;
+      if (normalizedSrc && normalizedSrc !== cachedEntry?.src) {
+        return normalizedSrc;
       }
       return null;
     }
-    return cachedEntry?.src || src || null;
+    return cachedEntry?.src || normalizedSrc || null;
   }, [cachedEntry?.src, imageFailed, src]);
 
   const handleImageError = () => {
-    if (src && cachedEntry?.src && cachedEntry.src !== src) {
+    const normalizedSrc = normalizeAvatarSrc(src);
+    if (normalizedSrc && cachedEntry?.src && cachedEntry.src !== normalizedSrc) {
       const nextEntry: CachedAvatarEntry = {
-        src,
-        assetKey: getAssetKey(src),
+        src: normalizedSrc,
+        assetKey: getAssetKey(normalizedSrc),
       };
       setCachedEntry(nextEntry);
       avatarMemoryCache.set(cacheKey, nextEntry);

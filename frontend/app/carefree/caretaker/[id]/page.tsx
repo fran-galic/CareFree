@@ -17,7 +17,6 @@ import { PersistentAvatar } from "@/components/persistent-avatar-image";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Briefcase, 
   Clock, 
@@ -75,6 +74,15 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isBookingSuccess, setIsBookingSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isBookingUiSettled, setIsBookingUiSettled] = useState(false);
+
+  React.useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      setIsBookingUiSettled(true);
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
 
   // Grupiraj slotove po danima
   const slotsByDay: SlotsByDay[] = React.useMemo(() => {
@@ -356,11 +364,18 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
                   )}
 
                   {slotsLoading && (
-                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
-                      {[1, 2, 3, 4].map(i => (
-                        <div key={i} className="space-y-2">
-                          <Skeleton className="h-10 w-full" />
-                          <Skeleton className="h-32 w-full" />
+                    <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4 xl:grid-cols-7">
+                      {Array.from({ length: 7 }, (_, i) => (
+                        <div key={i} className="space-y-2 rounded-xl border border-border/70 bg-card/80 p-2">
+                          <div className="h-7 w-full rounded-md bg-slate-100" />
+                          <div className="grid grid-cols-1 gap-1.5">
+                            {Array.from({ length: 6 }, (_, slotIndex) => (
+                              <div
+                                key={slotIndex}
+                                className="h-8 w-full rounded-md border border-slate-200 bg-slate-50"
+                              />
+                            ))}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -427,7 +442,7 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
                                 key={slotIdx}
                                 variant={slot.is_available ? "outline" : "ghost"}
                                 disabled={isDisabled}
-                                className={`h-8 w-full px-1.5 text-[11px] ${isPastSlot
+                                className={`h-8 w-full px-1.5 text-[11px] ${isBookingUiSettled ? "transition-colors duration-150" : "transition-none"} ${isPastSlot
                                   ? "border border-slate-200 bg-slate-100 text-slate-400"
                                   : slot.is_available 
                                   ? selectedSlot?.start === slot.start
