@@ -125,6 +125,48 @@ class Appointment(models.Model):
         return f"Appointment({self.caretaker}, {self.start.isoformat()})"
 
 
+class AppointmentFeedback(models.Model):
+    STATUS_SUBMITTED = "submitted"
+    STATUS_DISMISSED = "dismissed"
+
+    STATUS_CHOICES = [
+        (STATUS_SUBMITTED, "Submitted"),
+        (STATUS_DISMISSED, "Dismissed"),
+    ]
+
+    RESPONSE_CALMER = "calmer"
+    RESPONSE_HELPED = "helped"
+    RESPONSE_CLEARER = "clearer"
+    RESPONSE_PROCESSING = "processing"
+
+    RESPONSE_CHOICES = [
+        (RESPONSE_CALMER, "Osjećam se mirnije"),
+        (RESPONSE_HELPED, "Razgovor mi je pomogao"),
+        (RESPONSE_CLEARER, "Dobio/la sam više jasnoće"),
+        (RESPONSE_PROCESSING, "Još razmišljam o svemu"),
+    ]
+
+    appointment = models.OneToOneField(Appointment, related_name="feedback", on_delete=models.CASCADE)
+    student = models.ForeignKey(Student, related_name="appointment_feedback", on_delete=models.CASCADE)
+    caretaker = models.ForeignKey(Caretaker, related_name="appointment_feedback", on_delete=models.CASCADE)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_SUBMITTED)
+    selected_response = models.CharField(max_length=30, choices=RESPONSE_CHOICES, blank=True, null=True)
+    comment = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["caretaker", "status"]), models.Index(fields=["student", "status"])]
+
+    def clean(self):
+        if self.status == self.STATUS_SUBMITTED and not self.selected_response:
+            raise ValidationError("selected_response is required when submitting feedback")
+
+    def __str__(self):
+        return f"AppointmentFeedback({self.appointment_id}, {self.status})"
+
+
 class CalendarEventLog(models.Model):
     OP_CREATE = "create"
     OP_UPDATE = "update"

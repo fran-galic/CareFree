@@ -26,6 +26,15 @@ export interface AppointmentRequest {
   appointment_id?: number | null;
   appointment_status?: "confirmed_pending_sync" | "confirmed" | "confirmed_sync_failed" | "cancelled" | "completed" | null;
   appointment_conference_link?: string | null;
+  appointment_feedback?: AppointmentFeedback | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AppointmentFeedback {
+  status: "submitted" | "dismissed";
+  selected_response?: "calmer" | "helped" | "clearer" | "processing" | null;
+  comment?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -48,6 +57,7 @@ export interface Appointment {
   status: string;
   conference_link?: string;
   duration_minutes: number;
+  feedback?: AppointmentFeedback | null;
 }
 
 export interface Slot {
@@ -74,6 +84,33 @@ export async function getStudentRequests(status?: string): Promise<AppointmentRe
     : `${BACKEND_API}/api/appointments/student/requests/`;
 
   return fetcher(url);
+}
+
+export async function getPendingAppointmentFeedback(): Promise<{ appointment: Appointment | null }> {
+  return fetcher(`${BACKEND_API}/api/appointments/student/feedback/pending/`);
+}
+
+export async function submitAppointmentFeedback(
+  appointmentId: number,
+  data:
+    | { status: "dismissed" }
+    | { status: "submitted"; selected_response: "calmer" | "helped" | "clearer" | "processing"; comment?: string }
+): Promise<AppointmentFeedback> {
+  const response = await fetch(`${BACKEND_API}/api/appointments/${appointmentId}/feedback/`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: "Failed to submit feedback" }));
+    throw new Error(error.detail || "Failed to submit feedback");
+  }
+
+  return response.json();
 }
 
 /**

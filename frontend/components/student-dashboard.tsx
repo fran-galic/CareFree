@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { fetcher } from "@/fetchers/fetcher";
 import { useMemo, useState } from "react";
-import { getStudentRequests, type AppointmentRequest } from "@/fetchers/appointments";
+import { getPendingAppointmentFeedback, getStudentRequests, submitAppointmentFeedback, type AppointmentRequest } from "@/fetchers/appointments";
 import { 
   Card, 
   CardContent, 
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   MessageCircle, 
   BookOpen, 
@@ -26,7 +27,8 @@ import {
   Video,
   Clock3,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  HeartHandshake
 } from "lucide-react";
 
 const BACKEND_API = process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -50,6 +52,13 @@ interface Appointment {
 interface StudentDashboardProps {
   firstName: string;
 }
+
+const FEEDBACK_OPTIONS = [
+  { value: "calmer", label: "Osjećam se mirnije" },
+  { value: "helped", label: "Razgovor mi je pomogao" },
+  { value: "clearer", label: "Dobio/la sam više jasnoće" },
+  { value: "processing", label: "Još razmišljam o svemu" },
+] as const;
 
 function readSeenAppointmentIds(): number[] {
   if (typeof window === "undefined") {
@@ -106,6 +115,18 @@ export function StudentDashboard({ firstName }: StudentDashboardProps) {
       revalidateOnReconnect: false,
     }
   );
+  const {
+    data: pendingFeedbackData,
+    isLoading: pendingFeedbackLoading,
+    mutate: mutatePendingFeedback,
+  } = useSWR(
+    "student-pending-feedback",
+    getPendingAppointmentFeedback,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+    }
+  );
 
   const upcomingAppointments = useMemo(() => {
     return (appointments ?? []).filter((appointment) => new Date(appointment.end).getTime() > dashboardNow);
@@ -114,6 +135,10 @@ export function StudentDashboard({ firstName }: StudentDashboardProps) {
   const itemToShow = upcomingAppointments[0];
   const latestRequest = requests?.[0];
   const isLoading = appointmentsLoading;
+  const pendingFeedbackAppointment = pendingFeedbackData?.appointment ?? null;
+  const [selectedFeedbackResponse, setSelectedFeedbackResponse] = useState<(typeof FEEDBACK_OPTIONS)[number]["value"] | null>(null);
+  const [feedbackComment, setFeedbackComment] = useState("");
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("hr-HR", {
@@ -124,6 +149,11 @@ export function StudentDashboard({ firstName }: StudentDashboardProps) {
   const getRequestStatusCopy = (request: AppointmentRequest) => {
     const caretakerName = `${request.caretaker?.first_name ?? ""} ${request.caretaker?.last_name ?? ""}`.trim();
     const slot = formatDate(request.requested_start);
+    const requestEnd = new Date(request.requested_end).getTime();
+
+    if (requestEnd <= dashboardNow) {
+      return null;
+    }
 
     if (request.status === "pending") {
       return {
@@ -177,8 +207,50 @@ export function StudentDashboard({ firstName }: StudentDashboardProps) {
 
   const latestRequestCopy = latestRequest ? getRequestStatusCopy(latestRequest) : null;
 
+  const handleDismissFeedback = async () => {
+    if (!pendingFeedbackAppointment || isSubmittingFeedback) {
+      return;
+    }
+
+    setIsSubmittingFeedback(true);
+    try {
+      await submitAppointmentFeedback(pendingFeedbackAppointment.id, { status: "dismissed" });
+      setSelectedFeedbackResponse(null);
+      setFeedbackComment("");
+      await mutatePendingFeedback({ appointment: null }, false);
+    } catch (error) {
+      console.error("Greška pri spremanju odluke o feedbacku:", error);
+      alert("Greška pri spremanju odluke. Pokušajte ponovno.");
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
+  };
+
+  const handleSubmitFeedback = async () => {
+    if (!pendingFeedbackAppointment || !selectedFeedbackResponse || isSubmittingFeedback) {
+      return;
+    }
+
+    setIsSubmittingFeedback(true);
+    try {
+      await submitAppointmentFeedback(pendingFeedbackAppointment.id, {
+        status: "submitted",
+        selected_response: selectedFeedbackResponse,
+        comment: feedbackComment.trim(),
+      });
+      setSelectedFeedbackResponse(null);
+      setFeedbackComment("");
+      await mutatePendingFeedback({ appointment: null }, false);
+    } catch (error) {
+      console.error("Greška pri slanju feedbacka:", error);
+      alert("Greška pri slanju povratne informacije. Pokušajte ponovno.");
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
+  };
+
   return (
-    <div className="container mx-auto p-6 max-w-6xl space-y-8 animate-in fade-in duration-500">
+    <div className="container mx-auto max-w-6xl space-y-8 p-6 pb-16 animate-in fade-in duration-500">
       
       {/* 1. POZDRAVNA SEKCIJA */}
       <div className="flex flex-col gap-2">
@@ -227,6 +299,72 @@ export function StudentDashboard({ firstName }: StudentDashboardProps) {
               }`}>
                 {latestRequestCopy.body}
               </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {!pendingFeedbackLoading && pendingFeedbackAppointment && (
+        <Card className="border-primary/20 bg-[linear-gradient(180deg,rgba(231,244,241,0.22)_0%,rgba(255,255,255,1)_100%)]">
+          <CardContent className="space-y-4 p-5">
+            <div className="flex items-start gap-3">
+              <HeartHandshake className="mt-0.5 h-5 w-5 text-primary" />
+              <div className="space-y-1">
+                <p className="font-medium text-primary">Kako ti je sjeo razgovor?</p>
+                <p className="text-sm text-muted-foreground">
+                  Ako želiš, ostavi kratku povratnu informaciju o tome kako si se osjećao/la nakon susreta. To može pomoći psihologu da bolje razumije kako ti je razgovor koristio.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Razgovor: {pendingFeedbackAppointment.caretaker?.first_name} {pendingFeedbackAppointment.caretaker?.last_name} · {formatDate(pendingFeedbackAppointment.start)}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {FEEDBACK_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setSelectedFeedbackResponse(option.value)}
+                  className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                    selectedFeedbackResponse === option.value
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-background text-foreground hover:border-primary/35 hover:bg-primary/5"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                Možeš napisati što ti je bilo korisno ili kako si se osjećao/la nakon razgovora.
+              </label>
+              <Textarea
+                value={feedbackComment}
+                onChange={(e) => setFeedbackComment(e.target.value)}
+                rows={4}
+                placeholder="Npr. osjećam se smirenije, bilo mi je korisno što sam dobio/la jasniji pogled na situaciju..."
+              />
+            </div>
+
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button
+                className="sm:flex-1"
+                disabled={!selectedFeedbackResponse || isSubmittingFeedback}
+                onClick={handleSubmitFeedback}
+              >
+                {isSubmittingFeedback ? "Spremam..." : "Pošalji povratnu informaciju"}
+              </Button>
+              <Button
+                variant="outline"
+                className="sm:flex-1"
+                disabled={isSubmittingFeedback}
+                onClick={handleDismissFeedback}
+              >
+                Preskoči za sada
+              </Button>
             </div>
           </CardContent>
         </Card>

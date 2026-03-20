@@ -211,6 +211,23 @@ export function AppointmentRequestCard({ request, onStatusChange }: AppointmentR
           </div>
         )}
 
+        {request.appointment_feedback ? (
+          <div className="space-y-2 rounded-xl border border-primary/15 bg-primary/5 p-4">
+            <p className="text-sm font-medium text-foreground">Povratna informacija nakon razgovora</p>
+            <p className="text-sm text-primary">
+              {request.appointment_feedback.selected_response === "calmer" && "Student se nakon razgovora osjeća mirnije."}
+              {request.appointment_feedback.selected_response === "helped" && "Student navodi da mu je razgovor pomogao."}
+              {request.appointment_feedback.selected_response === "clearer" && "Student kaže da je nakon razgovora dobio/la više jasnoće."}
+              {request.appointment_feedback.selected_response === "processing" && "Student još razmišlja o razgovoru i dojmovima nakon susreta."}
+            </p>
+            {request.appointment_feedback.comment ? (
+              <p className="whitespace-pre-wrap rounded-lg border border-primary/10 bg-background/80 p-3 text-sm text-foreground/85">
+                {request.appointment_feedback.comment}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
         {/* Forma za odbijanje */}
         {showRejectForm && (
           <div className="space-y-2 pt-2 border-t">
