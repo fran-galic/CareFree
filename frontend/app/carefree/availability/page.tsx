@@ -727,6 +727,23 @@ export default function AvailabilityPage() {
                       </Button>
                     </div>
                   )}
+
+                  {selectedEvent.resource.feedback ? (
+                    <div className="rounded-xl border border-primary/15 bg-primary/5 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-primary">Povratna informacija nakon razgovora</p>
+                      <p className="mt-2 text-sm text-primary">
+                        {selectedEvent.resource.feedback.selected_response === "calmer" && "Student navodi da se nakon razgovora osjeća mirnije."}
+                        {selectedEvent.resource.feedback.selected_response === "helped" && "Student navodi da mu je razgovor pomogao."}
+                        {selectedEvent.resource.feedback.selected_response === "clearer" && "Student kaže da mu je razgovor donio više jasnoće."}
+                        {selectedEvent.resource.feedback.selected_response === "processing" && "Student još razmišlja o razgovoru i dojmovima nakon susreta."}
+                      </p>
+                      {selectedEvent.resource.feedback.comment ? (
+                        <p className="mt-3 whitespace-pre-wrap rounded-lg border border-primary/10 bg-background/80 p-3 text-sm text-foreground/85">
+                          {selectedEvent.resource.feedback.comment}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
               ) : (
                 <div className="text-center text-muted-foreground py-8">

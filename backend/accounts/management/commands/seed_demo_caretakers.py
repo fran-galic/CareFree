@@ -12,8 +12,8 @@ from django.db import transaction
 from django.utils import timezone
 from django.utils.text import slugify
 
-from accounts.models import Caretaker, CaretakerCV, Certificate, Diploma, HelpCategory
-from appointments.models import AvailabilitySlot
+from accounts.models import Caretaker, CaretakerCV, Certificate, Diploma, HelpCategory, Student
+from appointments.models import AvailabilitySlot, AppointmentRequest, Appointment, AppointmentFeedback
 
 
 FEMALE_FIRST_NAMES = [
@@ -126,6 +126,11 @@ class Command(BaseCommand):
             default="DemoPsiholog123!",
             help="Password assigned to all generated demo users.",
         )
+        parser.add_argument(
+            "--student-password",
+            default="DemoStudent123!",
+            help="Password assigned to the generated demo student.",
+        )
 
     @transaction.atomic
     def handle(self, *args, **options):
@@ -171,6 +176,7 @@ class Command(BaseCommand):
         updated = 0
         generated_emails = []
         gender_counters = {"F": 0, "M": 0}
+        seeded_caretakers = []
 
         for index, image_path in enumerate(image_paths, start=1):
             sex = self._sex_from_image_name(image_path.name)
@@ -236,6 +242,8 @@ class Command(BaseCommand):
                 caretaker.is_profile_complete = caretaker.is_complete()
                 caretaker.save(update_fields=["is_profile_complete"])
 
+            seeded_caretakers.append(caretaker)
+
             self.stdout.write(
                 self.style.SUCCESS(
                     f"{'Created' if was_created else 'Updated'} demo caretaker {index:02d}: "
@@ -249,9 +257,14 @@ class Command(BaseCommand):
             stale_demo_users.delete()
             self.stdout.write(self.style.WARNING(f"Removed {stale_count} stale demo caretaker user(s) without a matching image."))
 
+        if seeded_caretakers:
+            demo_student = self._seed_demo_student(User, options["student_password"])
+            self._seed_demo_feedback_examples(demo_student, seeded_caretakers, tz)
+
         self.stdout.write("")
         self.stdout.write(self.style.SUCCESS(f"Demo caretaker seeding complete. Created: {created}, updated: {updated}."))
         self.stdout.write(f"Shared password for demo caretakers: {options['password']}")
+        self.stdout.write(f"Demo student login: demo.student@carefree.local / {options['student_password']}")
 
     def _image_sort_key(self, path: Path):
         stem = path.stem.lower()
@@ -296,6 +309,99 @@ class Command(BaseCommand):
         prefix = prefixes[(index - 1) % len(prefixes)]
         suffix = f"{4100000 + index * 173:07d}"[-7:]
         return f"+385 {prefix} {suffix[:3]} {suffix[3:]}"
+
+    def _seed_demo_student(self, User, password: str):
+        user, _ = User.objects.update_or_create(
+            email="demo.student@carefree.local",
+            defaults={
+                "username": "demo-student",
+                "first_name": "Demo",
+                "last_name": "Student",
+                "age": 22,
+                "sex": "F",
+                "role": "student",
+            },
+        )
+        user.set_password(password)
+        user.save(update_fields=["password"])
+
+        student, _ = Student.objects.update_or_create(
+            user=user,
+            defaults={
+                "studying_at": "FER",
+                "year_of_study": 3,
+                "is_anonymous": True,
+            },
+        )
+        return student
+
+    def _seed_demo_feedback_examples(self, student: Student, caretakers: list[Caretaker], tz: ZoneInfo):
+        if len(caretakers) < 2:
+            return
+
+        AppointmentFeedback.objects.filter(student=student).delete()
+        Appointment.objects.filter(student=student).delete()
+        AppointmentRequest.objects.filter(student=student).delete()
+
+        now_local = timezone.now().astimezone(tz)
+        scenarios = [
+            {
+                "caretaker": caretakers[0],
+                "days_ago": 2,
+                "hour": 14,
+                "message": "Željela bih razgovarati o pritisku oko fakulteta i osjećaju preopterećenosti.",
+                "feedback": None,
+            },
+            {
+                "caretaker": caretakers[1],
+                "days_ago": 6,
+                "hour": 11,
+                "message": "U zadnje vrijeme osjećam dosta napetosti i teško se smirim nakon obaveza.",
+                "feedback": {
+                    "selected_response": AppointmentFeedback.RESPONSE_CALMER,
+                    "comment": "Nakon razgovora osjećam se mirnije i imam jasniji dojam što mi najviše stvara pritisak. Pomoglo mi je što je razgovor bio smiren i što sam dobila nekoliko konkretnih smjernica kako se lakše zaustaviti kad osjetim da me sve preplavljuje.",
+                },
+            },
+        ]
+
+        for scenario in scenarios:
+            start_local = (now_local - timedelta(days=scenario["days_ago"])).replace(
+                hour=scenario["hour"],
+                minute=0,
+                second=0,
+                microsecond=0,
+            )
+            end_local = start_local + timedelta(hours=1)
+            start_utc = start_local.astimezone(ZoneInfo("UTC"))
+            end_utc = end_local.astimezone(ZoneInfo("UTC"))
+
+            request = AppointmentRequest.objects.create(
+                student=student,
+                caretaker=scenario["caretaker"],
+                requested_start=start_utc,
+                requested_end=end_utc,
+                message=scenario["message"],
+                status=AppointmentRequest.STATUS_ACCEPTED,
+            )
+            appointment = Appointment.objects.create(
+                appointment_request=request,
+                caretaker=scenario["caretaker"],
+                student=student,
+                start=start_utc,
+                end=end_utc,
+                duration_minutes=60,
+                status=Appointment.STATUS_COMPLETED,
+            )
+
+            if scenario["feedback"]:
+                AppointmentFeedback.objects.create(
+                    appointment=appointment,
+                    student=student,
+                    caretaker=scenario["caretaker"],
+                    status=AppointmentFeedback.STATUS_SUBMITTED,
+                    selected_response=scenario["feedback"]["selected_response"],
+                    comment=scenario["feedback"]["comment"],
+                )
 
     def _choose_categories(self, categories, index: int):
         count = 2 + (index % 3)

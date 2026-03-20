@@ -789,6 +789,26 @@ export default function CalendarPage() {
                       </Button>
                     </div>
                   )}
+
+                  {selectedEvent.resource.feedback ? (
+                    <div className="rounded-xl border border-primary/15 bg-primary/5 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-primary">Tvoja povratna informacija</p>
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        Ovo vidite samo ti i psiholog, kao kratki podsjetnik na to kako ti je razgovor sjeo.
+                      </p>
+                      <p className="mt-2 text-sm text-primary">
+                        {selectedEvent.resource.feedback.selected_response === "calmer" && "Nakon razgovora označio/la si da se osjećaš mirnije."}
+                        {selectedEvent.resource.feedback.selected_response === "helped" && "Nakon razgovora označio/la si da ti je susret pomogao."}
+                        {selectedEvent.resource.feedback.selected_response === "clearer" && "Nakon razgovora označio/la si da imaš više jasnoće."}
+                        {selectedEvent.resource.feedback.selected_response === "processing" && "Nakon razgovora označio/la si da još razmišljaš o svemu."}
+                      </p>
+                      {selectedEvent.resource.feedback.comment ? (
+                        <p className="mt-3 whitespace-pre-wrap rounded-lg border border-primary/10 bg-background/80 p-3 text-sm text-foreground/85">
+                          {selectedEvent.resource.feedback.comment}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
               ) : (
                 <div className="text-center text-muted-foreground py-8">

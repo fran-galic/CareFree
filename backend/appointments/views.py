@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone as dt_timezone
 from django.utils import timezone
 
 from .permissions import IsStudent
-from .serializers import AppointmentRequestSerializer
+from .serializers import AppointmentRequestSerializer, AppointmentFeedbackSerializer
 from .models import AppointmentRequest
 from accounts.models import Caretaker
 from .services import create_appointment_request
@@ -16,7 +16,7 @@ from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from .permissions import IsCaretaker, OnlyCaretakerCanApprove
 from .serializers import AppointmentSerializer
-from .models import Appointment
+from .models import Appointment, AppointmentFeedback
 from .services import approve_appointment_request
 from rest_framework.response import Response
 from rest_framework import status
@@ -35,6 +35,8 @@ ACTIVE_APPOINTMENT_STATUSES = (
     Appointment.STATUS_CONFIRMED_PENDING,
     Appointment.STATUS_SYNC_FAILED,
 )
+
+VISIBLE_CARETAKER_APPOINTMENT_STATUSES = ACTIVE_APPOINTMENT_STATUSES + (Appointment.STATUS_COMPLETED,)
 
 
 class HoldCreateView(APIView):
@@ -146,6 +148,7 @@ class CaretakerAppointmentRequestListView(generics.ListAPIView):
             'caretaker__user',
             'student__user',
             'appointment',
+            'appointment__feedback',
         )
         status_q = self.request.query_params.get('status')
         if status_q:
@@ -252,11 +255,88 @@ class StudentAppointmentRequestListView(generics.ListAPIView):
             'caretaker__user',
             'student__user',
             'appointment',
+            'appointment__feedback',
         )
         status_q = self.request.query_params.get('status')
         if status_q:
             qs = qs.filter(status=status_q)
         return qs.order_by('-created_at')
+
+
+class StudentPendingFeedbackView(APIView):
+    permission_classes = [IsAuthenticated, IsStudent]
+
+    def get(self, request, *args, **kwargs):
+        student = getattr(request.user, 'student', None)
+        if not student:
+            return Response({'detail': 'Korisnik nije student.'}, status=status.HTTP_403_FORBIDDEN)
+
+        appointment = (
+            Appointment.objects.filter(
+                student=student,
+                end__lt=timezone.now(),
+            )
+            .exclude(status=Appointment.STATUS_CANCELLED)
+            .filter(feedback__isnull=True)
+            .select_related('caretaker__user', 'student__user')
+            .order_by('-end')
+            .first()
+        )
+
+        if not appointment:
+            return Response({'appointment': None})
+
+        serializer = AppointmentSerializer(appointment)
+        return Response({'appointment': serializer.data})
+
+
+class AppointmentFeedbackUpsertView(APIView):
+    permission_classes = [IsAuthenticated, IsStudent]
+
+    def post(self, request, pk, *args, **kwargs):
+        student = getattr(request.user, 'student', None)
+        if not student:
+            return Response({'detail': 'Korisnik nije student.'}, status=status.HTTP_403_FORBIDDEN)
+
+        appointment = get_object_or_404(
+            Appointment.objects.select_related('student', 'caretaker'),
+            pk=pk,
+            student=student,
+        )
+
+        if appointment.end >= timezone.now():
+            return Response({'detail': 'Feedback se može ostaviti tek nakon završetka termina.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if appointment.status == Appointment.STATUS_CANCELLED:
+            return Response({'detail': 'Za otkazani termin nije moguće ostaviti feedback.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        next_status = request.data.get('status')
+        if next_status not in (AppointmentFeedback.STATUS_SUBMITTED, AppointmentFeedback.STATUS_DISMISSED):
+            return Response({'detail': 'status mora biti submitted ili dismissed.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        defaults = {
+            'student': student,
+            'caretaker': appointment.caretaker,
+            'status': next_status,
+        }
+
+        if next_status == AppointmentFeedback.STATUS_SUBMITTED:
+            selected_response = request.data.get('selected_response')
+            comment = (request.data.get('comment') or '').strip()
+            if selected_response not in {choice[0] for choice in AppointmentFeedback.RESPONSE_CHOICES}:
+                return Response({'detail': 'Odabrana povratna informacija nije valjana.'}, status=status.HTTP_400_BAD_REQUEST)
+            defaults['selected_response'] = selected_response
+            defaults['comment'] = comment or None
+        else:
+            defaults['selected_response'] = None
+            defaults['comment'] = None
+
+        feedback, _ = AppointmentFeedback.objects.update_or_create(
+            appointment=appointment,
+            defaults=defaults,
+        )
+
+        return Response(AppointmentFeedbackSerializer(feedback).data, status=status.HTTP_200_OK)
 
 
 class CaretakerSlotsView(APIView):
@@ -449,7 +529,7 @@ class MyCalendarView(APIView):
         else:
             return Response({'detail': 'No calendar for this user'}, status=status.HTTP_400_BAD_REQUEST)
 
-        serializer = AppointmentSerializer(appts.order_by('start'), many=True)
+        serializer = AppointmentSerializer(appts.select_related('feedback').order_by('start'), many=True)
         data = serializer.data
         # convert start/end to local tz ISO
         for item in data:
@@ -481,5 +561,5 @@ class CaretakerAppointmentListView(generics.ListAPIView):
         if status_q:
             qs = qs.filter(status=status_q)
         else:
-            qs = qs.filter(status__in=ACTIVE_APPOINTMENT_STATUSES)
-        return qs.order_by('start')
+            qs = qs.filter(status__in=VISIBLE_CARETAKER_APPOINTMENT_STATUSES)
+        return qs.select_related('student__user', 'caretaker__user', 'feedback').order_by('start')
