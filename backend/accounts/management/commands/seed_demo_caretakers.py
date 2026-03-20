@@ -32,13 +32,13 @@ LAST_NAMES = [
 ]
 
 ABOUT_ME_OPTIONS = [
-    "U radu sa studentima nastojim ponuditi siguran, smiren i povjerljiv prostor u kojem je moguce otvoreno govoriti o onome sto opterecuje, bez pritiska i bez osjecaja da se sve mora odmah rijesiti.",
-    "Vazno mi je da se student tijekom susreta osjeca saslusano i razumijeno. Razgovor vodim mirno i strukturirano, s fokusom na ono sto osobi u tom trenutku moze donijeti vise jasnoce, olaksanja i oslonca.",
-    "U savjetovanju mi je cilj pomoci studentu da bolje razumije vlastite obrasce, emocije i izvore pritiska, te da kroz razgovor pronade odrziviji i sigurniji nacin nosenja s onim kroz sto prolazi.",
-    "Pristupam radu profesionalno, toplo i nenametljivo. Posebno mi je vazno da susret ne ostane samo na razgovoru, nego da student iz njega ponese veci osjecaj stabilnosti, usmjerenja i povjerenja u vlastite kapacitete.",
-    "Studentima nastojim pruziti prostor u kojem mogu stati, predahnuti i jasnije sagledati ono sto ih opterecuje. U radu njegujem strpljenje, postovanje i tempo koji je prilagoden osobi s kojom radim.",
-    "Vjerujem da kvalitetan terapijski odnos pocinje osjecajem sigurnosti i prihvacenosti. Zato mi je vazno graditi suradnju u kojoj student moze iskreno govoriti o svojim brigama, dilemama i unutarnjem pritisku.",
-    "U radu kombiniram razumijevanje, jasnu strukturu i prakticnu usmjerenost. Cilj mi je da student kroz susrete dobije vise unutarnje jasnoce, bolju emocionalnu regulaciju i osjecaj da nije sam u onome sto prozivljava.",
+    "U radu sa studentima nastojim ponuditi siguran, smiren i povjerljiv prostor u kojem je moguće otvoreno govoriti o onome što opterećuje, bez pritiska i bez osjećaja da se sve mora odmah riješiti.",
+    "Važno mi je da se student tijekom susreta osjeća saslušano i razumijeno. Razgovor vodim mirno i strukturirano, s fokusom na ono što osobi u tom trenutku može donijeti više jasnoće, olakšanja i oslonca.",
+    "U savjetovanju mi je cilj pomoći studentu da bolje razumije vlastite obrasce, emocije i izvore pritiska, te da kroz razgovor pronađe održiviji i sigurniji način nošenja s onim kroz što prolazi.",
+    "Pristupam radu profesionalno, toplo i nenametljivo. Posebno mi je važno da susret ne ostane samo na razgovoru, nego da student iz njega ponese veći osjećaj stabilnosti, usmjerenja i povjerenja u vlastite kapacitete.",
+    "Studentima nastojim pružiti prostor u kojem mogu stati, predahnuti i jasnije sagledati ono što ih opterećuje. U radu njegujem strpljenje, poštovanje i tempo koji je prilagođen osobi s kojom radim.",
+    "Vjerujem da kvalitetan terapijski odnos počinje osjećajem sigurnosti i prihvaćenosti. Zato mi je važno graditi suradnju u kojoj student može iskreno govoriti o svojim brigama, dilemama i unutarnjem pritisku.",
+    "U radu kombiniram razumijevanje, jasnu strukturu i praktičnu usmjerenost. Cilj mi je da student kroz susrete dobije više unutarnje jasnoće, bolju emocionalnu regulaciju i osjećaj da nije sam u onome što proživljava.",
 ]
 
 FOCUS_AREAS = [

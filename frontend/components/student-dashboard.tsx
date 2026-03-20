@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { fetcher } from "@/fetchers/fetcher";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { getStudentRequests, type AppointmentRequest } from "@/fetchers/appointments";
 import { 
   Card, 
@@ -86,6 +86,7 @@ export function StudentDashboard({ firstName }: StudentDashboardProps) {
   const router = useRouter();
   const [isAppointmentExpanded, setIsAppointmentExpanded] = useState(false);
   const [selectedTab, setSelectedTab] = useState<'appointments' | 'requests'>('appointments');
+  const [dashboardNow] = useState(() => Date.now());
 
   // Dohvat termina sa caretakerima
   const { data: appointments, isLoading: appointmentsLoading } = useSWR<Appointment[]>(
@@ -106,8 +107,11 @@ export function StudentDashboard({ firstName }: StudentDashboardProps) {
     }
   );
 
-  // Show first item (appointments are already ordered by start date)
-  const itemToShow = appointments?.[0];
+  const upcomingAppointments = useMemo(() => {
+    return (appointments ?? []).filter((appointment) => new Date(appointment.end).getTime() > dashboardNow);
+  }, [appointments, dashboardNow]);
+
+  const itemToShow = upcomingAppointments[0];
   const latestRequest = requests?.[0];
   const isLoading = appointmentsLoading;
 
@@ -262,7 +266,19 @@ export function StudentDashboard({ firstName }: StudentDashboardProps) {
           <Card className={`flex flex-col h-full border-l-4 border-l-primary transition-all duration-500 ${
             !isAppointmentExpanded ? 'cursor-pointer hover:bg-accent/5' : ''
           }`}
-                onClick={() => itemToShow && !isAppointmentExpanded && (setIsAppointmentExpanded(true), setSelectedTab('appointments'))}>
+                onClick={() => {
+                  if (isAppointmentExpanded) {
+                    return;
+                  }
+
+                  if (itemToShow) {
+                    setIsAppointmentExpanded(true);
+                    setSelectedTab('appointments');
+                    return;
+                  }
+
+                  router.push("/carefree/search");
+                }}>
             <CardHeader className="pb-0 flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-lg">
                 <CalendarDays className="w-5 h-5 text-primary" />
@@ -355,13 +371,13 @@ export function StudentDashboard({ firstName }: StudentDashboardProps) {
                         </div>
                       ))}
                     </div>
-                  ) : !appointments || appointments.length === 0 ? (
+                  ) : upcomingAppointments.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-4">
                       Nemaš zakazanih termina.
                     </p>
                   ) : (
                     <div className="space-y-3 mr-4">
-                      {appointments.map((apt) => (
+                      {upcomingAppointments.map((apt) => (
                         <div key={apt.id} className="border-l-2 border-primary/30 pl-3 py-2 flex items-start justify-between">
                           <div>
                             <p className="text-sm font-medium text-foreground">

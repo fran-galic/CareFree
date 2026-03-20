@@ -185,6 +185,7 @@ Student search / listing updates
   - `4` category chips
   and collapse the remainder into a compact `+N` chip.
 - Previous / next pagination now smooth-scrolls to the top of the results section instead of jumping to the top of the whole page.
+- Scroll-on-pagination behavior was further hardened so it also works reliably when returning back to page 1 of psychologist results.
 - Search first-load behavior was improved:
   - before seed/query initialization finishes, the page now shows a proper loading spinner
   - search route `Suspense` fallback was also upgraded from plain text loading into a real loader
@@ -290,16 +291,18 @@ Local reset / utility work completed
     - `m_` for male profiles
     - `w_` for female profiles
   - assigns Croatian first names consistent with image sex prefix
-  - keeps more realistic psychologist descriptions
+  - uses more professional student-facing psychologist descriptions
   - seeds availability for the current and next week for all demo psychologists
+  - keeps at least 8 years of implied experience for all demo psychologists
+  - gives extra seniority to selected older-looking profiles
   - removes stale demo users that no longer have a matching image file
   - no longer hard-fails if the old demo PDF is missing; it now falls back to a generated placeholder PDF for CV/diploma/certificate records
 - Current default demo psychologist password:
   - `DemoPsiholog123!`
 - Local demo state after latest reseed:
-  - `21` demo psychologists total
-  - `13` female
-  - `8` male
+  - `15` demo psychologists total
+  - `12` female
+  - `3` male
   - all have future availability
 
 Current important caveats
