@@ -7,7 +7,7 @@ from accounts.models import Student
 User = get_user_model()
 
 
-def _versioned_image_url(image_field):
+def _versioned_image_url(image_field, request=None):
     if not image_field:
         return None
 
@@ -19,12 +19,17 @@ def _versioned_image_url(image_field):
     try:
         storage_name = image_field.storage.__class__.__name__.lower()
         if "filesystemstorage" not in storage_name:
-            return url
+            return request.build_absolute_uri(url) if request and url.startswith("/") else url
         modified_at = image_field.storage.get_modified_time(image_field.name)
         version = int(modified_at.timestamp())
         separator = "&" if "?" in url else "?"
-        return f"{url}{separator}v={version}"
+        versioned_url = f"{url}{separator}v={version}"
+        if request and versioned_url.startswith("/"):
+            return request.build_absolute_uri(versioned_url)
+        return versioned_url
     except Exception:
+        if request and url.startswith("/"):
+            return request.build_absolute_uri(url)
         return url
 
 
@@ -39,7 +44,7 @@ class CaretakerShortSerializer(serializers.ModelSerializer):
         fields = ["user_id", "first_name", "last_name", "help_categories", "user_image_url", "about_me", "grad_year"]
 
     def get_user_image_url(self, obj):
-        return _versioned_image_url(getattr(obj, "image", None))
+        return _versioned_image_url(getattr(obj, "image", None), self.context.get("request"))
 
 class CaretakerLongSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField(source='user.first_name', read_only=True)
@@ -64,7 +69,7 @@ class CaretakerLongSerializer(serializers.ModelSerializer):
         ]
 
     def get_user_image_url(self, obj):
-        return _versioned_image_url(getattr(obj, "image", None))
+        return _versioned_image_url(getattr(obj, "image", None), self.context.get("request"))
 
     def get_contact_email(self, obj):
         if getattr(obj, "show_email_to_students", False):

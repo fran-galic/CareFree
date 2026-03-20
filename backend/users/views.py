@@ -1,5 +1,6 @@
 from django.db.models import Q, Value, CharField
 from django.db.models.functions import Concat
+import random
 from accounts.models import Caretaker, Student, HelpCategory
 from accounts.permissions import IsApprovedCaretaker, IsStudent
 from .serializers import StudentSerializer, CaretakerLongSerializer, CaretakerShortSerializer, CategoryWithSubcategoriesSerializer
@@ -27,7 +28,7 @@ def help_categories(request):
     return Response({"categories": serializer.data})
 
 
-PAGE_SIZE = 20
+PAGE_SIZE = 6
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
@@ -37,9 +38,9 @@ def search_caretakers(request):
     Query params:
     - `name`: substring matched case-insensitively against first, last, or full name.
     - `categories`: repeatable category slugs; matches category or its direct subcategories.
-    - `order`: `asc` (default) or `desc` to sort by last name.
+    - `seed`: stable randomization seed for fair shuffled ordering across pagination.
 
-    Response: paginated (page_size=20) `{count, next, previous, results}`.
+    Response: paginated (page_size=6) `{count, next, previous, results}`.
     """
     query = request.GET.get("name", "").strip()
     categories_list = request.GET.getlist("categories")
@@ -86,19 +87,22 @@ def search_caretakers(request):
 
     qs = qs.distinct()
 
-    order_param = request.GET.get("order", "asc").strip().lower()
-    if order_param == "desc":
-        ordering = ["-user__last_name", "user__first_name", "user_id"]
+    ordered_ids = list(qs.values_list("user_id", flat=True).order_by("user_id"))
+    seed = request.GET.get("seed", "").strip()
+    if seed:
+        random.Random(seed).shuffle(ordered_ids)
     else:
-        ordering = ["user__last_name", "user__first_name", "user_id"]
-
-    qs = qs.order_by(*ordering)
+        random.shuffle(ordered_ids)
 
     paginator = PageNumberPagination()
     paginator.page_size = PAGE_SIZE
-    page = paginator.paginate_queryset(qs, request)
+    page_ids = paginator.paginate_queryset(ordered_ids, request)
 
-    serialized = CaretakerShortSerializer(page, many=True)
+    page_caretakers = Caretaker.objects.filter(user_id__in=page_ids).select_related("user").prefetch_related("help_categories")
+    caretakers_by_id = {caretaker.user_id: caretaker for caretaker in page_caretakers}
+    ordered_page = [caretakers_by_id[user_id] for user_id in page_ids if user_id in caretakers_by_id]
+
+    serialized = CaretakerShortSerializer(ordered_page, many=True, context={"request": request})
     return paginator.get_paginated_response(serialized.data)
 
 
@@ -108,14 +112,14 @@ def search_caretakers(request):
 def my_profile(request):
     user = request.user
     if request.method == "GET":
-        serializer = MeSerializer(user)
+        serializer = MeSerializer(user, context={"request": request})
         return Response(serializer.data)
 
     partial = request.method == "PATCH"
     serializer = UpdateUserSerializer(user, data=request.data, partial=partial)
     if serializer.is_valid():
         serializer.save()
-        return Response(MeSerializer(user).data)
+        return Response(MeSerializer(user, context={"request": request}).data)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -145,13 +149,13 @@ def my_caretaker_profile(request):
         return Response({"detail": "Korisnik nije psiholog/caretaker."}, status=status.HTTP_404_NOT_FOUND)
 
     if request.method == "GET":
-        return Response(CaretakerShortSerializer(caretaker).data)
+        return Response(CaretakerShortSerializer(caretaker, context={"request": request}).data)
 
     partial = request.method == "PATCH"
     serializer = CaretakerUpdateSerializer(caretaker, data=request.data, partial=partial)
     if serializer.is_valid():
         serializer.save()
-        return Response(CaretakerShortSerializer(caretaker).data)
+        return Response(CaretakerShortSerializer(caretaker, context={"request": request}).data)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -180,7 +184,7 @@ def caretaker_by_id(request, id):
     except:
         return Response({"error":f"No caretaker was found matching the specified ID ({id})."}, status=404)
 
-    serialized = CaretakerLongSerializer(caretaker)
+    serialized = CaretakerLongSerializer(caretaker, context={"request": request})
     return Response(serialized.data)
 
 
@@ -188,7 +192,5 @@ def caretaker_by_id(request, id):
 @api_view(["GET"])
 def caretaker_by_slug(request, slug):
     return Response(f"slug: {id}")
-
-
 
 

@@ -46,7 +46,7 @@ export function getHelpCategories() {
 }
 
 // 2. Ažurirana pretraga koja prima i kategorije
-export function searchCaretakers(query: string, categories: string[] = [], page: number = 1) {
+export function searchCaretakers(query: string, categories: string[] = [], page: number = 1, seed?: string) {
   const params = new URLSearchParams();
   
   if (query) params.append("name", query); // Backend očekuje "name" za tekstualnu pretragu [2]
@@ -56,6 +56,7 @@ export function searchCaretakers(query: string, categories: string[] = [], page:
   
   // Dodajemo page parametar
   if (page > 1) params.append("page", page.toString());
+  if (seed) params.append("seed", seed);
 
   return fetcher<PaginatedCaretakerResponse>(
       `${BACKEND_API}/users/caretakers/search/?${params.toString()}`, 
