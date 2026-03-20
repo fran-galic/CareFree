@@ -567,13 +567,47 @@ body::-webkit-scrollbar {
     color: #2f7f73;
   }
 
-  [data-theme="caretaker"] .rbc-off-range-bg {
-    background: #f2f6f5;
-  }
+[data-theme="caretaker"] .rbc-off-range-bg {
+  background: #f2f6f5;
+}
 
-  [data-theme="caretaker"] .rbc-today {
-    background: #ecf7f4;
-  }
+[data-theme="caretaker"] .rbc-today {
+  background: #ecf7f4;
+}
+
+[data-theme="caretaker"] .caretaker-calendar-header-cell {
+  margin: -10px -6px;
+  padding: 10px 6px;
+  min-height: 100%;
+  background-color: #ffffff;
+}
+
+[data-theme="caretaker"] .caretaker-calendar-header-past {
+  color: #6c7f7a;
+}
+
+[data-theme="caretaker"] .caretaker-calendar-header-today {
+  background-color: rgba(216, 235, 230, 0.9);
+  color: #21423d !important;
+}
+
+[data-theme="caretaker"] .caretaker-calendar-slot-past {
+  background-color: rgba(227, 236, 233, 0.82);
+}
+
+[data-theme="caretaker"] .caretaker-calendar-slot-today {
+  background-color: rgba(216, 235, 230, 0.56);
+}
+
+[data-theme="caretaker"] .caretaker-calendar-slot-past.caretaker-calendar-slot-today {
+  background-color: rgba(216, 235, 230, 0.56);
+}
+
+[data-theme="caretaker"] .rbc-time-gutter .caretaker-calendar-slot-past,
+[data-theme="caretaker"] .rbc-time-gutter .caretaker-calendar-slot-today,
+[data-theme="caretaker"] .rbc-time-gutter .caretaker-calendar-slot-past.caretaker-calendar-slot-today {
+  background-color: #ffffff !important;
+}
 
   [data-theme="caretaker"] .rbc-header,
   [data-theme="caretaker"] .rbc-time-header-content,
@@ -764,6 +798,14 @@ body::-webkit-scrollbar {
   color: #334155;
 }
 
+.rbc-time-header-gutter,
+.rbc-time-content > .rbc-time-gutter {
+  flex: 0 0 54px !important;
+  width: 54px !important;
+  min-width: 54px !important;
+  max-width: 54px !important;
+}
+
 .rbc-time-view .rbc-allday-cell {
   display: none;
 }
@@ -779,6 +821,11 @@ body::-webkit-scrollbar {
 .rbc-time-view .rbc-day-slot .rbc-time-slot,
 .rbc-time-view .rbc-time-gutter .rbc-timeslot-group {
   border-top: 1px solid rgba(215, 230, 226, 0.55);
+}
+
+.rbc-time-view .rbc-timeslot-group,
+.rbc-time-view .rbc-time-gutter .rbc-timeslot-group {
+  min-height: 52px;
 }
 
 .rbc-time-view .rbc-day-bg + .rbc-day-bg,
@@ -843,8 +890,8 @@ body::-webkit-scrollbar {
 
 .rbc-event {
   padding: 0;
-  border-radius: 12px;
-  font-size: 0.875rem;
+  border-radius: 10px;
+  font-size: 0.82rem;
   overflow: hidden;
 }
 
@@ -860,7 +907,7 @@ body::-webkit-scrollbar {
   gap: 2px;
   width: 100%;
   height: 100%;
-  padding: 6px 8px;
+  padding: 4px 6px;
   overflow: hidden;
   justify-content: flex-start;
   align-items: flex-start;
@@ -874,7 +921,7 @@ body::-webkit-scrollbar {
 }
 
 .calendar-event-title {
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 600;
   line-height: 1.2;
   text-align: left;
@@ -890,7 +937,7 @@ body::-webkit-scrollbar {
 .calendar-event-chip--day {
   gap: 2px;
   justify-content: flex-start;
-  padding: 4px 6px;
+  padding: 3px 5px;
 }
 
 .calendar-event-chip--month {
@@ -915,7 +962,7 @@ body::-webkit-scrollbar {
 
 .calendar-event-title--week,
 .calendar-event-title--day {
-  font-size: 0.74rem;
+  font-size: 0.7rem;
   line-height: 1.15;
   -webkit-line-clamp: 1;
 }
@@ -964,7 +1011,7 @@ body::-webkit-scrollbar {
 }
 
 .rbc-time-content .rbc-event {
-  min-height: 38px;
+  min-height: 30px;
 }
 
 .rbc-month-view {

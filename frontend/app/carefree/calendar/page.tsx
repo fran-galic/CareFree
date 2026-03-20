@@ -18,10 +18,11 @@ import {
   clampCalendarDate,
   getCalendarWeekStart,
   getCalendarWindowEnd,
-  getCalendarWindowStart,
   isOutsideCalendarWindow,
   isPastDay,
   isPastEvent,
+  WORKDAY_END_HOUR,
+  WORKDAY_START_HOUR,
 } from "@/lib/calendar";
 const SEEN_APPOINTMENTS_KEY = "carefree-seen-appointment-ids";
 
@@ -87,7 +88,6 @@ export default function CalendarPage() {
   const searchParams = useSearchParams();
   const now = useMemo(() => new Date(), []);
   const maxMonthDate = useMemo(() => startOfMonth(addMonths(now, 1)), [now]);
-  const minCalendarDate = useMemo(() => getCalendarWindowStart(now), [now]);
   const maxCalendarDate = useMemo(() => getCalendarWindowEnd(now), [now]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -631,8 +631,8 @@ export default function CalendarPage() {
                     eventPropGetter={eventStyleGetter}
                     dayPropGetter={dayPropGetter}
                     slotPropGetter={slotPropGetter}
-                    min={new Date(0, 0, 0, 8, 0, 0)}
-                    max={new Date(0, 0, 0, 16, 0, 0)}
+                    min={new Date(0, 0, 0, WORKDAY_START_HOUR, 0, 0)}
+                    max={new Date(0, 0, 0, WORKDAY_END_HOUR, 0, 0)}
                     messages={{
                       next: "Sljedeći",
                       previous: "Prethodni",

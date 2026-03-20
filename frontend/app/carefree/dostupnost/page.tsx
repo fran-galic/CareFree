@@ -4,10 +4,10 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Calendar as CalendarIcon, Save, RefreshCw, Info } from "lucide-react";
+import { Loader2, Calendar as CalendarIcon, Save, RefreshCw, Info, ChevronLeft, ChevronRight } from "lucide-react";
 import { format, setHours, isSameDay, parseISO } from "date-fns";
 import { hr } from "date-fns/locale";
-import { getTwoWeekWindowDays, isPastDay } from "@/lib/calendar";
+import { getTwoWeekWindowDays, isPastDay, WORKDAY_END_HOUR, WORKDAY_START_HOUR } from "@/lib/calendar";
 
 interface AvailabilitySlot {
   start: string;
@@ -24,7 +24,10 @@ interface GridSlot {
   isChanged: boolean;
 }
 
-const HOURS = Array.from({ length: 9 }, (_, i) => i + 8); // 8-16 (8:00-15:00, last slot ends at 16:00)
+const HOURS = Array.from(
+  { length: WORKDAY_END_HOUR - WORKDAY_START_HOUR },
+  (_, i) => i + WORKDAY_START_HOUR
+); // 8-18 (8:00-17:00, last slot ends at 18:00)
 const DAYS_TO_SHOW = 14;
 
 export default function DostupnostPage() {
@@ -32,11 +35,30 @@ export default function DostupnostPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [visibleWeekIndex, setVisibleWeekIndex] = useState(0);
 
   const days = useMemo(
     () => getTwoWeekWindowDays(new Date()),
     []
   );
+  const visibleDays = useMemo(
+    () => days.slice(visibleWeekIndex * 7, visibleWeekIndex * 7 + 7),
+    [days, visibleWeekIndex]
+  );
+  const gridTemplateColumns = useMemo(
+    () => `68px repeat(${visibleDays.length}, minmax(112px, 1fr))`,
+    [visibleDays.length]
+  );
+  const visibleWeekLabel = useMemo(() => {
+    const start = visibleDays[0];
+    const end = visibleDays[visibleDays.length - 1];
+
+    if (!start || !end) {
+      return "";
+    }
+
+    return `${format(start, "d.M.", { locale: hr })} - ${format(end, "d.M.yyyy.", { locale: hr })}`;
+  }, [visibleDays]);
 
   const initializeGrid = useCallback((slots: AvailabilitySlot[]) => {
     const grid: GridSlot[] = [];
@@ -163,7 +185,7 @@ export default function DostupnostPage() {
         <div>
           <h1 className="text-3xl text-primary font-bold">Dostupnost</h1>
           <p className="text-muted-foreground">
-            Postavite svoju dostupnost za trenutni i sljedeći tjedan
+            Postavite svoju dostupnost po tjednima za trenutni i sljedeći tjedan
           </p>
         </div>
         <div className="flex gap-2">
@@ -198,7 +220,7 @@ export default function DostupnostPage() {
             Postavi dostupnost po terminima
           </CardTitle>
           <CardDescription>
-            Kliknite na vrijeme da označite kada ste dostupni. Teal = dostupan, svijetlo sivo = nedostupan, tamni teal = zakazan termin
+            Kliknite na vrijeme da označite kada ste dostupni. Strelicama prebacujete prikaz izmedu ovog i sljedeceg tjedna.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -242,13 +264,47 @@ export default function DostupnostPage() {
               </div>
             </div>
 
+            <div className="mb-4 flex flex-col gap-3 rounded-xl border border-border/80 bg-white/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-foreground">
+                  {visibleWeekIndex === 0 ? "Ovaj tjedan" : "Sljedeci tjedan"}
+                </p>
+                <p className="text-sm text-muted-foreground">{visibleWeekLabel}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon-sm"
+                  onClick={() => setVisibleWeekIndex((current) => Math.max(0, current - 1))}
+                  disabled={visibleWeekIndex === 0}
+                  aria-label="Prikaži prethodni tjedan"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon-sm"
+                  onClick={() => setVisibleWeekIndex((current) => Math.min(1, current + 1))}
+                  disabled={visibleWeekIndex === 1}
+                  aria-label="Prikaži sljedeći tjedan"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
             {/* Grid */}
             <div className="overflow-x-auto">
-              <div className="min-w-[800px]">
+              <div
+                className="min-w-[880px]"
+                style={{ gridTemplateColumns }}
+              >
                 {/* Header Row */}
-                <div className="grid grid-cols-8 gap-1 mb-2">
+                <div className="grid gap-1 mb-2" style={{ gridTemplateColumns }}>
                   <div className="font-medium text-sm text-center py-2">Vrijeme</div>
-                  {days.map((day, idx) => (
+                  {visibleDays.map((day, idx) => (
                     <div key={idx} className={`font-medium text-sm text-center py-2 ${isPastDay(day) ? "opacity-55" : ""}`}>
                       <div>{format(day, "EEEE", { locale: hr })}</div>
                       <div className="text-xs text-muted-foreground">
@@ -260,16 +316,16 @@ export default function DostupnostPage() {
 
                 {/* Time Slots */}
                 {HOURS.map((hour) => (
-                  <div key={hour} className="grid grid-cols-8 gap-1 mb-1">
-                    <div className="text-sm text-center py-3 font-medium">
+                  <div key={hour} className="grid gap-1 mb-1" style={{ gridTemplateColumns }}>
+                    <div className="text-sm text-center py-2.5 font-medium">
                       {hour}:00
                     </div>
-                    {days.map((day, dayIdx) => {
+                    {visibleDays.map((day, dayIdx) => {
                       const slot = gridSlots.find(
                         (s) => isSameDay(s.date, day) && s.hour === hour
                       );
 
-                      if (!slot) return <div key={dayIdx} className="h-12" />;
+                      if (!slot) return <div key={dayIdx} className="h-10" />;
 
                       const isPast = slot.date < new Date();
                       const pastDay = isPastDay(slot.date);
@@ -290,7 +346,7 @@ export default function DostupnostPage() {
                           key={dayIdx}
                           onClick={() => !slot.hasAppointment && !isPast && toggleSlot(day, hour)}
                           disabled={slot.hasAppointment || isPast}
-                          className={`h-12 rounded-md transition-all hover:opacity-80 ${bgColor} ${
+                          className={`h-10 rounded-md text-[11px] transition-all hover:opacity-80 ${bgColor} ${
                             isPast ? "opacity-50 cursor-not-allowed" : ""
                           }`}
                           title={

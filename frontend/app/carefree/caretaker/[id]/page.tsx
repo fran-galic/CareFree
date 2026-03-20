@@ -410,13 +410,13 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
                         </Button>
                       </div>
 
-                    <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
+                    <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4 xl:grid-cols-7">
                       {visibleSlotsByDay.map((day, dayIdx) => (
-                        <div key={dayIdx} className="space-y-2 rounded-2xl border border-border/70 bg-card/80 p-2.5">
-                          <h4 className={`rounded-md py-2 text-center text-xs font-semibold ${isPastDay(day.date) ? "bg-slate-200 text-slate-500" : "bg-muted"}`}>
+                        <div key={dayIdx} className="space-y-2 rounded-xl border border-border/70 bg-card/80 p-2">
+                          <h4 className={`rounded-md py-1.5 text-center text-[11px] font-semibold ${isPastDay(day.date) ? "bg-slate-200 text-slate-500" : "bg-muted"}`}>
                             {day.date.toLocaleDateString('hr-HR', { weekday: 'short', day: 'numeric', month: 'numeric' })}
                           </h4>
-                          <div className="grid grid-cols-1 gap-2">
+                          <div className="grid grid-cols-1 gap-1.5">
                             {day.slots.length > 0 ? day.slots.map((slot, slotIdx) => {
                               const slotDate = new Date(slot.start);
                               const isPastSlot = slotDate.getTime() < Date.now();
@@ -427,7 +427,7 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
                                 key={slotIdx}
                                 variant={slot.is_available ? "outline" : "ghost"}
                                 disabled={isDisabled}
-                                className={`h-9 w-full px-2 text-xs ${isPastSlot
+                                className={`h-8 w-full px-1.5 text-[11px] ${isPastSlot
                                   ? "border border-slate-200 bg-slate-100 text-slate-400"
                                   : slot.is_available 
                                   ? selectedSlot?.start === slot.start
@@ -441,7 +441,7 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
                               </Button>
                               );
                             }) : (
-                              <div className="rounded-md border border-dashed border-slate-200 bg-slate-50 px-2 py-3 text-center text-[11px] text-slate-400">
+                              <div className="rounded-md border border-dashed border-slate-200 bg-slate-50 px-2 py-2.5 text-center text-[11px] text-slate-400">
                                 {isPastDay(day.date) ? "Prošlo" : "Nema termina"}
                               </div>
                             )}
