@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Calendar, dateFnsLocalizer, View, ToolbarProps } from "react-big-calendar";
-import { format, parse, startOfWeek, getDay, isSameMonth, isToday } from "date-fns";
+import { addMonths, format, parse, startOfDay, startOfMonth, startOfWeek, getDay, isAfter, isSameMonth, isToday } from "date-fns";
 import { hr } from "date-fns/locale";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -15,10 +16,11 @@ import {
   clampCalendarDate,
   getCalendarWeekStart,
   getCalendarWindowEnd,
-  getCalendarWindowStart,
   isOutsideCalendarWindow,
   isPastDay,
   isPastEvent,
+  WORKDAY_END_HOUR,
+  WORKDAY_START_HOUR,
 } from "@/lib/calendar";
 
 const locales = {
@@ -49,6 +51,11 @@ interface CalendarToolbarProps {
   onView: (view: View) => void;
 }
 
+interface CalendarHeaderProps {
+  date?: Date;
+  label?: string;
+}
+
 function getStartOfWeekDate(d: Date): Date {
   return getCalendarWeekStart(d);
 }
@@ -76,13 +83,18 @@ function formatToolbarWeekLabel(d: Date): string {
 
 export default function AvailabilityPage() {
   const now = useMemo(() => new Date(), []);
-  const minCalendarDate = useMemo(() => getCalendarWindowStart(now), [now]);
+  const maxMonthDate = useMemo(() => startOfMonth(addMonths(now, 1)), [now]);
   const maxCalendarDate = useMemo(() => getCalendarWindowEnd(now), [now]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>("month");
   const [date, setDate] = useState(clampCalendarDate(new Date(), now));
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [hoveredEvent, setHoveredEvent] = useState<CalendarEvent | null>(null);
+  const [hoverPosition, setHoverPosition] = useState<{ top: number; left: number } | null>(null);
+  const hoveredAnchorRef = useRef<HTMLElement | null>(null);
+  const hoverCardRef = useRef<HTMLDivElement | null>(null);
+  const hoverTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -174,8 +186,20 @@ export default function AvailabilityPage() {
   }, []);
 
   const handleNavigate = useCallback((newDate: Date) => {
+    if (view === "month") {
+      setDate(isAfter(startOfMonth(newDate), maxMonthDate) ? maxMonthDate : newDate);
+      return;
+    }
+
+    if (view === "day") {
+      const nextDay = startOfDay(newDate);
+      const today = startOfDay(now);
+      setDate(nextDay.getTime() < today.getTime() ? today : clampCalendarDate(newDate, now));
+      return;
+    }
+
     setDate(clampCalendarDate(newDate, now));
-  }, [now]);
+  }, [maxMonthDate, now, view]);
 
   const handleViewChange = useCallback((newView: View) => {
     setView(newView);
@@ -204,21 +228,52 @@ export default function AvailabilityPage() {
 
     return {
       className: [
-        inPast ? "calendar-day-past" : "",
+        view !== "day" && inPast ? "calendar-day-past" : "",
         view !== "month" && isOutsideCalendarWindow(value, now) ? "calendar-day-outside-window" : "",
         offCurrentMonth ? "calendar-day-off-range" : "",
-        isToday(value) ? "calendar-day-today" : "",
+        view !== "day" && isToday(value) ? "calendar-day-today" : "",
       ]
         .filter(Boolean)
         .join(" "),
     };
   }, [date, now, view]);
 
+  const slotPropGetter = useCallback((value: Date) => {
+    if (view !== "week") {
+      return {};
+    }
+
+    const classNames = [
+      value.getTime() < now.getTime() ? "caretaker-calendar-slot-past" : "",
+      isToday(value) ? "caretaker-calendar-slot-today" : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    return classNames ? { className: classNames } : {};
+  }, [now, view]);
+
   const selectedEventIsPast = selectedEvent ? isPastEvent(selectedEvent.end, new Date()) : false;
+  const hoveredEventIsPast = hoveredEvent ? isPastEvent(hoveredEvent.end, new Date()) : false;
 
   const CalendarToolbar = ({ view, date, onNavigate, onView }: CalendarToolbarProps) => {
-    const canGoPrev = getStartOfWeekDate(date).getTime() > minCalendarDate.getTime();
-    const canGoNext = getStartOfWeekDate(date).getTime() < getStartOfWeekDate(maxCalendarDate).getTime();
+    const currentDayStart = startOfDay(now);
+    const viewedDayStart = startOfDay(date);
+    const currentWeekStart = getStartOfWeekDate(now);
+    const viewedWeekStart = getStartOfWeekDate(date);
+
+    const canGoPrev =
+      view === "month"
+        ? true
+        : view === "day"
+          ? viewedDayStart.getTime() > currentDayStart.getTime()
+          : getStartOfWeekDate(date).getTime() > currentWeekStart.getTime();
+    const canGoNext =
+      view === "month"
+        ? !isAfter(startOfMonth(addMonths(date, 1)), maxMonthDate)
+        : view === "day"
+          ? viewedDayStart.getTime() < startOfDay(maxCalendarDate).getTime()
+          : viewedWeekStart.getTime() < getStartOfWeekDate(maxCalendarDate).getTime();
 
     const label: string =
       view === "agenda"
@@ -276,14 +331,144 @@ export default function AvailabilityPage() {
     );
   };
 
+  const clearHoverTimeout = () => {
+    if (hoverTimeoutRef.current) {
+      window.clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+  };
+
+  const getHoverPosition = useCallback((target: HTMLElement) => {
+    const rect = target.getBoundingClientRect();
+    const tooltipWidth = 320;
+    const tooltipHeight = 240;
+    const top =
+      rect.bottom + tooltipHeight + 12 <= window.innerHeight
+        ? rect.bottom + 10
+        : Math.max(12, rect.top - tooltipHeight - 10);
+    const left = Math.min(
+      Math.max(12, rect.left),
+      window.innerWidth - tooltipWidth - 12
+    );
+
+    return {
+      top,
+      left,
+    };
+  }, []);
+
+  const handleEventMouseEnter = useCallback((event: CalendarEvent, target: HTMLElement) => {
+    clearHoverTimeout();
+    hoveredAnchorRef.current = target;
+    setHoveredEvent(event);
+    setHoverPosition(getHoverPosition(target));
+  }, [getHoverPosition]);
+
+  const handleEventMouseLeave = useCallback(() => {
+    clearHoverTimeout();
+    hoverTimeoutRef.current = window.setTimeout(() => {
+      hoveredAnchorRef.current = null;
+      setHoveredEvent(null);
+      setHoverPosition(null);
+    }, 100);
+  }, []);
+
+  useEffect(() => {
+    return () => clearHoverTimeout();
+  }, []);
+
+  useEffect(() => {
+    if (!hoveredEvent) {
+      return;
+    }
+
+    const syncHoverPosition = () => {
+      const anchor = hoveredAnchorRef.current;
+      if (!anchor || !anchor.isConnected) {
+        hoveredAnchorRef.current = null;
+        setHoveredEvent(null);
+        setHoverPosition(null);
+        return;
+      }
+
+      setHoverPosition(getHoverPosition(anchor));
+    };
+
+    const handleViewportChange = () => {
+      window.requestAnimationFrame(syncHoverPosition);
+    };
+
+    window.addEventListener("scroll", handleViewportChange, true);
+    window.addEventListener("resize", handleViewportChange);
+
+    return () => {
+      window.removeEventListener("scroll", handleViewportChange, true);
+      window.removeEventListener("resize", handleViewportChange);
+    };
+  }, [getHoverPosition, hoveredEvent]);
+
+  useEffect(() => {
+    if (!hoveredEvent) {
+      return;
+    }
+
+    const maxDistance = 140;
+
+    const distanceFromRect = (x: number, y: number, rect: DOMRect) => {
+      const dx = Math.max(rect.left - x, 0, x - rect.right);
+      const dy = Math.max(rect.top - y, 0, y - rect.bottom);
+      return Math.hypot(dx, dy);
+    };
+
+    const handleMouseMove = (event: MouseEvent) => {
+      const anchor = hoveredAnchorRef.current;
+      const card = hoverCardRef.current;
+      if (!anchor || !card) {
+        return;
+      }
+
+      const x = event.clientX;
+      const y = event.clientY;
+      const anchorDistance = distanceFromRect(x, y, anchor.getBoundingClientRect());
+      const cardDistance = distanceFromRect(x, y, card.getBoundingClientRect());
+
+      if (anchorDistance > maxDistance && cardDistance > maxDistance) {
+        clearHoverTimeout();
+        hoveredAnchorRef.current = null;
+        setHoveredEvent(null);
+        setHoverPosition(null);
+      }
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, [hoveredEvent]);
+
   const CalendarEventContent = ({ event }: { event: CalendarEvent }) => (
     <div
       className={`calendar-event-chip calendar-event-chip--${view}`}
+      onMouseEnter={(e) => handleEventMouseEnter(event, e.currentTarget as HTMLDivElement)}
+      onMouseLeave={handleEventMouseLeave}
       title={getEventTitle(event)}
     >
       <span className={`calendar-event-title calendar-event-title--${view}`}>{getEventDisplayTitle(event)}</span>
     </div>
   );
+
+  const CalendarHeaderCell = ({ date: headerDate, label }: CalendarHeaderProps) => {
+    const headerClasses =
+      headerDate && view === "week"
+        ? [
+            "caretaker-calendar-header-cell",
+            startOfDay(headerDate).getTime() < startOfDay(now).getTime() ? "caretaker-calendar-header-past" : "",
+            isToday(headerDate) ? "caretaker-calendar-header-today" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")
+        : "caretaker-calendar-header-cell";
+
+    return <div className={headerClasses}>{label}</div>;
+  };
 
   if (loading) {
     return (
@@ -375,8 +560,9 @@ export default function AvailabilityPage() {
                     popup
                     eventPropGetter={eventStyleGetter}
                     dayPropGetter={dayPropGetter}
-                    min={new Date(0, 0, 0, 8, 0, 0)}
-                    max={new Date(0, 0, 0, 16, 0, 0)}
+                    slotPropGetter={slotPropGetter}
+                    min={new Date(0, 0, 0, WORKDAY_START_HOUR, 0, 0)}
+                    max={new Date(0, 0, 0, WORKDAY_END_HOUR, 0, 0)}
                     messages={{
                       next: "Sljedeći",
                       previous: "Prethodni",
@@ -393,6 +579,7 @@ export default function AvailabilityPage() {
                     }}
                     components={{
                       event: CalendarEventContent,
+                      header: CalendarHeaderCell,
                       toolbar: (props: ToolbarProps<CalendarEvent, object>) => (
                         <CalendarToolbar
                           view={props.view}
@@ -600,6 +787,71 @@ export default function AvailabilityPage() {
           </Card>
         </div>
       </div>
+
+      {typeof document !== "undefined" && hoveredEvent && hoverPosition
+        ? createPortal(
+            <div
+              ref={hoverCardRef}
+              className="fixed z-50 w-80 rounded-2xl border border-border bg-white/98 p-4 shadow-2xl backdrop-blur-sm"
+              style={{ top: hoverPosition.top, left: hoverPosition.left }}
+              onMouseEnter={clearHoverTimeout}
+              onMouseLeave={handleEventMouseLeave}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-primary">Brzi pregled</p>
+                  <h3 className="mt-1 text-base font-semibold text-foreground">
+                    {getEventTitle(hoveredEvent)}
+                  </h3>
+                </div>
+                <Badge variant="secondary">
+                  {hoveredEvent.resource.status === "confirmed" && "Potvrđeno"}
+                  {hoveredEvent.resource.status === "completed" && "Završeno"}
+                  {hoveredEvent.resource.status === "cancelled" && "Otkazano"}
+                  {hoveredEvent.resource.status === "confirmed_pending_sync" && "Potvrda u tijeku"}
+                  {hoveredEvent.resource.status === "confirmed_sync_failed" && "Bez Meet linka"}
+                </Badge>
+              </div>
+
+              <div className="mt-4 space-y-3">
+                <div className="flex items-start gap-2">
+                  <Clock className="mt-0.5 h-4 w-4 text-muted-foreground" />
+                  <div className="text-sm">
+                    <p className="font-medium text-foreground">
+                      {format(hoveredEvent.start, "PPP", { locale: hr })}
+                    </p>
+                    <p className="text-muted-foreground">
+                      {format(hoveredEvent.start, "HH:mm")} - {format(hoveredEvent.end, "HH:mm")}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2">
+                  <User className="mt-0.5 h-4 w-4 text-muted-foreground" />
+                  <div className="text-sm">
+                    <p className="font-medium text-foreground">
+                      {hoveredEvent.resource.student?.first_name} {hoveredEvent.resource.student?.last_name}
+                    </p>
+                    {hoveredEvent.resource.student?.email ? (
+                      <p className="text-muted-foreground">{hoveredEvent.resource.student.email}</p>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+
+              {hoveredEvent.resource.conference_link && !hoveredEventIsPast ? (
+                <Button
+                  className="mt-4 w-full gap-2"
+                  onClick={() => window.open(hoveredEvent.resource.conference_link, "_blank")}
+                >
+                  <Video className="h-4 w-4" />
+                  Otvori Google Meet
+                </Button>
+              ) : null}
+            </div>,
+            document.body
+          )
+        : null}
     </div>
   );
 }

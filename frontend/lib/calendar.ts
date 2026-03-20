@@ -4,6 +4,8 @@ import { hr } from "date-fns/locale";
 export const CALENDAR_LOCALE = hr;
 export const CALENDAR_VISIBLE_WEEKS = 2;
 export const CALENDAR_WINDOW_DAYS = 14;
+export const WORKDAY_START_HOUR = 8;
+export const WORKDAY_END_HOUR = 18;
 
 export function getCalendarWeekStart(date: Date): Date {
   return startOfWeek(date, { locale: CALENDAR_LOCALE, weekStartsOn: 1 });
