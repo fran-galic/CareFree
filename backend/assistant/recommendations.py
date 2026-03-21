@@ -5,7 +5,8 @@ from users.serializers import CaretakerLongSerializer
 
 
 def find_recommended_caretakers(main_category: str, subcategories: list[str], request=None, limit: int = 12):
-    queryset = Caretaker.objects.filter(is_approved=True).distinct()
+    base_queryset = Caretaker.objects.filter(is_approved=True).distinct()
+    queryset = base_queryset
 
     if main_category:
         queryset = queryset.filter(help_categories__label=main_category).distinct()
@@ -13,6 +14,11 @@ def find_recommended_caretakers(main_category: str, subcategories: list[str], re
         queryset = queryset.filter(help_categories__label__in=subcategories).distinct()
 
     caretakers = list(queryset[:50])
+    used_general_fallback = False
+    if not caretakers:
+        caretakers = list(base_queryset[:50])
+        used_general_fallback = True
+
     random.shuffle(caretakers)
     caretakers = caretakers[:limit]
     serialized = [
@@ -20,5 +26,4 @@ def find_recommended_caretakers(main_category: str, subcategories: list[str], re
         for caretaker in caretakers
     ]
     caretaker_ids = [caretaker.pk for caretaker in caretakers]
-    return caretaker_ids, serialized
-
+    return caretaker_ids, serialized, used_general_fallback

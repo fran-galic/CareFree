@@ -143,14 +143,35 @@ class SessionMessageView(APIView):
 
         recommended_caretaker_ids: list[int] = []
         recommended_caretakers = []
+        used_general_fallback = False
         summary = getattr(session, "summary", None)
 
         if result.should_show_recommendations:
-            recommended_caretaker_ids, recommended_caretakers = find_recommended_caretakers(
+            recommended_caretaker_ids, recommended_caretakers, used_general_fallback = find_recommended_caretakers(
                 session.main_category,
                 session.subcategories,
                 request=request,
             )
+
+            if not session.main_category.strip():
+                result.mode = "recommendation_offer"
+                result.should_show_recommendations = False
+                result.should_end_session = False
+                result.should_store_summary = False
+                result.message = (
+                    "Mogu ti pomoći pronaći psihologa, ali prije toga bi mi koristilo da malo bolje "
+                    "razumijem što te najviše muči. Što ti je trenutno najteže ili što ti se najčešće vrti po glavi?"
+                )
+                update_session_from_result(session, result)
+                bot_message.content = result.message
+                bot_message.save(update_fields=["content"])
+            elif used_general_fallback:
+                result.message = (
+                    "Nisam uspjela izdvojiti dovoljno precizan uži krug, ali mogu ti odmah pokazati nekoliko "
+                    "dostupnih psihologa pa možeš vidjeti tko ti najviše odgovara."
+                )
+                bot_message.content = result.message
+                bot_message.save(update_fields=["content"])
 
         if result.should_store_summary:
             summary_type = AssistantSessionSummary.SummaryType.SUPPORT
