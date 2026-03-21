@@ -1,397 +1,317 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { startSession, sendMessage, endSession, AssistantMessage } from "@/fetchers/assistant";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { PersistentAvatar } from "@/components/persistent-avatar-image";
-import { Send, Bot, User, StopCircle, CheckCircle, ChevronLeft, ChevronRight } from "lucide-react"; 
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  AssistantMessage,
+  AssistantSessionData,
+  AssistantUiHint,
+  endSession,
+  sendMessage,
+  startSession,
+} from "@/fetchers/assistant";
+import type { Caretaker } from "@/fetchers/users";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { PersistentAvatar } from "@/components/persistent-avatar-image";
+import { Bot, CheckCircle, LifeBuoy, Send, StopCircle, User } from "lucide-react";
 
-
-interface Caretaker {
-  user_id: string;
-  first_name: string;
-  last_name: string;
-  academic_title: string;
-  help_categories: string[];
-  user_image_url: string | null;
-  specialisation: string;
-  working_since: string;
-}
-
-// Komponenta za animaciju pisanja (Tri točkice)
 const TypingIndicator = () => (
   <div className="flex space-x-1 h-3 items-center">
-    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
+    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
+    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
   </div>
 );
 
+function defaultUiHint(): AssistantUiHint {
+  return {
+    welcome_message:
+      "Bok, ja sam Julija, tvoj CareFree AI asistent. Ovdje možeš mirno napisati što ti je trenutno najviše na umu. Možemo samo razgovarati, a ako poželiš, kasnije ti mogu pomoći i pronaći psihologa.",
+    can_recommend_psychologists: true,
+    crisis_contacts: {
+      urgent: "112",
+      crisis_center: "01 2376 335",
+      plavi_telefon: "01 4833 888",
+    },
+  };
+}
+
 export default function ChatPage() {
   const router = useRouter();
-  
   const [messages, setMessages] = useState<AssistantMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isSessionActive, setIsSessionActive] = useState(false);
-  const [sessionEnded, setSessionEnded] = useState(false);
+  const [session, setSession] = useState<AssistantSessionData | null>(null);
+  const [uiHint, setUiHint] = useState<AssistantUiHint>(defaultUiHint);
   const [recommendedCaretakers, setRecommendedCaretakers] = useState<Caretaker[]>([]);
-  const [currentPage, setCurrentPage] = useState(0);
-  
+  const [summaryId, setSummaryId] = useState<number | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const sessionInitialized = useRef(false); // Flag za spriječavanje duplih poziva
-  const hasScrolledToBottom = useRef(false); // Flag za praćenje je li već scrollano na dno
+  const sessionInitialized = useRef(false);
 
-  
+  const sessionClosed = session ? !session.is_active : false;
+  const hasStudentMessages = messages.some((message) => message.sender === "student");
+  const showRecommendations = sessionClosed && recommendedCaretakers.length > 0;
+  const showSupportClosure =
+    sessionClosed && recommendedCaretakers.length === 0 && session?.closure_reason !== "manual";
+
   useEffect(() => {
-    window.scrollTo(0, 0);
-    hasScrolledToBottom.current = false;
-  }, []);
-
-  
-  const CARETAKERS_PER_PAGE = 3;
-  const totalPages = Math.ceil(recommendedCaretakers.length / CARETAKERS_PER_PAGE);
-  const startIndex = currentPage * CARETAKERS_PER_PAGE;
-  const endIndex = startIndex + CARETAKERS_PER_PAGE;
-  const currentCaretakers = recommendedCaretakers.slice(startIndex, endIndex);
-
-  
-  useEffect(() => {
-    
     if (sessionInitialized.current) return;
     sessionInitialized.current = true;
 
     const initSession = async () => {
-      try {
-        const res = await startSession();
-        setIsSessionActive(true);
+      const res = await startSession();
+      setSession(res.session);
+      setUiHint(res.ui_hint);
 
-        const introMsg: AssistantMessage = {
-              id: 0,
-              sender: "bot" as const,
-              content: "Bok! Ja sam Julija, tvoj CareFree AI asistent. Kako se osjećaš danas? Ovdje sam da te saslušam.",
-              created_at: new Date().toISOString()
-            };
-
-        if(res.created){
-          
-          setMessages([introMsg]);
-          return;
-        } else {
-          
-          const previousMessages = Array.isArray(res.messages) ? res.messages : [];
-          
-          
-          if (previousMessages.length > 0) {
-            setMessages(previousMessages);
-          } else {
-            // Sesija postoji ali nema poruka - dodaj intro
-            setMessages([introMsg]);
-          }
-          return;
-        }
-      } catch (error) {
-        console.error("Greška pri pokretanju sesije:", error);
+      if (res.messages.length > 0) {
+        setMessages(res.messages);
+        return;
       }
+
+      setMessages([
+        {
+          id: 0,
+          sender: "bot",
+          content: res.ui_hint.welcome_message,
+          created_at: new Date().toISOString(),
+        },
+      ]);
     };
-    initSession();
-  }, []); 
 
-  // Automatsko skrolanje na dno (uključujući i kad se pojavi indikator pisanja)
-  // Ali samo nakon što je sesija inicijalizirana i korisnik je poslao poruku
+    initSession().catch((error) => {
+      console.error("Greška pri pokretanju sesije:", error);
+    });
+  }, []);
+
   useEffect(() => {
-    if (!sessionEnded && hasScrolledToBottom.current) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages, isLoading, sessionEnded]);
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isLoading, showRecommendations, showSupportClosure]);
 
-  
   const handleSendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!inputValue.trim() || isLoading) return;
-
-    
-    hasScrolledToBottom.current = true;
+    if (!inputValue.trim() || isLoading || sessionClosed) return;
 
     const tempContent = inputValue;
-    setInputValue(""); // Odmah očisti input
+    setInputValue("");
     setIsLoading(true);
 
-    
-    // Kreiramo privremeni objekt poruke s lažnim ID-em
     const tempUserMessage: AssistantMessage = {
-      id: Date.now(), // Privremeni ID (timestamp)
+      id: Date.now(),
       sender: "student",
       content: tempContent,
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
     };
 
-    // Dodajemo je odmah u listu da se vidi
     setMessages((prev) => [...prev, tempUserMessage]);
 
     try {
-      // KORAK B: Šaljemo na backend i čekamo delay
-      const minDelay = new Promise(resolve => setTimeout(resolve, 2000));
-      const apiCall = sendMessage(tempContent);
-      // Čekamo da prođu minimalno 2 sekunde I da backend odgovori
-      const [, response] = await Promise.all([minDelay, apiCall]);
+      const response = await sendMessage(tempContent);
 
-      console.log("Response:", response);
-      
-      // KORAK C: Ažuriramo stanje s pravim podacima
       setMessages((prev) => {
-        
-        const filtered = prev.filter(msg => msg.id !== tempUserMessage.id);
-        
-        
-        const newMessages = [response.user_message, response.bot_message].filter(Boolean);
-        return [...filtered, ...newMessages];
+        const filtered = prev.filter((msg) => msg.id !== tempUserMessage.id);
+        return [...filtered, response.user_message, response.bot_message];
       });
 
-      
-      if (response.recommendation_ready) {
-        
-        if (response.caretakers && response.caretakers.length > 0) {
-          setRecommendedCaretakers(response.caretakers);
-          setCurrentPage(0); 
-        } else {
-          setRecommendedCaretakers([]);
-        }
-        
-        setSessionEnded(true);
-        setIsSessionActive(false);
-        
-        if (response.danger_flag) {
-          console.warn("DANGER FLAG: Korisnik je u riziku!");
-        }
-      }
-
-    } catch (error: any) {
+      setSession((prev) =>
+        prev
+          ? {
+              ...prev,
+              is_active: !response.session_closed,
+              mode: response.session_mode,
+              status: response.session_status,
+              danger_flag: response.danger_flag,
+            }
+          : null
+      );
+      setUiHint(response.ui_hint);
+      setRecommendedCaretakers(response.recommended_caretakers || []);
+      setSummaryId(response.summary_id);
+    } catch (error) {
       console.error("Greška pri slanju:", error);
-      alert("Došlo je do greške. Pokušaj ponovno.");
-      
-      
-      setMessages((prev) => prev.filter(msg => msg.id !== tempUserMessage.id));
-      setInputValue(tempContent); // Vratimo tekst u input
+      setMessages((prev) => prev.filter((msg) => msg.id !== tempUserMessage.id));
+      setInputValue(tempContent);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleEndSession = async () => {
-    if (!confirm("Želiš li završiti ovaj razgovor? Kreirat će se sažetak za psihologa.")) return;
+    if (!confirm("Želiš li završiti razgovor za sada?")) return;
     try {
-      await endSession();
-      alert("Razgovor je završen i sažetak je spremljen.");
+      const response = await endSession();
+      setSummaryId(response.summary_id);
+      setSession((prev) =>
+        prev
+          ? {
+              ...prev,
+              is_active: false,
+              status: response.session_status,
+              closure_reason: "manual",
+            }
+          : prev
+      );
       router.push("/carefree/main");
     } catch (error) {
       console.error("Greška pri završetku:", error);
     }
   };
 
-  const handleNewConversation = async () => {
-    try {
-      setSessionEnded(false);
-      setRecommendedCaretakers([]);
-      setCurrentPage(0);
-      setMessages([]);
-      setIsLoading(false);
-      
-      const res = await startSession();
-      setIsSessionActive(true);
-
-      const introMsg: AssistantMessage = {
-        id: 0,
-        sender: "bot" as const,
-        content: "Bok! Ja sam Julija, tvoj CareFree AI asistent. Kako se osjećaš danas? Ovdje sam da te saslušam.",
-        created_at: new Date().toISOString()
-      };
-
-      if(res.created || !res.messages || res.messages.length === 0){
-        setMessages([introMsg]);
-      } else {
-        const previousMessages = Array.isArray(res.messages) ? res.messages : [];
-        setMessages(previousMessages.length > 0 ? previousMessages : [introMsg]);
-      }
-    } catch (error) {
-      console.error("Greška pri pokretanju nove sesije:", error);
-      alert("Došlo je do greške pri pokretanju novog razgovora.");
-    }
-  };
+  const crisisContacts = uiHint.crisis_contacts;
 
   return (
     <div className="flex flex-col h-[calc(100vh-6rem)] max-w-5xl mx-auto py-6">
-      
-      {/* SESSION ENDED - RECOMMENDATIONS */}
-      {sessionEnded && (
-        <Card className="m-4 border-green-200 bg-green-50/50 animate-slideDown max-h-[calc(100vh-8rem)] flex flex-col">
-          <CardHeader className="pb-0 flex-shrink-0">
+      {session?.danger_flag && (
+        <Alert className="mx-4 mb-4 border-amber-300 bg-amber-50 text-amber-950">
+          <LifeBuoy className="h-4 w-4" />
+          <AlertDescription className="space-y-2">
+            <p>
+              Ako si sada u neposrednoj opasnosti ili misliš da bi si mogao/la nauditi, odmah potraži pomoć.
+            </p>
+            <p>
+              Hitna pomoć: <strong>{crisisContacts.urgent}</strong> · Centar za krizna stanja i prevenciju suicida:{" "}
+              <strong>{crisisContacts.crisis_center}</strong> · Plavi telefon: <strong>{crisisContacts.plavi_telefon}</strong>
+            </p>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {showRecommendations && (
+        <Card className="m-4 border-slate-200 bg-slate-50">
+          <CardHeader>
             <div className="flex items-start gap-3">
               <div className="bg-green-600 text-white p-2 rounded-full">
                 <CheckCircle className="w-5 h-5" />
               </div>
-              <div className="flex-1">
-                <CardTitle className="text-xl mb-1">Razgovor je završen</CardTitle>
-                <CardDescription className="text-sm text-green-700">
-                  Hvala što si podijelio/la svoje misli sa mnom. Na temelju našeg razgovora, pripremio sam popis psihologa 
-                  koji se specijaliziraju za probleme o kojima smo razgovarali i mogu ti pružiti profesionalnu pomoć.
-                </CardDescription>
-                <CardDescription className="text-sm text-green-600 mt-1 italic">
-                  Na profilu svakog psihologa možeš zatražiti termin za razgovor.
+              <div>
+                <CardTitle>Razgovor je završen</CardTitle>
+                <CardDescription className="mt-1 text-green-800">
+                  Na temelju ovog razgovora izdvojila sam nekoliko psihologa koji se bave ovakvim temama.
                 </CardDescription>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="py-2 flex-shrink-0">
-            {recommendedCaretakers.length > 0 ? (
-              <>
-                <div className="grid grid-cols-3 gap-3">
-                  {currentCaretakers.map((caretaker) => (
-                    <Card key={caretaker.user_id} className="hover:shadow-md transition-shadow h-full">
-                      <CardContent className="p-3 flex flex-col items-center text-center h-full justify-between">
-                        <div className="flex flex-col items-center">
-                          <PersistentAvatar
-                            cacheKey={`avatar:messages:${caretaker.user_id}`}
-                            src={caretaker.user_image_url}
-                            alt={`${caretaker.first_name} ${caretaker.last_name}`}
-                            className="w-12 h-12 mb-2"
-                            fallbackClassName="text-sm"
-                            fallback={<>{caretaker.first_name[0]}{caretaker.last_name[0]}</>}
-                          />
-                          <h4 className="font-semibold text-sm line-clamp-1">
-                            {caretaker.academic_title} {caretaker.first_name} {caretaker.last_name}
-                          </h4>
-                          <p className="text-xs text-muted-foreground line-clamp-1 mb-2">{caretaker.specialisation}</p>
-                          <div className="flex gap-1 flex-wrap justify-center">
-                            {caretaker.help_categories.slice(0, 2).map((cat, idx) => (
-                              <span key={idx} className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full h-fit">
-                                {cat}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                        <Link href={`/carefree/caretaker/${caretaker.user_id}`} className="w-full mt-auto pt-4">
-                          <Button size="sm" className="h-7 text-xs w-full">Vidi profil</Button>
-                        </Link>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <p className="text-muted-foreground">Trenutno nema dostupnih psihologa za ovu kategoriju. Pretraži sve psihologe da pronađeš odgovarajuću pomoć.</p>
-            )}
+          <CardContent className="grid gap-3 md:grid-cols-3">
+            {recommendedCaretakers.map((caretaker) => (
+              <Card key={caretaker.user_id} className="h-full">
+                <CardContent className="p-4 flex flex-col items-center text-center h-full">
+                  <PersistentAvatar
+                    cacheKey={`assistant:${caretaker.user_id}`}
+                    src={caretaker.user_image_url}
+                    alt={`${caretaker.first_name} ${caretaker.last_name}`}
+                    className="w-14 h-14 mb-3"
+                    fallback={<>{caretaker.first_name[0]}{caretaker.last_name[0]}</>}
+                  />
+                  <h4 className="font-semibold">
+                    {caretaker.first_name} {caretaker.last_name}
+                  </h4>
+                  <p className="text-sm text-muted-foreground mt-1 line-clamp-3">
+                    {caretaker.about_me || "Psiholog"}
+                  </p>
+                  <div className="flex flex-wrap gap-1 justify-center mt-3">
+                    {caretaker.help_categories.slice(0, 3).map((cat) => (
+                      <span key={cat} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                        {cat}
+                      </span>
+                    ))}
+                  </div>
+                  <Link href={`/carefree/caretaker/${caretaker.user_id}`} className="w-full mt-4">
+                    <Button className="w-full">Vidi profil</Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            ))}
           </CardContent>
-          
-          {recommendedCaretakers.length > 0 && (
-            <CardFooter className="flex-col gap-2 pt-3 flex-shrink-0 border-t bg-background">
-              {}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between w-full">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
-                    disabled={currentPage === 0}
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </Button>
-                  <span className="text-sm text-muted-foreground">
-                    Stranica {currentPage + 1} od {totalPages} ({recommendedCaretakers.length} psihologa)
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))}
-                    disabled={currentPage >= totalPages - 1}
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
-                </div>
-              )}
-              
-              {/* Action buttons */}
-              <div className="flex gap-2 w-full">
-              <Button onClick={handleNewConversation} className="flex-1">
-                Započni novi razgovor
+          <CardFooter className="gap-2 flex-wrap">
+            {summaryId && (
+              <Button variant="outline" onClick={() => router.push(`/carefree/assistant/summary/${summaryId}`)}>
+                Vidi sažetak razgovora
               </Button>
-              <Button onClick={() => router.push("/carefree/search")} variant="outline" className="flex-1">
-                Pretraži sve psihologe
-              </Button>
-              <Button onClick={() => router.push("/carefree/main")} variant="outline" className="flex-1">
-                Povratak na početnu
-              </Button>
-            </div>
-            </CardFooter>
-          )}
+            )}
+            <Button variant="outline" onClick={() => router.push("/carefree/search")}>
+              Pretraži sve psihologe
+            </Button>
+            <Button onClick={() => router.push("/carefree/main")}>Povratak na početnu</Button>
+          </CardFooter>
         </Card>
       )}
-      
-      {}
-      {!sessionEnded && (
-        <div className="border-b border-primary/10 bg-gradient-to-r from-background via-background to-primary/5 supports-[backdrop-filter]:bg-background/80">
-          <div className="flex items-center justify-between px-6 py-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-primary/12 p-2.5 ring-1 ring-primary/15 shadow-sm">
-                <Bot className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <h1 className="text-lg font-semibold">Julija - CareFree AI asistent</h1>
-                <p className="text-xs text-muted-foreground">Siguran razgovor i podrška korak po korak</p>
-              </div>
-            </div>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={handleEndSession} 
-              disabled={!isSessionActive}
-              className="rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
-            >
-              <StopCircle className="w-4 h-4 mr-2" />
-              Završi
-            </Button>
-          </div>
-        </div>
+
+      {showSupportClosure && (
+        <Card className="m-4 border-slate-200 bg-slate-50">
+          <CardHeader>
+            <CardTitle>Razgovor je spremljen</CardTitle>
+            <CardDescription>
+              Hvala ti što si bio/la ovdje. Ako poželiš, možeš se vratiti i nastaviti razgovor drugi put.
+            </CardDescription>
+          </CardHeader>
+          <CardFooter className="gap-2 flex-wrap">
+            {summaryId && (
+              <Button variant="outline" onClick={() => router.push(`/carefree/assistant/summary/${summaryId}`)}>
+                Vidi sažetak razgovora
+              </Button>
+            )}
+            <Button onClick={() => router.push("/carefree/main")}>Povratak na početnu</Button>
+          </CardFooter>
+        </Card>
       )}
 
-      {/* CHAT CONTAINER */}
-      <div className="flex-1 m-6 mb-8 border rounded-lg shadow-sm overflow-hidden flex flex-col">
-        {/* CHAT AREA */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 bg-muted/10">
+      <Card className="flex-1 overflow-hidden flex flex-col shadow-inner bg-white border border-slate-200">
+        <CardHeader className="border-b border-slate-200 bg-white px-3.5 pt-0 pb-0">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2.5">
+              <div className="bg-white p-2 rounded-full border border-slate-200">
+                <Bot className="w-8 h-8 text-primary" />
+              </div>
+              <div className="space-y-0.5">
+                <CardTitle className="text-[1.05rem] font-semibold text-slate-900">
+                  Julija
+                </CardTitle>
+                <CardDescription className="text-sm text-slate-600">
+                  Mjesto za miran i privatan razgovor, uz podršku i nježno usmjeravanje kad ti zatreba.
+                </CardDescription>
+              </div>
+            </div>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleEndSession}
+              disabled={!session || sessionClosed || !hasStudentMessages}
+            >
+              <StopCircle className="w-4 h-4 mr-2" />
+              Završi razgovor
+            </Button>
+          </div>
+        </CardHeader>
+
+        <CardContent className="flex-1 overflow-y-auto px-3 py-2.5 space-y-3.5 bg-white">
           {messages.map((msg) => (
             <div
-              key={msg.id}
-              className={`flex w-full ${
-                msg.sender === "student" ? "justify-end" : "justify-start"
-              }`}
+              key={`${msg.id}-${msg.created_at}`}
+              className={`flex w-full ${msg.sender === "student" ? "justify-end" : "justify-start pl-1"}`}
             >
-              <div className={`flex max-w-[75%] gap-2.5 ${
-                 msg.sender === "student" ? "flex-row-reverse" : "flex-row"
-              }`}>
-                {/* AVATAR */}
-                <Avatar className="w-8 h-8 flex-shrink-0">
+              <div className={`flex max-w-[80%] gap-3 ${msg.sender === "student" ? "flex-row-reverse" : "flex-row"}`}>
+                <Avatar className="w-8 h-8 mt-1">
                   {msg.sender === "student" ? (
-                    <AvatarFallback className="bg-primary/10 text-primary">
+                    <AvatarFallback className="bg-primary text-primary-foreground">
                       <User className="w-4 h-4" />
                     </AvatarFallback>
                   ) : (
-                    <AvatarFallback className="bg-gradient-to-br from-teal-500 to-emerald-600 text-white">
+                    <AvatarFallback className="bg-teal-600 text-white">
                       <Bot className="w-4 h-4" />
                     </AvatarFallback>
                   )}
                 </Avatar>
 
-                {/* TEXT BUBBLE */}
                 <div
-                  className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm border ${
+                  className={`px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm whitespace-pre-wrap ${
                     msg.sender === "student"
-                      ? "bg-primary text-primary-foreground rounded-tr-sm border-primary"
-                      : "bg-background rounded-tl-sm border-border"
+                      ? "bg-primary text-primary-foreground rounded-tr-none"
+                      : "bg-white border border-slate-200 rounded-tl-none"
                   }`}
                 >
                   {msg.content}
@@ -399,50 +319,42 @@ export default function ChatPage() {
               </div>
             </div>
           ))}
-          
-          {/* DINAMIČKA ANIMACIJA DOK BOT PIŠE */}
+
           {isLoading && (
-            <div className="flex w-full justify-start">
-               <div className="flex gap-2.5">
-                  <Avatar className="w-8 h-8 flex-shrink-0">
-                    <AvatarFallback className="bg-gradient-to-br from-teal-500 to-emerald-600 text-white">
-                        <Bot className="w-4 h-4" />
-                    </AvatarFallback>
-                  </Avatar>
-                  
-                  <div className="bg-background px-4 py-3 rounded-2xl rounded-tl-sm shadow-sm border border-border">
-                    <TypingIndicator />
-                  </div>
-               </div>
+            <div className="flex w-full justify-start pl-1">
+              <div className="flex gap-3">
+                <Avatar className="w-8 h-8 mt-1">
+                  <AvatarFallback className="bg-teal-600 text-white">
+                    <Bot className="w-4 h-4" />
+                  </AvatarFallback>
+                </Avatar>
+                <div className="bg-white border border-slate-200 px-3.5 py-2.5 rounded-2xl rounded-tl-none shadow-sm flex items-center">
+                  <TypingIndicator />
+                </div>
+              </div>
             </div>
           )}
-          
-          <div ref={messagesEndRef} />
-      </div>
 
-      {/* INPUT AREA */}
-      <div className="border-t border-primary/10 bg-background px-6 py-4">
-        <form onSubmit={handleSendMessage} className="flex items-center gap-2 rounded-2xl border border-primary/15 bg-background p-1.5 shadow-sm">
-          <Input
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder={sessionEnded ? "Razgovor je završen" : "Napiši poruku..."}
-            className="flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
-            autoFocus
-            disabled={isLoading || sessionEnded}
-          />
-          <Button 
-            type="submit" 
-            disabled={isLoading || !inputValue.trim() || sessionEnded}
-            size="icon"
-            className="h-10 w-10 flex-shrink-0 rounded-xl bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
-          >
-            <Send className="w-4 h-4" />
-            <span className="sr-only">Pošalji</span>
-          </Button>
-        </form>
-      </div>
-    </div>
+          <div ref={messagesEndRef} />
+        </CardContent>
+
+        <CardFooter className="px-2.5 py-0.5 bg-white border-t border-slate-200">
+          <form onSubmit={handleSendMessage} className="flex w-full gap-2 pl-1">
+            <Input
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder={sessionClosed ? "Razgovor je završen" : "Napiši poruku..."}
+              className="flex-1"
+              autoFocus
+              disabled={isLoading || sessionClosed}
+            />
+            <Button type="submit" disabled={isLoading || !inputValue.trim() || sessionClosed}>
+              <Send className="w-4 h-4" />
+              <span className="sr-only">Pošalji</span>
+            </Button>
+          </form>
+        </CardFooter>
+      </Card>
     </div>
   );
 }

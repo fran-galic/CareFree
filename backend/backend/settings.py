@@ -35,6 +35,8 @@ REGISTRATION_TOKEN_EXP_SECONDS = int(os.environ.get("REGISTRATION_TOKEN_EXP_SECO
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get("DEBUG", "True") == "True"
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+AI_CONVERSATION_MODEL = os.environ.get("AI_CONVERSATION_MODEL", "gpt-5.2-chat-latest")
+AI_STRUCTURED_MODEL = os.environ.get("AI_STRUCTURED_MODEL", "gpt-5.2")
 
 #Google id za register/login
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")

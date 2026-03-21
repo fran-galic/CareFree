@@ -9,20 +9,8 @@ import { Loader2, ArrowLeft, User, Bot, Calendar } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import type { Caretaker } from "@/fetchers/users";
-
-interface SummaryMessage {
-  sender: "bot" | "student";
-  content: string;
-}
-
-interface AssistantSummary {
-  created_at?: string;
-  main_category?: string;
-  summary_text?: string;
-  recommended_caretakers?: Caretaker[];
-  messages?: SummaryMessage[];
-}
+import type { AssistantSummaryDetail } from "@/fetchers/assistant";
+import { BACKEND_URL } from "@/lib/config";
 
 const fetcher = async (url: string) => {
   const res = await fetch(url, { credentials: "include" });
@@ -33,8 +21,8 @@ const fetcher = async (url: string) => {
 export default function AssistantSummaryDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = React.use(params);
   const router = useRouter();
-  const { data: summary, error, isLoading } = useSWR<AssistantSummary>(
-    `${process.env.NEXT_PUBLIC_BACKEND_URL}/assistant/summaries/${id}`,
+  const { data: summary, error, isLoading } = useSWR<AssistantSummaryDetail>(
+    `${BACKEND_URL}/assistant/summaries/${id}`,
     fetcher
   );
 
@@ -94,6 +82,15 @@ export default function AssistantSummaryDetailPage({ params }: { params: Promise
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
+          <div className="flex gap-2 flex-wrap">
+            <Badge variant="outline">{summary.summary_type}</Badge>
+            {summary.subcategories.map((subcategory) => (
+              <Badge key={subcategory} variant="outline">
+                {subcategory}
+              </Badge>
+            ))}
+          </div>
+
           {/* Sažetak */}
           {summary.summary_text && (
             <div>
@@ -117,10 +114,10 @@ export default function AssistantSummaryDetailPage({ params }: { params: Promise
                       <div className="flex items-start justify-between">
                         <div>
                           <h4 className="font-semibold">
-                            {caretaker.academic_title} {caretaker.first_name} {caretaker.last_name}
+                            {caretaker.first_name} {caretaker.last_name}
                           </h4>
                           <p className="text-sm text-muted-foreground mt-1">
-                            {caretaker.specialisation || "Psiholog"}
+                            {caretaker.about_me || "Psiholog"}
                           </p>
                           {caretaker.help_categories && caretaker.help_categories.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-2">

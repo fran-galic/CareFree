@@ -1,44 +1,96 @@
-import { fetcher } from "./fetcher";
 import { BACKEND_URL } from "@/lib/config";
+import { fetcher } from "./fetcher";
+import type { Caretaker } from "./users";
 
 const BACKEND_API = BACKEND_URL;
 
-// Tipovi podataka prema backend modelu [4]
+export type AssistantSessionMode = "support" | "recommendation" | "crisis";
+export type AssistantSessionStatus =
+  | "active"
+  | "recommendation_offered"
+  | "recommendation_ready"
+  | "support_completed"
+  | "recommendation_completed"
+  | "crisis_active"
+  | "ended_manual";
+
 export interface AssistantMessage {
   id: number;
   sender: "student" | "bot";
   content: string;
+  sequence?: number;
   created_at: string;
 }
 
-export interface SessionResponse {
-  session: {
-    id: number;
-    is_active: boolean;
-    created_at: string;
+export interface AssistantUiHint {
+  welcome_message: string;
+  can_recommend_psychologists: boolean;
+  crisis_contacts: {
+    urgent: string;
+    crisis_center: string;
+    plavi_telefon: string;
   };
+}
+
+export interface AssistantSessionData {
+  id: number;
+  is_active: boolean;
+  mode: AssistantSessionMode;
+  status: AssistantSessionStatus;
+  closure_reason: string | null;
+  main_category: string;
+  subcategories: string[];
+  danger_flag: boolean;
+  created_at: string;
+  ended_at: string | null;
+}
+
+export interface SessionResponse {
+  session: AssistantSessionData;
   messages: AssistantMessage[];
   created: boolean;
+  ui_hint: AssistantUiHint;
 }
 
 export interface MessageResponse {
   user_message: AssistantMessage;
   bot_message: AssistantMessage;
-  recommendation_ready: boolean;
+  session_mode: AssistantSessionMode;
+  session_status: AssistantSessionStatus;
   danger_flag: boolean;
-  caretakers: Array<{
-    user_id: string;
-    first_name: string;
-    last_name: string;
-    academic_title: string;
-    help_categories: string[];
-    user_image_url: string | null;
-    specialisation: string;
-    working_since: string;
-  }>;
+  show_crisis_panel: boolean;
+  show_recommendations: boolean;
+  recommended_caretakers: Caretaker[];
+  session_closed: boolean;
+  summary_id: number | null;
+  ui_hint: AssistantUiHint;
 }
 
-// 1. Pokreni ili dohvati aktivnu sesiju
+export interface EndSessionResponse {
+  message: string;
+  session_closed: boolean;
+  session_status: AssistantSessionStatus;
+  summary_id: number | null;
+}
+
+export interface AssistantSummaryDetail {
+  id: number;
+  created_at: string;
+  summary_text: string;
+  summary_type: "support" | "recommendation" | "crisis";
+  main_category: string;
+  subcategories: string[];
+  recommended_caretakers: Caretaker[];
+  messages: Array<{
+    sender: "student" | "bot";
+    content: string;
+    created_at: string;
+    sequence: number;
+  }>;
+  closure_reason: string | null;
+  session_status: AssistantSessionStatus | null;
+}
+
 export function startSession() {
   return fetcher<SessionResponse>(`${BACKEND_API}/assistant/session/start`, {
     method: "POST",
@@ -46,7 +98,6 @@ export function startSession() {
   });
 }
 
-// 2. Pošalji poruku
 export function sendMessage(content: string) {
   return fetcher<MessageResponse>(`${BACKEND_API}/assistant/session/message`, {
     method: "POST",
@@ -58,10 +109,10 @@ export function sendMessage(content: string) {
   });
 }
 
-// 3. Završi sesiju (generira sažetak)
 export function endSession() {
-  return fetcher<any>(`${BACKEND_API}/assistant/session/end`, {
+  return fetcher<EndSessionResponse>(`${BACKEND_API}/assistant/session/end`, {
     method: "POST",
     credentials: "include",
   });
 }
+

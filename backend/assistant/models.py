@@ -5,12 +5,51 @@ from accounts.models import Student
 
 
 class AssistantSession(models.Model):
+	class SessionMode(models.TextChoices):
+		SUPPORT = "support", "Support"
+		RECOMMENDATION = "recommendation", "Recommendation"
+		CRISIS = "crisis", "Crisis"
+
+	class SessionStatus(models.TextChoices):
+		ACTIVE = "active", "Active"
+		RECOMMENDATION_OFFERED = "recommendation_offered", "Recommendation Offered"
+		RECOMMENDATION_READY = "recommendation_ready", "Recommendation Ready"
+		SUPPORT_COMPLETED = "support_completed", "Support Completed"
+		RECOMMENDATION_COMPLETED = "recommendation_completed", "Recommendation Completed"
+		CRISIS_ACTIVE = "crisis_active", "Crisis Active"
+		ENDED_MANUAL = "ended_manual", "Ended Manually"
+
+	class ClosureReason(models.TextChoices):
+		MANUAL = "manual", "Manual"
+		SUPPORT = "support", "Support"
+		RECOMMENDATION = "recommendation", "Recommendation"
+		CRISIS = "crisis", "Crisis"
+
 	student = models.ForeignKey(
 		Student,
 		related_name="assistant_sessions",
 		on_delete=models.CASCADE,
 	)
 	is_active = models.BooleanField(default=True)
+	mode = models.CharField(
+		max_length=30,
+		choices=SessionMode.choices,
+		default=SessionMode.SUPPORT,
+	)
+	status = models.CharField(
+		max_length=40,
+		choices=SessionStatus.choices,
+		default=SessionStatus.ACTIVE,
+	)
+	closure_reason = models.CharField(
+		max_length=20,
+		choices=ClosureReason.choices,
+		null=True,
+		blank=True,
+	)
+	main_category = models.CharField(max_length=120, blank=True, default="")
+	subcategories = models.JSONField(default=list, blank=True)
+	danger_flag = models.BooleanField(default=False)
 	created_at = models.DateTimeField(auto_now_add=True)
 	updated_at = models.DateTimeField(auto_now=True)
 	ended_at = models.DateTimeField(null=True, blank=True)
@@ -69,6 +108,11 @@ class AssistantMessage(models.Model):
 
 
 class AssistantSessionSummary(models.Model):
+	class SummaryType(models.TextChoices):
+		SUPPORT = "support", "Support"
+		RECOMMENDATION = "recommendation", "Recommendation"
+		CRISIS = "crisis", "Crisis"
+
 	student = models.ForeignKey(
 		Student,
 		related_name="assistant_session_summaries",
@@ -82,6 +126,15 @@ class AssistantSessionSummary(models.Model):
 		on_delete=models.SET_NULL,
 	)
 	content = models.TextField()
+	summary_type = models.CharField(
+		max_length=20,
+		choices=SummaryType.choices,
+		default=SummaryType.SUPPORT,
+	)
+	main_category = models.CharField(max_length=120, blank=True, default="")
+	subcategories = models.JSONField(default=list, blank=True)
+	recommended_caretaker_ids = models.JSONField(default=list, blank=True)
+	include_in_context = models.BooleanField(default=True)
 	created_at = models.DateTimeField(auto_now_add=True)
 
 	class Meta:
@@ -89,4 +142,3 @@ class AssistantSessionSummary(models.Model):
 
 	def __str__(self) -> str:
 		return f"Summary(id={self.pk}, student={self.student_id})"
-
