@@ -37,6 +37,9 @@ DEBUG = os.environ.get("DEBUG", "True") == "True"
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 AI_CONVERSATION_MODEL = os.environ.get("AI_CONVERSATION_MODEL", "gpt-5.2-chat-latest")
 AI_STRUCTURED_MODEL = os.environ.get("AI_STRUCTURED_MODEL", "gpt-5.2")
+AI_CONVERSATION_TIMEOUT_SEC = float(os.environ.get("AI_CONVERSATION_TIMEOUT_SEC", "7"))
+AI_MAX_PREVIOUS_SUMMARIES = int(os.environ.get("AI_MAX_PREVIOUS_SUMMARIES", "2"))
+AI_MAX_RECENT_CHAT_MESSAGES = int(os.environ.get("AI_MAX_RECENT_CHAT_MESSAGES", "8"))
 
 #Google id za register/login
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")

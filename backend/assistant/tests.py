@@ -4,7 +4,9 @@ from django.contrib.auth import get_user_model
 from rest_framework.test import APITestCase
 
 from accounts.models import Caretaker, HelpCategory, Student
+from assistant.llm import build_messages_for_llm
 from assistant.models import AssistantSession
+from assistant.prompts import build_system_prompt
 from assistant.schemas import AssistantLLMResult
 
 User = get_user_model()
@@ -35,6 +37,25 @@ class AssistantFlowTests(APITestCase):
         response = self.client.post("/assistant/session/end")
 
         self.assertEqual(response.status_code, 400)
+
+    def test_system_prompt_contains_behavior_rules_for_natural_tone(self):
+        prompt = build_system_prompt()
+
+        self.assertIn("ne koristiš emojije", prompt)
+        self.assertIn("ne koristiš bullet-point stil", prompt)
+        self.assertIn("ne ponašaš se kao customer support", prompt)
+
+    def test_llm_messages_include_only_non_name_profile_context(self):
+        self.user.sex = "M"
+        self.user.save(update_fields=["sex"])
+        session = AssistantSession.objects.create(student=self.student)
+
+        messages = build_messages_for_llm(session, [])
+
+        joined = "\n".join(item["content"] for item in messages)
+        self.assertIn("spolu iz profila", joined)
+        self.assertIn("Ne spominji da znaš podatke iz profila i ne koristi ime korisnika.", joined)
+        self.assertNotIn(self.user.first_name, joined)
 
     @patch("assistant.views.generate_assistant_result")
     def test_support_closure_message_stores_summary_and_closes_session(self, mock_generate):
@@ -103,6 +124,77 @@ class AssistantFlowTests(APITestCase):
         session = AssistantSession.objects.get(student=self.student)
         self.assertEqual(session.closure_reason, AssistantSession.ClosureReason.RECOMMENDATION)
         self.assertEqual(session.summary.summary_type, "recommendation")
+
+    @patch("assistant.views.generate_assistant_result")
+    def test_recommendation_without_clear_category_does_not_close_session(self, mock_generate):
+        self.client.post("/assistant/session/start")
+        mock_generate.return_value = AssistantLLMResult(
+            mode="recommendation_ready",
+            message="U nastavku ti mogu predložiti dostupne psihologe.",
+            summary="Student želi psihologa, ali još nije jasno što ga točno muči.",
+            main_category="",
+            subcategories=[],
+            should_end_session=True,
+            should_show_recommendations=True,
+            should_store_summary=True,
+        )
+
+        response = self.client.post(
+            "/assistant/session/message",
+            {"content": "Samo želim da mi preporučiš psihologa, ali ne znam što me točno muči."},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertFalse(response.data["session_closed"])
+        self.assertFalse(response.data["show_recommendations"])
+        self.assertIn("što te najviše muči", response.data["bot_message"]["content"])
+
+        session = AssistantSession.objects.get(student=self.student)
+        self.assertTrue(session.is_active)
+        self.assertFalse(hasattr(session, "summary"))
+
+    @patch("assistant.views.generate_assistant_result")
+    def test_recommendation_with_category_but_no_exact_match_shows_general_fallback(self, mock_generate):
+        caretaker_user = User.objects.create_user(
+            email="fallback.caretaker@example.com",
+            password="testpass123",
+            first_name="Iva",
+            last_name="Marić",
+            role="caretaker",
+        )
+        caretaker = Caretaker.objects.create(
+            user=caretaker_user,
+            about_me="Podrška studentima",
+            is_profile_complete=True,
+        )
+        caretaker.is_approved = True
+        caretaker.approval_status = Caretaker.APPROVAL_APPROVED
+        caretaker.save(update_fields=["is_approved", "approval_status"])
+
+        self.client.post("/assistant/session/start")
+        mock_generate.return_value = AssistantLLMResult(
+            mode="recommendation_ready",
+            message="Mogu ti preporučiti psihologe.",
+            summary="Student traži preporuku zbog stresa oko fakulteta.",
+            main_category="Stres i akademski pritisci",
+            subcategories=[],
+            should_end_session=True,
+            should_show_recommendations=True,
+            should_store_summary=True,
+        )
+
+        response = self.client.post(
+            "/assistant/session/message",
+            {"content": "Volio bih da mi preporučiš psihologa."},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(response.data["session_closed"])
+        self.assertTrue(response.data["show_recommendations"])
+        self.assertEqual(len(response.data["recommended_caretakers"]), 1)
+        self.assertIn("mogu ti odmah pokazati nekoliko dostupnih psihologa", response.data["bot_message"]["content"].lower())
 
     @patch("assistant.views.generate_assistant_result")
     def test_crisis_mode_raises_panel_without_forcing_recommendations(self, mock_generate):

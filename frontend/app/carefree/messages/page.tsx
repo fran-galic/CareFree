@@ -50,6 +50,8 @@ export default function ChatPage() {
   const [uiHint, setUiHint] = useState<AssistantUiHint>(defaultUiHint);
   const [recommendedCaretakers, setRecommendedCaretakers] = useState<Caretaker[]>([]);
   const [summaryId, setSummaryId] = useState<number | null>(null);
+  const [pageError, setPageError] = useState<string | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const sessionInitialized = useRef(false);
@@ -68,6 +70,8 @@ export default function ChatPage() {
       const res = await startSession();
       setSession(res.session);
       setUiHint(res.ui_hint);
+      setPageError(null);
+      setSendError(null);
 
       if (res.messages.length > 0) {
         setMessages(res.messages);
@@ -86,6 +90,7 @@ export default function ChatPage() {
 
     initSession().catch((error) => {
       console.error("Greška pri pokretanju sesije:", error);
+      setPageError((error as Error).message);
     });
   }, []);
 
@@ -100,6 +105,7 @@ export default function ChatPage() {
     const tempContent = inputValue;
     setInputValue("");
     setIsLoading(true);
+    setSendError(null);
 
     const tempUserMessage: AssistantMessage = {
       id: Date.now(),
@@ -112,6 +118,7 @@ export default function ChatPage() {
 
     try {
       const response = await sendMessage(tempContent);
+      setPageError(null);
 
       setMessages((prev) => {
         const filtered = prev.filter((msg) => msg.id !== tempUserMessage.id);
@@ -134,6 +141,8 @@ export default function ChatPage() {
       setSummaryId(response.summary_id);
     } catch (error) {
       console.error("Greška pri slanju:", error);
+      setPageError((error as Error).message);
+      setSendError("Poruka nije poslana. Možeš pokušati ponovno.");
       setMessages((prev) => prev.filter((msg) => msg.id !== tempUserMessage.id));
       setInputValue(tempContent);
     } finally {
@@ -145,6 +154,7 @@ export default function ChatPage() {
     if (!confirm("Želiš li završiti razgovor za sada?")) return;
     try {
       const response = await endSession();
+      setPageError(null);
       setSummaryId(response.summary_id);
       setSession((prev) =>
         prev
@@ -159,6 +169,7 @@ export default function ChatPage() {
       router.push("/carefree/main");
     } catch (error) {
       console.error("Greška pri završetku:", error);
+      setPageError((error as Error).message);
     }
   };
 
@@ -181,17 +192,26 @@ export default function ChatPage() {
         </Alert>
       )}
 
+      {pageError && (
+        <Alert className="mx-4 mb-4 border-rose-300 bg-rose-50 text-rose-900">
+          <AlertDescription>{pageError}</AlertDescription>
+        </Alert>
+      )}
+
       {showRecommendations && (
-        <Card className="m-4 border-slate-200 bg-slate-50">
+        <Card className="mb-4 w-full border-slate-200 bg-slate-50">
           <CardHeader>
             <div className="flex items-start gap-3">
               <div className="bg-green-600 text-white p-2 rounded-full">
                 <CheckCircle className="w-5 h-5" />
               </div>
               <div>
-                <CardTitle>Razgovor je završen</CardTitle>
+                <CardTitle>Za danas možemo stati ovdje</CardTitle>
                 <CardDescription className="mt-1 text-green-800">
-                  Na temelju ovog razgovora izdvojila sam nekoliko psihologa koji se bave ovakvim temama.
+                  Na temelju onoga što si podijelio/la, izdvojila sam nekoliko psihologa koji se bave ovakvim temama.
+                </CardDescription>
+                <CardDescription className="mt-2 text-slate-600">
+                  Ako želiš, možeš mirno pogledati njihove profile i odlučiti odgovara li ti netko od njih.
                 </CardDescription>
               </div>
             </div>
@@ -242,11 +262,11 @@ export default function ChatPage() {
       )}
 
       {showSupportClosure && (
-        <Card className="m-4 border-slate-200 bg-slate-50">
+        <Card className="mb-4 w-full border-slate-200 bg-slate-50">
           <CardHeader>
-            <CardTitle>Razgovor je spremljen</CardTitle>
+            <CardTitle>Za danas možemo stati ovdje</CardTitle>
             <CardDescription>
-              Hvala ti što si bio/la ovdje. Ako poželiš, možeš se vratiti i nastaviti razgovor drugi put.
+              Hvala ti što si bio/la ovdje. Razgovor je spremljen, a ako poželiš, uvijek se možeš vratiti i nastaviti drugi put.
             </CardDescription>
           </CardHeader>
           <CardFooter className="gap-2 flex-wrap">
@@ -260,18 +280,18 @@ export default function ChatPage() {
         </Card>
       )}
 
-      <Card className="flex-1 overflow-hidden flex flex-col shadow-inner bg-white border border-slate-200">
-        <CardHeader className="border-b border-slate-200 bg-white px-3.5 pt-0 pb-0">
-          <div className="flex items-center justify-between gap-4">
+      <Card className="flex-1 overflow-hidden flex flex-col gap-0 py-0 shadow-inner bg-white border border-slate-200">
+        <CardHeader className="border-b border-slate-200 bg-white px-3.5 pt-4 pb-0">
+          <div className="-mb-1 flex items-end justify-between">
             <div className="flex items-center gap-2.5">
               <div className="bg-white p-2 rounded-full border border-slate-200">
                 <Bot className="w-8 h-8 text-primary" />
               </div>
-              <div className="space-y-0.5">
+              <div className="space-y-0">
                 <CardTitle className="text-[1.05rem] font-semibold text-slate-900">
                   Julija
                 </CardTitle>
-                <CardDescription className="text-sm text-slate-600">
+                <CardDescription className="text-sm leading-tight text-slate-600">
                   Mjesto za miran i privatan razgovor, uz podršku i nježno usmjeravanje kad ti zatreba.
                 </CardDescription>
               </div>
@@ -288,7 +308,7 @@ export default function ChatPage() {
           </div>
         </CardHeader>
 
-        <CardContent className="flex-1 overflow-y-auto px-3 py-2.5 space-y-3.5 bg-white">
+        <CardContent className="flex-1 overflow-y-auto px-3 pt-2.5 pb-2.5 space-y-3.5 bg-white">
           {messages.map((msg) => (
             <div
               key={`${msg.id}-${msg.created_at}`}
@@ -338,21 +358,38 @@ export default function ChatPage() {
           <div ref={messagesEndRef} />
         </CardContent>
 
-        <CardFooter className="px-2.5 py-0.5 bg-white border-t border-slate-200">
-          <form onSubmit={handleSendMessage} className="flex w-full gap-2 pl-1">
-            <Input
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              placeholder={sessionClosed ? "Razgovor je završen" : "Napiši poruku..."}
-              className="flex-1"
-              autoFocus
-              disabled={isLoading || sessionClosed}
-            />
-            <Button type="submit" disabled={isLoading || !inputValue.trim() || sessionClosed}>
-              <Send className="w-4 h-4" />
-              <span className="sr-only">Pošalji</span>
-            </Button>
-          </form>
+        <CardFooter className="bg-white border-t border-slate-200 px-2 pt-2 pb-4">
+          <div className="flex w-full items-center pl-1">
+            <form onSubmit={handleSendMessage} className="flex w-full gap-2">
+              <Input
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                placeholder={sessionClosed ? "Razgovor je završen" : "Napiši poruku..."}
+                className="flex-1"
+                autoFocus
+                disabled={isLoading || sessionClosed}
+              />
+              <Button type="submit" disabled={isLoading || !inputValue.trim() || sessionClosed}>
+                <Send className="w-4 h-4" />
+                <span className="sr-only">Pošalji</span>
+              </Button>
+            </form>
+            {sendError && !sessionClosed && (
+              <div className="mt-1.5 flex items-center justify-between gap-3 text-xs text-rose-700">
+                <span>{sendError}</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-auto px-0 py-0 text-xs text-rose-700 hover:bg-transparent hover:text-rose-800"
+                  onClick={() => handleSendMessage()}
+                  disabled={isLoading || !inputValue.trim()}
+                >
+                  Pokušaj ponovno
+                </Button>
+              </div>
+            )}
+          </div>
         </CardFooter>
       </Card>
     </div>
