@@ -8,6 +8,7 @@ export interface Caretaker {
   last_name: string;
   academic_title?: string;
   help_categories: string[];
+  assistant_relevant_categories?: string[];
   user_image_url: string | null;
   specialisation?: string;
   about_me: string;

@@ -61,6 +61,8 @@ export interface MessageResponse {
   show_crisis_panel: boolean;
   show_recommendations: boolean;
   recommended_caretakers: Caretaker[];
+  recommendation_summary: string;
+  recommendation_match_scope: "subcategory" | "category" | "general" | null;
   session_closed: boolean;
   summary_id: number | null;
   ui_hint: AssistantUiHint;
@@ -115,4 +117,3 @@ export function endSession() {
     credentials: "include",
   });
 }
-
