@@ -1,6 +1,19 @@
 from django.utils import timezone
 
+from .category_codes import resolve_category_selection
 from .models import AssistantSession, AssistantSessionSummary
+
+
+def _build_transcript_snapshot(session) -> list[dict]:
+    return [
+        {
+            "sender": message.sender,
+            "content": message.content,
+            "created_at": message.created_at.isoformat(),
+            "sequence": message.sequence,
+        }
+        for message in session.messages.order_by("sequence", "created_at")
+    ]
 
 
 def recent_context_summaries(student, limit: int = 3) -> list[str]:
@@ -26,16 +39,27 @@ def update_session_from_result(session, result) -> None:
         "support_closure": AssistantSession.SessionStatus.SUPPORT_COMPLETED,
         "support": AssistantSession.SessionStatus.ACTIVE,
     }
+    main_category_code, subcategory_codes, main_category_label, subcategory_labels = resolve_category_selection(
+        main_category_code=getattr(result, "main_category_code", ""),
+        subcategory_codes=getattr(result, "subcategory_codes", []),
+        main_category_label=result.main_category,
+        subcategory_labels=result.subcategories,
+    )
+
     session.mode = mode_map.get(result.mode, AssistantSession.SessionMode.SUPPORT)
     session.status = status_map.get(result.mode, AssistantSession.SessionStatus.ACTIVE)
-    session.main_category = (result.main_category or "").strip()
-    session.subcategories = [item for item in result.subcategories if item]
+    session.main_category_code = main_category_code
+    session.main_category = main_category_label
+    session.subcategory_codes = subcategory_codes
+    session.subcategories = subcategory_labels
     session.danger_flag = bool(result.danger_flag)
     session.save(
         update_fields=[
             "mode",
             "status",
+            "main_category_code",
             "main_category",
+            "subcategory_codes",
             "subcategories",
             "danger_flag",
             "updated_at",
@@ -67,6 +91,9 @@ def close_session(session, closure_reason: str) -> None:
         ]
     )
 
+    if closure_reason == AssistantSession.ClosureReason.RECOMMENDATION:
+        session.messages.all().delete()
+
 
 def ensure_summary(
     session,
@@ -75,15 +102,19 @@ def ensure_summary(
     summary_type: str,
     recommended_caretaker_ids: list[int] | None = None,
 ) -> AssistantSessionSummary:
+    transcript_snapshot = _build_transcript_snapshot(session)
     summary, _ = AssistantSessionSummary.objects.update_or_create(
         session=session,
         defaults={
             "student": session.student,
             "content": content.strip(),
             "summary_type": summary_type,
+            "main_category_code": session.main_category_code,
             "main_category": session.main_category,
+            "subcategory_codes": session.subcategory_codes,
             "subcategories": session.subcategories,
             "recommended_caretaker_ids": recommended_caretaker_ids or [],
+            "transcript_snapshot": transcript_snapshot,
             "include_in_context": True,
         },
     )

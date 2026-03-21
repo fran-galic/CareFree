@@ -27,6 +27,38 @@ def _get_student_from_request(request):
     return getattr(user, "student", None)
 
 
+def _normalize_text(value: str) -> str:
+    return " ".join((value or "").casefold().split())
+
+
+def _student_clearly_wants_to_stop(content: str) -> bool:
+    normalized = _normalize_text(content)
+    strong_closure_phrases = (
+        "to je to",
+        "ma to je to",
+        "to je sve",
+        "ma to je sve",
+        "za danas mi je dosta",
+        "to je to za danas",
+        "mozemo stati",
+        "možemo stati",
+        "mozemo ovdje stati",
+        "možemo ovdje stati",
+        "mislim da mi je za danas dosta",
+        "ne trebam dalje nista",
+        "ne trebam dalje ništa",
+        "to mi je dovoljno za danas",
+        "dosta mi je za danas",
+        "sve je u redu",
+        "sve je okej",
+        "mislim da sam okej",
+        "mislim da je okej",
+        "hvala, to je to",
+        "hvala to je to",
+    )
+    return any(phrase in normalized for phrase in strong_closure_phrases)
+
+
 def _session_intro_payload() -> dict:
     return {
         "welcome_message": WELCOME_MESSAGE,
@@ -133,6 +165,16 @@ class SessionMessageView(APIView):
         )
 
         result = generate_assistant_result(session, recent_context_summaries(student))
+
+        if result.mode == "support_closure" and not _student_clearly_wants_to_stop(content):
+            result.mode = "support"
+            result.should_end_session = False
+            result.should_store_summary = False
+            result.message = (
+                "Ako želiš, možemo ovdje polako stati za danas, ali ne moramo. "
+                "Ako ti se još priča, slobodno nastavi i reci mi što ti je još ostalo na umu."
+            )
+
         update_session_from_result(session, result)
 
         bot_message = AssistantMessage.objects.create(
@@ -151,10 +193,12 @@ class SessionMessageView(APIView):
             recommended_caretaker_ids, recommended_caretakers, recommendation_match_scope = find_recommended_caretakers(
                 session.main_category,
                 session.subcategories,
+                main_category_code=session.main_category_code,
+                subcategory_codes=session.subcategory_codes,
                 request=request,
             )
 
-            if not session.main_category.strip():
+            if not session.main_category_code and not session.main_category.strip():
                 result.mode = "recommendation_offer"
                 result.should_show_recommendations = False
                 result.should_end_session = False
@@ -173,11 +217,35 @@ class SessionMessageView(APIView):
                     session.subcategories,
                     recommendation_match_scope,
                 )
-            if recommendation_match_scope == "general" and result.should_show_recommendations:
+                if session.danger_flag or result.mode == "crisis":
+                    result.message = (
+                        "Uz ove krizne kontakte, izdvojila sam i nekoliko psihologa koji ti mogu pružiti dodatnu stručnu podršku "
+                        "čim budeš spreman/na. Ako osjetiš da si sada u neposrednoj opasnosti, hitni brojevi su i dalje prvi korak."
+                    )
+                    bot_message.content = result.message
+                    bot_message.save(update_fields=["content"])
+            if (
+                recommendation_match_scope == "general"
+                and result.should_show_recommendations
+                and recommended_caretakers
+                and not (session.danger_flag or result.mode == "crisis")
+            ):
                 result.message = (
                     "Nisam uspjela izdvojiti dovoljno precizan uži krug, ali mogu ti odmah pokazati nekoliko "
                     "dostupnih psihologa pa možeš vidjeti tko ti najviše odgovara."
                 )
+                bot_message.content = result.message
+                bot_message.save(update_fields=["content"])
+            elif result.should_show_recommendations and not recommended_caretakers:
+                result.mode = "recommendation_offer"
+                result.should_show_recommendations = False
+                result.should_end_session = False
+                result.should_store_summary = False
+                result.message = (
+                    "Trenutno ti ne mogu prikazati odgovarajuće psihologe, ali mogu ostati s tobom u razgovoru "
+                    "ili možeš malo kasnije pokušati ponovno."
+                )
+                update_session_from_result(session, result)
                 bot_message.content = result.message
                 bot_message.save(update_fields=["content"])
 
