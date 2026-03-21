@@ -19,10 +19,20 @@ from .models import AssistantSession, AssistantMessage, AssistantSessionSummary
 
 @admin.register(AssistantSessionSummary)
 class AssistantSessionSummaryAdmin(admin.ModelAdmin):
-	list_display = ("id", "student", "session", "created_at")
-	list_filter = ("created_at",)
+	list_display = ("id", "student", "session", "summary_type", "main_category", "created_at")
+	list_filter = ("summary_type", "created_at")
 	search_fields = ("student__user__email", "student__user__first_name", "student__user__last_name", "content")
 
 
-admin.site.register(AssistantMessage)
-admin.site.register(AssistantSession)
+@admin.register(AssistantMessage)
+class AssistantMessageAdmin(admin.ModelAdmin):
+	list_display = ("id", "session", "sender", "sequence", "created_at")
+	list_filter = ("sender", "created_at")
+	search_fields = ("content", "session__student__user__email")
+
+
+@admin.register(AssistantSession)
+class AssistantSessionAdmin(admin.ModelAdmin):
+	list_display = ("id", "student", "mode", "status", "danger_flag", "is_active", "created_at", "ended_at")
+	list_filter = ("mode", "status", "danger_flag", "is_active")
+	search_fields = ("student__user__email", "student__user__first_name", "student__user__last_name")

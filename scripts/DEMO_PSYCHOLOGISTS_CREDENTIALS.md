@@ -28,3 +28,8 @@ Zajednicka lozinka za sve demo psihologe:
 
 - Ova lista vrijedi za trenutno seedano lokalno stanje.
 - Ako se promijeni broj `m_*` / `w_*` slika u `demo_profiles/` i ponovno pokrene seed, lista se moze promijeniti.
+
+## Demo student
+
+- `demo.student@carefree.local`
+- `DemoStudent123!`

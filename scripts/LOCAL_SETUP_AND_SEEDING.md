@@ -39,7 +39,7 @@ SUPERUSER_LAST_NAME=User \
 bash scripts/reset_local_app.sh
 ```
 
-## 2. Seed demo psihologa
+## 2. Seed demo psihologa i demo studenta
 
 Pokretanje:
 
@@ -55,6 +55,10 @@ Sto radi:
 - dodjeljuje realisticne opise i kategorije
 - puni dostupnost za aktualni i sljedeci tjedan
 - attacha demo CV, diplome i certifikate
+- kreira demo studenta za lokalno testiranje
+- kreira 2 prosla demo razgovora za feedback flow:
+  - jedan bez feedbacka
+  - jedan s vec poslanim feedbackom
 
 Napomena za slike:
 
@@ -72,6 +76,11 @@ bash scripts/seed_demo_caretakers.sh --password 'DemoPsiholog123!'
 Default lozinka za sve demo psihologe:
 
 - Password: `DemoPsiholog123!`
+
+Demo student:
+
+- Email: `demo.student@carefree.local`
+- Password: `DemoStudent123!`
 
 Email adrese demo psihologa generiraju se u formatu:
 
