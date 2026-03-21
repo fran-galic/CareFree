@@ -15,10 +15,10 @@ import type { Caretaker } from "@/fetchers/users";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { PersistentAvatar } from "@/components/persistent-avatar-image";
-import { Bot, CheckCircle, LifeBuoy, Send, StopCircle, User } from "lucide-react";
+import { Bot, CheckCircle, ChevronLeft, ChevronRight, LifeBuoy, Send, StopCircle, User } from "lucide-react";
 
 const TypingIndicator = () => (
   <div className="flex space-x-1 h-3 items-center">
@@ -49,6 +49,9 @@ export default function ChatPage() {
   const [session, setSession] = useState<AssistantSessionData | null>(null);
   const [uiHint, setUiHint] = useState<AssistantUiHint>(defaultUiHint);
   const [recommendedCaretakers, setRecommendedCaretakers] = useState<Caretaker[]>([]);
+  const [recommendationSummary, setRecommendationSummary] = useState("");
+  const [, setRecommendationMatchScope] = useState<string | null>(null);
+  const [recommendationPage, setRecommendationPage] = useState(0);
   const [summaryId, setSummaryId] = useState<number | null>(null);
   const [pageError, setPageError] = useState<string | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
@@ -61,6 +64,14 @@ export default function ChatPage() {
   const showRecommendations = sessionClosed && recommendedCaretakers.length > 0;
   const showSupportClosure =
     sessionClosed && recommendedCaretakers.length === 0 && session?.closure_reason !== "manual";
+  const isClosureScreen = showRecommendations || showSupportClosure;
+
+  const caretakersPerPage = 3;
+  const totalRecommendationPages = Math.max(1, Math.ceil(recommendedCaretakers.length / caretakersPerPage));
+  const visibleCaretakers = recommendedCaretakers.slice(
+    recommendationPage * caretakersPerPage,
+    recommendationPage * caretakersPerPage + caretakersPerPage
+  );
 
   useEffect(() => {
     if (sessionInitialized.current) return;
@@ -72,6 +83,9 @@ export default function ChatPage() {
       setUiHint(res.ui_hint);
       setPageError(null);
       setSendError(null);
+      setRecommendationSummary("");
+      setRecommendationMatchScope(null);
+      setRecommendationPage(0);
 
       if (res.messages.length > 0) {
         setMessages(res.messages);
@@ -138,6 +152,9 @@ export default function ChatPage() {
       );
       setUiHint(response.ui_hint);
       setRecommendedCaretakers(response.recommended_caretakers || []);
+      setRecommendationSummary(response.recommendation_summary || "");
+      setRecommendationMatchScope(response.recommendation_match_scope || null);
+      setRecommendationPage(0);
       setSummaryId(response.summary_id);
     } catch (error) {
       console.error("Greška pri slanju:", error);
@@ -176,7 +193,11 @@ export default function ChatPage() {
   const crisisContacts = uiHint.crisis_contacts;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-6rem)] max-w-5xl mx-auto py-6">
+    <div
+      className={`mx-auto flex w-full max-w-5xl flex-col py-6 ${
+        isClosureScreen ? "min-h-0" : "h-[calc(100vh-6rem)]"
+      }`}
+    >
       {session?.danger_flag && (
         <Alert className="mx-4 mb-4 border-amber-300 bg-amber-50 text-amber-950">
           <LifeBuoy className="h-4 w-4" />
@@ -199,15 +220,15 @@ export default function ChatPage() {
       )}
 
       {showRecommendations && (
-        <Card className="mb-4 w-full border-slate-200 bg-slate-50">
-          <CardHeader>
+        <Card className="mx-auto mb-4 h-auto w-full max-w-4xl gap-0 overflow-visible rounded-2xl border border-slate-200 bg-white py-0 shadow-sm shadow-black/5">
+          <CardHeader className="rounded-t-2xl border-b border-slate-200 bg-slate-50 px-5 py-4">
             <div className="flex items-start gap-3">
-              <div className="bg-green-600 text-white p-2 rounded-full">
+              <div className="rounded-full bg-green-600 p-2 text-white">
                 <CheckCircle className="w-5 h-5" />
               </div>
               <div>
                 <CardTitle>Za danas možemo stati ovdje</CardTitle>
-                <CardDescription className="mt-1 text-green-800">
+                <CardDescription className="mt-1 text-slate-600">
                   Na temelju onoga što si podijelio/la, izdvojila sam nekoliko psihologa koji se bave ovakvim temama.
                 </CardDescription>
                 <CardDescription className="mt-2 text-slate-600">
@@ -216,70 +237,124 @@ export default function ChatPage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="grid gap-3 md:grid-cols-3">
-            {recommendedCaretakers.map((caretaker) => (
-              <Card key={caretaker.user_id} className="h-full">
-                <CardContent className="p-4 flex flex-col items-center text-center h-full">
+          <CardContent className="space-y-4 bg-white px-5 py-4">
+            <div className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Sažetak razgovora</p>
+              <p className="mt-1 text-sm leading-relaxed text-slate-700">
+                {recommendationSummary}
+              </p>
+            </div>
+
+            <div className="grid w-full items-stretch gap-3 md:grid-cols-3">
+            {visibleCaretakers.map((caretaker) => (
+              <div
+                key={caretaker.user_id}
+                className="flex min-h-[220px] h-full flex-col rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm"
+              >
+                  <div className="flex items-center gap-3 text-left">
                   <PersistentAvatar
                     cacheKey={`assistant:${caretaker.user_id}`}
                     src={caretaker.user_image_url}
                     alt={`${caretaker.first_name} ${caretaker.last_name}`}
-                    className="w-14 h-14 mb-3"
+                    className="h-14 w-14 shrink-0"
                     fallback={<>{caretaker.first_name[0]}{caretaker.last_name[0]}</>}
                   />
-                  <h4 className="font-semibold">
-                    {caretaker.first_name} {caretaker.last_name}
-                  </h4>
-                  <p className="text-sm text-muted-foreground mt-1 line-clamp-3">
-                    {caretaker.about_me || "Psiholog"}
+                    <div className="min-w-0">
+                      <h4 className="font-semibold leading-snug text-slate-900">
+                        {caretaker.first_name} {caretaker.last_name}
+                      </h4>
+                    </div>
+                  </div>
+                  <p className="mt-4 text-sm text-muted-foreground line-clamp-3">
+                    {caretaker.help_categories[0]
+                      ? `Radi s temama kao što su ${caretaker.help_categories[0].toLowerCase()}.`
+                      : "Psiholog za razgovor i podršku."}
                   </p>
-                  <div className="flex flex-wrap gap-1 justify-center mt-3">
-                    {caretaker.help_categories.slice(0, 3).map((cat) => (
-                      <span key={cat} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                  <div className="mt-auto pt-3 flex flex-wrap gap-1 overflow-hidden">
+                    {(caretaker.assistant_relevant_categories?.length
+                      ? caretaker.assistant_relevant_categories
+                      : caretaker.help_categories.slice(0, 2)
+                    ).map((cat) => (
+                      <span
+                        key={cat}
+                        className="max-w-full truncate rounded-full bg-primary/10 px-2 py-1 text-xs text-primary"
+                        title={cat}
+                      >
                         {cat}
                       </span>
                     ))}
                   </div>
-                  <Link href={`/carefree/caretaker/${caretaker.user_id}`} className="w-full mt-4">
+                  <Link href={`/carefree/caretaker/${caretaker.user_id}`} className="w-full pt-4">
                     <Button className="w-full">Vidi profil</Button>
                   </Link>
-                </CardContent>
-              </Card>
+              </div>
             ))}
+            </div>
+
+            {recommendedCaretakers.length > caretakersPerPage && (
+              <div className="flex w-full items-center justify-between">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="disabled:pointer-events-auto disabled:cursor-not-allowed"
+                  onClick={() => setRecommendationPage((page) => Math.max(0, page - 1))}
+                  disabled={recommendationPage === 0}
+                  title={recommendationPage === 0 ? "Nema više preporuka u ovom smjeru" : undefined}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <p className="text-sm text-slate-600">
+                  {recommendationPage + 1} / {totalRecommendationPages}
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="disabled:pointer-events-auto disabled:cursor-not-allowed"
+                  onClick={() => setRecommendationPage((page) => Math.min(totalRecommendationPages - 1, page + 1))}
+                  disabled={recommendationPage >= totalRecommendationPages - 1}
+                  title={recommendationPage >= totalRecommendationPages - 1 ? "Nema više preporuka u ovom smjeru" : undefined}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </CardContent>
-          <CardFooter className="gap-2 flex-wrap">
+          <div className="flex items-center justify-center gap-2 rounded-b-2xl bg-slate-50 px-4 py-4">
             {summaryId && (
-              <Button variant="outline" onClick={() => router.push(`/carefree/assistant/summary/${summaryId}`)}>
+              <Button variant="outline" size="sm" onClick={() => router.push(`/carefree/assistant/summary/${summaryId}`)}>
                 Vidi sažetak razgovora
               </Button>
             )}
-            <Button variant="outline" onClick={() => router.push("/carefree/search")}>
+            <Button variant="outline" size="sm" onClick={() => router.push("/carefree/search")}>
               Pretraži sve psihologe
             </Button>
-            <Button onClick={() => router.push("/carefree/main")}>Povratak na početnu</Button>
-          </CardFooter>
+            <Button size="sm" onClick={() => router.push("/carefree/main")}>Povratak na početnu</Button>
+          </div>
         </Card>
       )}
 
       {showSupportClosure && (
-        <Card className="mb-4 w-full border-slate-200 bg-slate-50">
-          <CardHeader>
+        <Card className="mx-auto mb-4 h-auto w-full max-w-4xl gap-0 overflow-visible rounded-2xl border border-slate-200 bg-white py-0 shadow-sm shadow-black/5">
+          <CardHeader className="rounded-t-2xl border-b border-slate-200 bg-slate-50 px-5 py-4">
             <CardTitle>Za danas možemo stati ovdje</CardTitle>
             <CardDescription>
               Hvala ti što si bio/la ovdje. Razgovor je spremljen, a ako poželiš, uvijek se možeš vratiti i nastaviti drugi put.
             </CardDescription>
           </CardHeader>
-          <CardFooter className="gap-2 flex-wrap">
+          <div className="flex items-center justify-center gap-2 rounded-b-2xl bg-slate-50 px-4 py-4">
             {summaryId && (
-              <Button variant="outline" onClick={() => router.push(`/carefree/assistant/summary/${summaryId}`)}>
+              <Button variant="outline" size="sm" onClick={() => router.push(`/carefree/assistant/summary/${summaryId}`)}>
                 Vidi sažetak razgovora
               </Button>
             )}
-            <Button onClick={() => router.push("/carefree/main")}>Povratak na početnu</Button>
-          </CardFooter>
+            <Button size="sm" onClick={() => router.push("/carefree/main")}>Povratak na početnu</Button>
+          </div>
         </Card>
       )}
 
+      {!showRecommendations && !showSupportClosure && (
       <Card className="flex-1 overflow-hidden flex flex-col gap-0 py-0 shadow-inner bg-white border border-slate-200">
         <CardHeader className="border-b border-slate-200 bg-white px-3.5 pt-4 pb-0">
           <div className="-mb-1 flex items-end justify-between">
@@ -358,24 +433,24 @@ export default function ChatPage() {
           <div ref={messagesEndRef} />
         </CardContent>
 
-        <CardFooter className="bg-white border-t border-slate-200 px-2 pt-2 pb-4">
-          <div className="flex w-full items-center pl-1">
-            <form onSubmit={handleSendMessage} className="flex w-full gap-2">
+        <div className="shrink-0 border-t border-slate-200 bg-white px-3 py-5">
+          <div className="flex w-full flex-col gap-0">
+            <form onSubmit={handleSendMessage} className="flex w-full items-center gap-2">
               <Input
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 placeholder={sessionClosed ? "Razgovor je završen" : "Napiši poruku..."}
-                className="flex-1"
+                className="h-8 flex-1"
                 autoFocus
                 disabled={isLoading || sessionClosed}
               />
-              <Button type="submit" disabled={isLoading || !inputValue.trim() || sessionClosed}>
+              <Button type="submit" size="sm" disabled={isLoading || !inputValue.trim() || sessionClosed}>
                 <Send className="w-4 h-4" />
                 <span className="sr-only">Pošalji</span>
               </Button>
             </form>
             {sendError && !sessionClosed && (
-              <div className="mt-1.5 flex items-center justify-between gap-3 text-xs text-rose-700">
+              <div className="mt-1 flex items-center justify-between gap-3 text-xs text-rose-700">
                 <span>{sendError}</span>
                 <Button
                   type="button"
@@ -390,8 +465,9 @@ export default function ChatPage() {
               </div>
             )}
           </div>
-        </CardFooter>
+        </div>
       </Card>
+      )}
     </div>
   );
 }

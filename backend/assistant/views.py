@@ -5,7 +5,7 @@ from rest_framework.views import APIView
 from .llm import generate_assistant_result
 from .models import AssistantMessage, AssistantSession, AssistantSessionSummary
 from .prompts import WELCOME_MESSAGE
-from .recommendations import find_recommended_caretakers
+from .recommendations import build_recommendation_summary_text, find_recommended_caretakers
 from .serializers import (
     AssistantMessageSerializer,
     AssistantSessionSerializer,
@@ -143,11 +143,12 @@ class SessionMessageView(APIView):
 
         recommended_caretaker_ids: list[int] = []
         recommended_caretakers = []
-        used_general_fallback = False
+        recommendation_match_scope = "general"
+        recommendation_summary_text = ""
         summary = getattr(session, "summary", None)
 
         if result.should_show_recommendations:
-            recommended_caretaker_ids, recommended_caretakers, used_general_fallback = find_recommended_caretakers(
+            recommended_caretaker_ids, recommended_caretakers, recommendation_match_scope = find_recommended_caretakers(
                 session.main_category,
                 session.subcategories,
                 request=request,
@@ -165,7 +166,14 @@ class SessionMessageView(APIView):
                 update_session_from_result(session, result)
                 bot_message.content = result.message
                 bot_message.save(update_fields=["content"])
-            elif used_general_fallback:
+            else:
+                recommendation_summary_text = build_recommendation_summary_text(
+                    (result.summary or "").strip(),
+                    session.main_category,
+                    session.subcategories,
+                    recommendation_match_scope,
+                )
+            if recommendation_match_scope == "general" and result.should_show_recommendations:
                 result.message = (
                     "Nisam uspjela izdvojiti dovoljno precizan uži krug, ali mogu ti odmah pokazati nekoliko "
                     "dostupnih psihologa pa možeš vidjeti tko ti najviše odgovara."
@@ -205,6 +213,8 @@ class SessionMessageView(APIView):
             "show_crisis_panel": session.danger_flag,
             "show_recommendations": bool(result.should_show_recommendations),
             "recommended_caretakers": recommended_caretakers,
+            "recommendation_summary": recommendation_summary_text,
+            "recommendation_match_scope": recommendation_match_scope if result.should_show_recommendations else None,
             "session_closed": not session.is_active,
             "summary_id": getattr(summary, "id", None),
             "ui_hint": _session_intro_payload(),

@@ -5,7 +5,7 @@ import React from "react";
 import useSWR from "swr";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowLeft, User, Bot, Calendar } from "lucide-react";
+import { Loader2, ArrowLeft, Calendar } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
@@ -143,51 +143,6 @@ export default function AssistantSummaryDetailPage({ params }: { params: Promise
             </div>
           )}
 
-          <Separator />
-
-          {/* Povijest poruka */}
-          {summary.messages && summary.messages.length > 0 && (
-            <div>
-              <h3 className="font-semibold text-lg mb-3">Povijest razgovora</h3>
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {summary.messages.map((message, idx: number) => (
-                  <div
-                    key={idx}
-                    className={`flex gap-3 ${
-                      message.sender === "bot" ? "justify-start" : "justify-end"
-                    }`}
-                  >
-                    <div
-                      className={`flex gap-3 max-w-[80%] ${
-                        message.sender === "bot" ? "flex-row" : "flex-row-reverse"
-                      }`}
-                    >
-                      <div className="flex-shrink-0">
-                        {message.sender === "bot" ? (
-                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                            <Bot className="w-4 h-4 text-primary" />
-                          </div>
-                        ) : (
-                          <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
-                            <User className="w-4 h-4" />
-                          </div>
-                        )}
-                      </div>
-                      <div
-                        className={`rounded-lg p-3 ${
-                          message.sender === "bot"
-                            ? "bg-muted"
-                            : "bg-primary text-primary-foreground"
-                        }`}
-                      >
-                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>
