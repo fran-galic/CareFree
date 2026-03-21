@@ -3,6 +3,7 @@ from django.db import transaction
 from django.utils.text import slugify
 
 from accounts.models import HelpCategory
+from assistant.category_codes import CATEGORY_TREE
 
 
 class Command(BaseCommand):
@@ -21,77 +22,30 @@ class Command(BaseCommand):
             HelpCategory.objects.all().delete()
             self.stdout.write(self.style.WARNING("Deleted existing HelpCategory objects."))
 
-        data = [
-            ("Stres i akademski pritisci", [
-                "Strah od ispita i loših ocjena",
-                "Preopterećenost obavezama",
-                "Problemi s organizacijom vremena i prokrastinacija",
-            ]),
-            ("Anksiozni poremećaji", [
-                "Generalizirani anksiozni poremećaj",
-                "Socijalna anksioznost (strah od javnog nastupa, kontakta s profesorima/vršnjacima)",
-                "Panični napadi",
-            ]),
-            ("Depresivni simptomi", [
-                "Tuga, gubitak interesa za aktivnosti",
-                "Umor i demotivacija",
-                "Nisko samopouzdanje i osjećaj bespomoćnosti",
-            ]),
-            ("Problemi u međuljudskim odnosima", [
-                "Sukobi s kolegama, prijateljima ili partnerima",
-                "Problemi s komunikacijom i asertivnošću",
-                "Osjećaj izolacije i usamljenosti",
-            ]),
-            ("Poremećaji spavanja", [
-                "Nesanicu ili nepravilne navike spavanja",
-                "Posljedice kroničnog umora na koncentraciju i raspoloženje",
-            ]),
-            ("Problemi samopouzdanja i identiteta", [
-                "Sumnja u vlastite sposobnosti",
-                "Nesigurnost u odabir studija ili karijere",
-                "Osobni razvoj i pronalazak smisla",
-            ]),
-            ("Poremećaji prehrane i tjelesne slike", [
-                "Anoreksija",
-                "Bulimija",
-                "Prejedanje",
-                "Negativna tjelesna slika i poremećena percepcija sebe",
-            ]),
-            ("Emocionalna regulacija i impulzivno ponašanje", [
-                "Nagli ispadi bijesa ili frustracije",
-                "Problemi s kontrolom impulsa",
-                "Ovisničko ponašanje (društvene mreže, kockanje, alkohol)",
-            ]),
-            ("Trauma i stresne životne situacije", [
-                "Gubitak bliske osobe",
-                "Obiteljski problemi ili zlostavljanje",
-                "Adaptacija na novi životni period (selidba, fakultet u drugom gradu)",
-            ]),
-            ("Seksualnost", [
-                "Propitivanje vlastite seksualnosti",
-                "Anksioznost vezana za stupanje u spolne odnose",
-            ]),
-            ("OSTALO", []),
-        ]
-
         created = 0
         existed = 0
 
-        for root_label, sublabels in data:
-            root_defaults = {"slug": slugify(root_label)}
+        for root_node in CATEGORY_TREE:
+            root_defaults = {"slug": slugify(root_node.label), "assistant_code": root_node.code}
             root, root_created = HelpCategory.objects.get_or_create(
-                label=root_label, defaults=root_defaults
+                label=root_node.label, defaults=root_defaults
             )
+            if root.assistant_code != root_node.code:
+                root.assistant_code = root_node.code
+                root.save(update_fields=["assistant_code"])
             if root_created:
                 created += 1
             else:
                 existed += 1
 
-            for sub in sublabels:
-                sub_defaults = {"slug": slugify(sub)}
+            for child_node in root_node.children:
+                sub_defaults = {"slug": slugify(child_node.label), "assistant_code": child_node.code}
                 subcat, sub_created = HelpCategory.objects.get_or_create(
-                    label=sub, parent=root, defaults=sub_defaults
+                    label=child_node.label, parent=root, defaults=sub_defaults
                 )
+                if subcat.assistant_code != child_node.code:
+                    subcat.assistant_code = child_node.code
+                    subcat.save(update_fields=["assistant_code"])
                 if sub_created:
                     created += 1
                 else:

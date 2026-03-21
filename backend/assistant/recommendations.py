@@ -3,28 +3,46 @@ import random
 from accounts.models import Caretaker, HelpCategory
 from users.serializers import CaretakerLongSerializer
 
+from .category_codes import child_codes_for_main, resolve_category_selection
 
-def find_recommended_caretakers(main_category: str, subcategories: list[str], request=None, limit: int = 12):
+
+def find_recommended_caretakers(
+    main_category: str,
+    subcategories: list[str],
+    *,
+    main_category_code: str = "",
+    subcategory_codes: list[str] | None = None,
+    request=None,
+    limit: int = 12,
+):
     base_queryset = Caretaker.objects.filter(is_approved=True).distinct()
     match_scope = "general"
 
-    resolved_main_category, resolved_subcategories = _resolve_requested_categories(
+    (
+        resolved_main_category_code,
+        resolved_subcategory_codes,
+        resolved_main_category,
+        resolved_subcategories,
+    ) = _resolve_requested_categories(
+        main_category_code=main_category_code,
+        subcategory_codes=subcategory_codes or [],
         main_category=main_category,
         subcategories=subcategories,
     )
 
     subcategory_matches = []
-    if resolved_subcategories:
+    if resolved_subcategory_codes:
         subcategory_matches = list(
-            base_queryset.filter(help_categories__label__in=resolved_subcategories).distinct()[:50]
+            base_queryset.filter(help_categories__assistant_code__in=resolved_subcategory_codes).distinct()[:50]
         )
 
     subcategory_ids = {caretaker.pk for caretaker in subcategory_matches}
 
     category_matches = []
-    if resolved_main_category:
+    if resolved_main_category_code:
+        category_related_codes = _category_related_codes(resolved_main_category_code)
         category_matches = list(
-            base_queryset.filter(help_categories__label=resolved_main_category).exclude(pk__in=subcategory_ids).distinct()[:50]
+            base_queryset.filter(help_categories__assistant_code__in=category_related_codes).exclude(pk__in=subcategory_ids).distinct()[:50]
         )
 
     category_ids = {caretaker.pk for caretaker in category_matches}
@@ -46,8 +64,8 @@ def find_recommended_caretakers(main_category: str, subcategories: list[str], re
     serialized = [
         _serialize_caretaker(
             caretaker,
-            subcategories=resolved_subcategories,
-            main_category=resolved_main_category,
+            subcategory_codes=resolved_subcategory_codes,
+            main_category_code=resolved_main_category_code,
             request=request,
         )
         for caretaker in caretakers
@@ -79,15 +97,16 @@ def build_recommendation_summary_text(summary_text: str, main_category: str, sub
     )
 
 
-def _serialize_caretaker(caretaker: Caretaker, subcategories: list[str], main_category: str, request=None):
+def _serialize_caretaker(caretaker: Caretaker, subcategory_codes: list[str], main_category_code: str, request=None):
     data = CaretakerLongSerializer(caretaker, context={"request": request}).data
-    help_categories = data.get("help_categories", [])
+    category_pairs = list(caretaker.help_categories.values_list("assistant_code", "label"))
 
-    relevant_categories = [label for label in help_categories if label in subcategories]
-    if not relevant_categories and main_category and main_category in help_categories:
-        relevant_categories = [main_category]
+    relevant_categories = [label for code, label in category_pairs if code in subcategory_codes]
+    if not relevant_categories and main_category_code:
+        related_codes = set(_category_related_codes(main_category_code))
+        relevant_categories = [label for code, label in category_pairs if code in related_codes]
     if not relevant_categories:
-        relevant_categories = help_categories[:2]
+        relevant_categories = [label for _, label in category_pairs[:2]]
 
     data["assistant_relevant_categories"] = relevant_categories[:2]
     return data
@@ -97,25 +116,46 @@ def _normalize_label(value: str) -> str:
     return (value or "").strip().casefold()
 
 
-def _resolve_requested_categories(main_category: str, subcategories: list[str]) -> tuple[str, list[str]]:
-    normalized_map = {
-        _normalize_label(category.label): category
-        for category in HelpCategory.objects.select_related("parent").all()
-    }
+def _resolve_requested_categories(
+    *,
+    main_category_code: str,
+    subcategory_codes: list[str],
+    main_category: str,
+    subcategories: list[str],
+) -> tuple[str, list[str], str, list[str]]:
+    resolved_main_category_code, resolved_subcategory_codes, resolved_main_category, resolved_subcategories = resolve_category_selection(
+        main_category_code=main_category_code,
+        subcategory_codes=subcategory_codes,
+        main_category_label=main_category,
+        subcategory_labels=subcategories,
+    )
 
-    resolved_subcategories: list[HelpCategory] = []
-    for label in subcategories:
-        category = normalized_map.get(_normalize_label(label))
-        if category is not None:
-            resolved_subcategories.append(category)
+    if not resolved_main_category_code and main_category:
+        by_label = {
+            _normalize_label(category.label): category
+            for category in HelpCategory.objects.select_related("parent").all()
+        }
+        resolved_main = by_label.get(_normalize_label(main_category))
+        if resolved_main and resolved_main.assistant_code:
+            resolved_main_category_code = resolved_main.assistant_code
+            resolved_main_category = resolved_main.label
 
-    resolved_main = normalized_map.get(_normalize_label(main_category)) if main_category else None
+    if not resolved_subcategory_codes and subcategories:
+        by_label = {
+            _normalize_label(category.label): category
+            for category in HelpCategory.objects.select_related("parent").all()
+        }
+        resolved_subcategories_db = [by_label[_normalize_label(label)] for label in subcategories if _normalize_label(label) in by_label]
+        resolved_subcategory_codes = [category.assistant_code for category in resolved_subcategories_db if category.assistant_code]
+        resolved_subcategories = [category.label for category in resolved_subcategories_db]
+        if not resolved_main_category_code and resolved_subcategories_db and resolved_subcategories_db[0].parent:
+            resolved_main_category_code = resolved_subcategories_db[0].parent.assistant_code or ""
+            resolved_main_category = resolved_subcategories_db[0].parent.label
 
-    if resolved_main is None and resolved_subcategories:
-        parent = resolved_subcategories[0].parent
-        if parent is not None:
-            resolved_main = parent
+    return resolved_main_category_code, resolved_subcategory_codes, resolved_main_category, resolved_subcategories
 
-    resolved_subcategory_labels = [category.label for category in resolved_subcategories]
-    resolved_main_label = resolved_main.label if resolved_main is not None else ""
-    return resolved_main_label, resolved_subcategory_labels
+
+def _category_related_codes(main_category_code: str) -> list[str]:
+    if not main_category_code:
+        return []
+    return [main_category_code, *child_codes_for_main(main_category_code)]

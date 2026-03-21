@@ -47,7 +47,9 @@ class AssistantSession(models.Model):
 		null=True,
 		blank=True,
 	)
+	main_category_code = models.CharField(max_length=16, blank=True, default="")
 	main_category = models.CharField(max_length=120, blank=True, default="")
+	subcategory_codes = models.JSONField(default=list, blank=True)
 	subcategories = models.JSONField(default=list, blank=True)
 	danger_flag = models.BooleanField(default=False)
 	created_at = models.DateTimeField(auto_now_add=True)
@@ -131,9 +133,12 @@ class AssistantSessionSummary(models.Model):
 		choices=SummaryType.choices,
 		default=SummaryType.SUPPORT,
 	)
+	main_category_code = models.CharField(max_length=16, blank=True, default="")
 	main_category = models.CharField(max_length=120, blank=True, default="")
+	subcategory_codes = models.JSONField(default=list, blank=True)
 	subcategories = models.JSONField(default=list, blank=True)
 	recommended_caretaker_ids = models.JSONField(default=list, blank=True)
+	transcript_snapshot = models.JSONField(default=list, blank=True)
 	include_in_context = models.BooleanField(default=True)
 	created_at = models.DateTimeField(auto_now_add=True)
 

@@ -14,7 +14,9 @@ class AssistantSessionSerializer(serializers.ModelSerializer):
             "mode",
             "status",
             "closure_reason",
+            "main_category_code",
             "main_category",
+            "subcategory_codes",
             "subcategories",
             "danger_flag",
             "created_at",
@@ -38,9 +40,12 @@ class AssistantSessionSummarySerializer(serializers.ModelSerializer):
             "session",
             "content",
             "summary_type",
+            "main_category_code",
             "main_category",
+            "subcategory_codes",
             "subcategories",
             "recommended_caretaker_ids",
+            "transcript_snapshot",
             "include_in_context",
             "created_at",
         ]
@@ -61,7 +66,9 @@ class AssistantSummaryListItemSerializer(serializers.ModelSerializer):
             "created_at",
             "summary_text",
             "summary_type",
+            "main_category_code",
             "main_category",
+            "subcategory_codes",
             "subcategories",
         ]
 
@@ -86,7 +93,9 @@ class AssistantSummaryDetailSerializer(serializers.ModelSerializer):
             "created_at",
             "summary_text",
             "summary_type",
+            "main_category_code",
             "main_category",
+            "subcategory_codes",
             "subcategories",
             "recommended_caretakers",
             "messages",
@@ -95,11 +104,7 @@ class AssistantSummaryDetailSerializer(serializers.ModelSerializer):
         ]
 
     def get_messages(self, obj):
-        session = getattr(obj, "session", None)
-        if session is None:
-            return []
-        messages = session.messages.order_by("sequence", "created_at")
-        return SummaryMessageSerializer(messages, many=True).data
+        return obj.transcript_snapshot or []
 
     def get_recommended_caretakers(self, obj):
         caretaker_ids = [pk for pk in obj.recommended_caretaker_ids if pk]

@@ -97,7 +97,8 @@ export default function SearchPageClient() {
     current.set("seed", createSearchSeed());
     const search = current.toString();
     const query = search ? `?${search}` : "";
-    router.push(`${pathname}${query}`);
+    shouldScrollToResultsRef.current = true;
+    router.push(`${pathname}${query}`, { scroll: false });
   };
 
   const handlePageChange = (newPage: number) => {
