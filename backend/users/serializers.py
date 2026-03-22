@@ -46,6 +46,16 @@ class CaretakerShortSerializer(serializers.ModelSerializer):
     def get_user_image_url(self, obj):
         return _versioned_image_url(getattr(obj, "image", None), self.context.get("request"))
 
+
+class MeCaretakerSerializer(CaretakerShortSerializer):
+    class Meta(CaretakerShortSerializer.Meta):
+        fields = CaretakerShortSerializer.Meta.fields + [
+            "is_profile_complete",
+            "is_approved",
+            "approval_status",
+        ]
+
+
 class CaretakerLongSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField(source='user.first_name', read_only=True)
     last_name = serializers.CharField(source='user.last_name', read_only=True)
@@ -96,7 +106,7 @@ class StudentUpdateSerializer(serializers.ModelSerializer):
 
 class MeSerializer(BaseUserSerializer):
 
-    caretaker = CaretakerShortSerializer(read_only=True)
+    caretaker = MeCaretakerSerializer(read_only=True)
     student = serializers.SerializerMethodField()
     auth_provider = serializers.SerializerMethodField()
     needs_onboarding = serializers.SerializerMethodField()

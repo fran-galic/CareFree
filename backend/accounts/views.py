@@ -799,15 +799,16 @@ def logoutView(request):
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
 def deleteUserView(request):
-    # if request.user.id != user_id and not (request.user.is_staff or request.user.is_superuser):
-    #     return Response({"error": "Normalan korisnik može obrisati samo svoj račun."}, status=403)
     try:
         user = User.objects.get(id=request.user.id)
     except User.DoesNotExist:
         return Response({"error": "Korisnik ne postoji"}, status=404)
-    
+
     user.delete()
-    return Response({"message": "Korisnik uspješno izbrisan"}, status=204)
+    response = Response({"message": "Korisnik uspješno izbrisan"}, status=200)
+    _delete_auth_cookie(response, "accessToken")
+    _delete_auth_cookie(response, "refreshToken")
+    return response
 
 
 
