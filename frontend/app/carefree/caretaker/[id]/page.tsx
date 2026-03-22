@@ -4,8 +4,9 @@ import * as React from 'react';
 import { useState } from 'react';
 import useSWR from "swr";
 import { getAssistantSummaries, type AssistantSummaryListItem } from "@/fetchers/assistant";
-import { searchCaretakerById } from "@/fetchers/users";
+import { searchCaretakerById, type Caretaker } from "@/fetchers/users";
 import { getCaretakerSlots, createAppointmentRequest, Slot } from "@/fetchers/appointments";
+import { readSessionCache, writeSessionCache } from "@/lib/session-cache";
 import {
   Card,
   CardContent,
@@ -41,6 +42,18 @@ interface SlotsByDay {
   slots: Slot[];
 }
 
+const CARETAKER_DETAIL_CACHE_TTL_MS = 10 * 60 * 1000;
+
+function caretakerDetailCacheKey(caretakerId: string) {
+  return `carefree:caretaker-detail:${caretakerId}`;
+}
+
+function caretakerSlotsCacheKey(caretakerId: string, days: number) {
+  return `carefree:caretaker-slots:${caretakerId}:${days}`;
+}
+
+const ASSISTANT_SUMMARIES_CACHE_KEY = "carefree:assistant-summaries";
+
 function toLocalDateKey(date: Date): string {
   const year = date.getFullYear();
   const month = `${date.getMonth() + 1}`.padStart(2, "0");
@@ -65,14 +78,22 @@ function buildSuggestedBookingNote(summary: AssistantSummaryListItem | null | un
 export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: string }> }) {
   // Otpakiravanje parametara (Next.js 15 pattern)
   const { id } = React.use(params);
+  const detailCacheKey = React.useMemo(() => caretakerDetailCacheKey(id), [id]);
+  const slotsCacheKey = React.useMemo(() => caretakerSlotsCacheKey(id, 14), [id]);
+  const [cachedCaretaker] = useState<Caretaker | null>(() => readSessionCache<Caretaker>(detailCacheKey));
+  const [cachedSlots] = useState<Slot[] | null>(() => readSessionCache<Slot[]>(slotsCacheKey));
+  const [cachedAssistantSummaries] = useState<AssistantSummaryListItem[] | null>(
+    () => readSessionCache<AssistantSummaryListItem[]>(ASSISTANT_SUMMARIES_CACHE_KEY)
+  );
   
   // Dohvat podataka o psihologu s backenda
   const { data: caretaker, error, isLoading } = useSWR(
     id ? ["caretaker-detail", id] : null,
     ([, caretakerId]) => searchCaretakerById(caretakerId),
     {
+      fallbackData: cachedCaretaker ?? undefined,
       revalidateOnFocus: false,
-      dedupingInterval: 60000,
+      dedupingInterval: 10 * 60 * 1000,
     }
   );
   
@@ -81,9 +102,10 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
     caretaker ? ["slots", id, 14] : null,
     ([, caretakerId, days]) => getCaretakerSlots(Number(caretakerId), days),
     {
+      fallbackData: cachedSlots ?? undefined,
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
-      dedupingInterval: 30000,
+      dedupingInterval: 5 * 60 * 1000,
       keepPreviousData: true,
     }
   );
@@ -92,8 +114,9 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
     "assistant-summaries",
     getAssistantSummaries,
     {
+      fallbackData: cachedAssistantSummaries ?? undefined,
       revalidateOnFocus: false,
-      dedupingInterval: 60000,
+      dedupingInterval: 10 * 60 * 1000,
     }
   );
   
@@ -108,6 +131,24 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
   const [isBookingSuccess, setIsBookingSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isBookingUiSettled, setIsBookingUiSettled] = useState(false);
+
+  React.useEffect(() => {
+    if (caretaker) {
+      writeSessionCache(detailCacheKey, caretaker, CARETAKER_DETAIL_CACHE_TTL_MS);
+    }
+  }, [caretaker, detailCacheKey]);
+
+  React.useEffect(() => {
+    if (slotsData) {
+      writeSessionCache(slotsCacheKey, slotsData, CARETAKER_DETAIL_CACHE_TTL_MS);
+    }
+  }, [slotsCacheKey, slotsData]);
+
+  React.useEffect(() => {
+    if (assistantSummaries) {
+      writeSessionCache(ASSISTANT_SUMMARIES_CACHE_KEY, assistantSummaries, CARETAKER_DETAIL_CACHE_TTL_MS);
+    }
+  }, [assistantSummaries]);
 
   React.useEffect(() => {
     const frame = window.requestAnimationFrame(() => {

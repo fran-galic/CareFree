@@ -4,8 +4,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { fetcher } from "@/fetchers/fetcher";
-import { useMemo, useState } from "react";
-import { getPendingAppointmentFeedback, getStudentRequests, submitAppointmentFeedback, type AppointmentRequest } from "@/fetchers/appointments";
+import { useEffect, useMemo, useState } from "react";
+import {
+  getPendingAppointmentFeedback,
+  getStudentRequests,
+  submitAppointmentFeedback,
+  type AppointmentRequest,
+  type Appointment,
+} from "@/fetchers/appointments";
+import { readSessionCache, writeSessionCache } from "@/lib/session-cache";
 import { 
   Card, 
   CardContent, 
@@ -33,21 +40,10 @@ import {
 
 const BACKEND_API = process.env.NEXT_PUBLIC_BACKEND_URL;
 const SEEN_APPOINTMENTS_KEY = "carefree-seen-appointment-ids";
-
-interface Caretaker {
-  user_id: number;
-  first_name: string;
-  last_name: string;
-}
-
-interface Appointment {
-  id: number;
-  start: string;
-  end: string;
-  caretaker: Caretaker;
-  status: string;
-  conference_link?: string;
-}
+const STUDENT_APPOINTMENTS_CACHE_KEY = "carefree:student-dashboard:appointments";
+const STUDENT_REQUESTS_CACHE_KEY = "carefree:student-dashboard:requests";
+const STUDENT_PENDING_FEEDBACK_CACHE_KEY = "carefree:student-dashboard:pending-feedback";
+const DASHBOARD_CACHE_TTL_MS = 5 * 60 * 1000;
 
 interface StudentDashboardProps {
   firstName: string;
@@ -96,15 +92,21 @@ export function StudentDashboard({ firstName }: StudentDashboardProps) {
   const [isAppointmentExpanded, setIsAppointmentExpanded] = useState(false);
   const [selectedTab, setSelectedTab] = useState<'appointments' | 'requests'>('appointments');
   const [dashboardNow] = useState(() => Date.now());
+  const [cachedAppointments] = useState<Appointment[]>(() => readSessionCache<Appointment[]>(STUDENT_APPOINTMENTS_CACHE_KEY) ?? []);
+  const [cachedRequests] = useState<AppointmentRequest[]>(() => readSessionCache<AppointmentRequest[]>(STUDENT_REQUESTS_CACHE_KEY) ?? []);
+  const [cachedPendingFeedback] = useState<{ appointment: Appointment | null } | null>(
+    () => readSessionCache<{ appointment: Appointment | null }>(STUDENT_PENDING_FEEDBACK_CACHE_KEY)
+  );
 
   // Dohvat termina sa caretakerima
   const { data: appointments, isLoading: appointmentsLoading } = useSWR<Appointment[]>(
     `${BACKEND_API}/api/appointments/`,
     fetcher,
     {
+      fallbackData: cachedAppointments,
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
-      dedupingInterval: 30000,
+      dedupingInterval: 5 * 60 * 1000,
     }
   );
 
@@ -112,9 +114,10 @@ export function StudentDashboard({ firstName }: StudentDashboardProps) {
     "student-requests",
     () => getStudentRequests(),
     {
+      fallbackData: cachedRequests,
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
-      dedupingInterval: 30000,
+      dedupingInterval: 5 * 60 * 1000,
     }
   );
   const {
@@ -125,11 +128,30 @@ export function StudentDashboard({ firstName }: StudentDashboardProps) {
     "student-pending-feedback",
     getPendingAppointmentFeedback,
     {
+      fallbackData: cachedPendingFeedback ?? undefined,
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
-      dedupingInterval: 30000,
+      dedupingInterval: 5 * 60 * 1000,
     }
   );
+
+  useEffect(() => {
+    if (appointments) {
+      writeSessionCache(STUDENT_APPOINTMENTS_CACHE_KEY, appointments, DASHBOARD_CACHE_TTL_MS);
+    }
+  }, [appointments]);
+
+  useEffect(() => {
+    if (requests) {
+      writeSessionCache(STUDENT_REQUESTS_CACHE_KEY, requests, DASHBOARD_CACHE_TTL_MS);
+    }
+  }, [requests]);
+
+  useEffect(() => {
+    if (pendingFeedbackData) {
+      writeSessionCache(STUDENT_PENDING_FEEDBACK_CACHE_KEY, pendingFeedbackData, DASHBOARD_CACHE_TTL_MS);
+    }
+  }, [pendingFeedbackData]);
 
   const upcomingAppointments = useMemo(() => {
     return (appointments ?? []).filter((appointment) => new Date(appointment.end).getTime() > dashboardNow);
@@ -221,6 +243,7 @@ export function StudentDashboard({ firstName }: StudentDashboardProps) {
       setSelectedFeedbackResponse(null);
       setFeedbackComment("");
       await mutatePendingFeedback({ appointment: null }, false);
+      writeSessionCache(STUDENT_PENDING_FEEDBACK_CACHE_KEY, { appointment: null }, DASHBOARD_CACHE_TTL_MS);
     } catch (error) {
       console.error("Greška pri spremanju odluke o feedbacku:", error);
       alert("Greška pri spremanju odluke. Pokušajte ponovno.");
@@ -244,6 +267,7 @@ export function StudentDashboard({ firstName }: StudentDashboardProps) {
       setSelectedFeedbackResponse(null);
       setFeedbackComment("");
       await mutatePendingFeedback({ appointment: null }, false);
+      writeSessionCache(STUDENT_PENDING_FEEDBACK_CACHE_KEY, { appointment: null }, DASHBOARD_CACHE_TTL_MS);
     } catch (error) {
       console.error("Greška pri slanju feedbacka:", error);
       alert("Greška pri slanju povratne informacije. Pokušajte ponovno.");

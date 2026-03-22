@@ -1,11 +1,11 @@
 "use client";
 
 import Link from 'next/link';
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import useSWR from "swr";
 import SearchBar from "@/components/search-bar";
-import { searchCaretakers, getHelpCategories } from "@/fetchers/users";
+import { searchCaretakers, getHelpCategories, type PaginatedCaretakerResponse, type HelpCategory } from "@/fetchers/users";
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from "@/components/ui/checkbox";
@@ -13,6 +13,20 @@ import { Label } from "@/components/ui/label";
 import { Filter, Briefcase, Clock, ChevronRight, Stethoscope, ChevronLeft, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PersistentAvatar } from '@/components/persistent-avatar-image';
+import { readSessionCache, writeSessionCache } from '@/lib/session-cache';
+
+const SEARCH_CATEGORIES_CACHE_KEY = "carefree:search:categories";
+const SEARCH_CACHE_TTL_MS = 10 * 60 * 1000;
+
+function buildSearchResultsCacheKey(
+  query: string,
+  categories: string[],
+  backendPage: number,
+  seed: string
+) {
+  const normalizedCategories = [...categories].sort().join(",");
+  return `carefree:search:results:${query}:${normalizedCategories}:${backendPage}:${seed}`;
+}
 
 function createSearchSeed() {
   try {
@@ -41,6 +55,14 @@ export default function SearchPageClient() {
   const prefetchedPageSize = 18;
   const backendPage = Math.floor((Math.max(currentPage, 1) - 1) / (prefetchedPageSize / displayPageSize)) + 1;
   const localPageIndex = (Math.max(currentPage, 1) - 1) % (prefetchedPageSize / displayPageSize);
+  const searchCacheKey = useMemo(
+    () => (seedParam ? buildSearchResultsCacheKey(q, categoriesParam, backendPage, seedParam) : null),
+    [backendPage, categoriesParam, q, seedParam]
+  );
+  const [cachedCategories] = useState(() => readSessionCache<{ categories: HelpCategory[] }>(SEARCH_CATEGORIES_CACHE_KEY));
+  const [cachedSearchResults] = useState(() => (
+    searchCacheKey ? readSessionCache<PaginatedCaretakerResponse>(searchCacheKey) : null
+  ));
 
   useEffect(() => {
     if (seedParam) {
@@ -54,6 +76,7 @@ export default function SearchPageClient() {
   }, [pathname, router, searchParams, seedParam]);
 
   const { data: categoriesData } = useSWR('help-categories', getHelpCategories, {
+    fallbackData: cachedCategories ?? undefined,
     revalidateOnFocus: false,
     dedupingInterval: 5 * 60 * 1000,
   });
@@ -62,12 +85,25 @@ export default function SearchPageClient() {
     seedParam ? [`search`, q, categoriesParam, backendPage, seedParam] : null,
     ([, query, cats, page, seed]) => searchCaretakers(query, cats, page, seed),
     {
+      fallbackData: cachedSearchResults ?? undefined,
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
       keepPreviousData: true,
-      dedupingInterval: 30000,
+      dedupingInterval: 5 * 60 * 1000,
     }
   );
+
+  useEffect(() => {
+    if (categoriesData) {
+      writeSessionCache(SEARCH_CATEGORIES_CACHE_KEY, categoriesData, SEARCH_CACHE_TTL_MS);
+    }
+  }, [categoriesData]);
+
+  useEffect(() => {
+    if (caretakersData && searchCacheKey) {
+      writeSessionCache(searchCacheKey, caretakersData, SEARCH_CACHE_TTL_MS);
+    }
+  }, [caretakersData, searchCacheKey]);
 
   const caretakerList = useMemo(() => {
     const allResults = caretakersData?.results ?? [];
