@@ -140,6 +140,17 @@ export function PersistentAvatar({
     }
   }, [cacheKey, cachedEntry?.assetKey, src]);
 
+  useEffect(() => {
+    const normalizedSrc = normalizeAvatarSrc(src);
+    if (!normalizedSrc || typeof window === "undefined") {
+      return;
+    }
+
+    const image = new window.Image();
+    image.decoding = "async";
+    image.src = normalizedSrc;
+  }, [src]);
+
   const resolvedSrc = useMemo(() => {
     const normalizedSrc = normalizeAvatarSrc(src);
     if (imageFailed) {
@@ -181,6 +192,9 @@ export function PersistentAvatar({
           key={resolvedSrc}
           src={resolvedSrc}
           alt={alt || ""}
+          loading="lazy"
+          decoding="async"
+          referrerPolicy="no-referrer"
           className={cn("absolute inset-0 h-full w-full object-cover", imageClassName)}
           onError={handleImageError}
         />

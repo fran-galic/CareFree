@@ -28,7 +28,7 @@ def help_categories(request):
     return Response({"categories": serializer.data})
 
 
-PAGE_SIZE = 6
+PAGE_SIZE = 15
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
@@ -192,5 +192,4 @@ def caretaker_by_id(request, id):
 @api_view(["GET"])
 def caretaker_by_slug(request, slug):
     return Response(f"slug: {id}")
-
 
