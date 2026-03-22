@@ -28,6 +28,10 @@ export default function SearchPageClient() {
   const currentPage = parseInt(searchParams.get("page") ?? "1");
   const seedParam = searchParams.get("seed") ?? "";
   const shouldScrollToResultsRef = useRef(false);
+  const displayPageSize = 6;
+  const prefetchedPageSize = 18;
+  const backendPage = Math.floor((Math.max(currentPage, 1) - 1) / (prefetchedPageSize / displayPageSize)) + 1;
+  const localPageIndex = (Math.max(currentPage, 1) - 1) % (prefetchedPageSize / displayPageSize);
 
   useEffect(() => {
     if (seedParam) {
@@ -46,7 +50,7 @@ export default function SearchPageClient() {
   });
   
   const { data: caretakersData, error: searchError, isLoading } = useSWR(
-    seedParam ? [`search`, q, categoriesParam, currentPage, seedParam] : null,
+    seedParam ? [`search`, q, categoriesParam, backendPage, seedParam] : null,
     ([, query, cats, page, seed]) => searchCaretakers(query, cats, page, seed),
     {
       revalidateOnFocus: false,
@@ -56,10 +60,13 @@ export default function SearchPageClient() {
     }
   );
 
-  const caretakerList = caretakersData?.results ?? [];
+  const caretakerList = useMemo(() => {
+    const allResults = caretakersData?.results ?? [];
+    const start = localPageIndex * displayPageSize;
+    return allResults.slice(start, start + displayPageSize);
+  }, [caretakersData?.results, displayPageSize, localPageIndex]);
   const totalCount = caretakersData?.count ?? 0;
-  const pageSize = 6;
-  const totalPages = Math.ceil(totalCount / pageSize);
+  const totalPages = Math.ceil(totalCount / displayPageSize);
   const isSearchBootstrapping = !seedParam;
   const isSearchPending = isSearchBootstrapping || isLoading || (!caretakersData && !searchError);
   const sortedCategories = useMemo(() => {
