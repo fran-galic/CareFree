@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Calendar as CalendarIcon, Video, User, Clock, ChevronLeft, ChevronRight, Info, AlertTriangle } from "lucide-react";
 import { getMyAppointments, type Appointment } from "@/fetchers/appointments";
 import { Button } from "@/components/ui/button";
+import { readSessionCache, writeSessionCache } from "@/lib/session-cache";
 import {
   CALENDAR_LOCALE,
   clampCalendarDate,
@@ -25,6 +26,8 @@ import {
   WORKDAY_START_HOUR,
 } from "@/lib/calendar";
 const SEEN_APPOINTMENTS_KEY = "carefree-seen-appointment-ids";
+const STUDENT_CALENDAR_CACHE_KEY = "carefree:student-calendar:appointments";
+const STUDENT_CALENDAR_CACHE_TTL_MS = 5 * 60 * 1000;
 
 const locales = {
   hr: hr,
@@ -89,8 +92,10 @@ export default function CalendarPage() {
   const now = useMemo(() => new Date(), []);
   const maxMonthDate = useMemo(() => startOfMonth(addMonths(now, 1)), [now]);
   const maxCalendarDate = useMemo(() => getCalendarWindowEnd(now), [now]);
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [appointments, setAppointments] = useState<Appointment[]>(
+    () => readSessionCache<Appointment[]>(STUDENT_CALENDAR_CACHE_KEY) ?? []
+  );
+  const [loading, setLoading] = useState(appointments.length === 0);
   const [view, setView] = useState<View>("month");
   const [date, setDate] = useState(clampCalendarDate(new Date(), now));
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
@@ -121,6 +126,7 @@ export default function CalendarPage() {
       try {
         const data = await getMyAppointments();
         setAppointments(data);
+        writeSessionCache(STUDENT_CALENDAR_CACHE_KEY, data, STUDENT_CALENDAR_CACHE_TTL_MS);
       } catch (error) {
         console.error("Greška pri dohvaćanju termina:", error);
       } finally {

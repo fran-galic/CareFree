@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Calendar as CalendarIcon, Video, User, Clock, ChevronLeft, ChevronRight, Info, AlertTriangle } from "lucide-react";
 import { getCaretakerAppointments, type Appointment } from "@/fetchers/appointments";
+import { readSessionCache, writeSessionCache } from "@/lib/session-cache";
 import {
   CALENDAR_LOCALE,
   clampCalendarDate,
@@ -56,6 +57,9 @@ interface CalendarHeaderProps {
   label?: string;
 }
 
+const CARETAKER_CALENDAR_CACHE_KEY = "carefree:caretaker-calendar:appointments";
+const CARETAKER_CALENDAR_CACHE_TTL_MS = 5 * 60 * 1000;
+
 function getStartOfWeekDate(d: Date): Date {
   return getCalendarWeekStart(d);
 }
@@ -85,8 +89,10 @@ export default function AvailabilityPage() {
   const now = useMemo(() => new Date(), []);
   const maxMonthDate = useMemo(() => startOfMonth(addMonths(now, 1)), [now]);
   const maxCalendarDate = useMemo(() => getCalendarWindowEnd(now), [now]);
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [appointments, setAppointments] = useState<Appointment[]>(
+    () => readSessionCache<Appointment[]>(CARETAKER_CALENDAR_CACHE_KEY) ?? []
+  );
+  const [loading, setLoading] = useState(appointments.length === 0);
   const [view, setView] = useState<View>("month");
   const [date, setDate] = useState(clampCalendarDate(new Date(), now));
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
@@ -101,6 +107,7 @@ export default function AvailabilityPage() {
       try {
         const data = await getCaretakerAppointments();
         setAppointments(data);
+        writeSessionCache(CARETAKER_CALENDAR_CACHE_KEY, data, CARETAKER_CALENDAR_CACHE_TTL_MS);
       } catch (error) {
         console.error("Greška pri dohvaćanju termina:", error);
       } finally {
