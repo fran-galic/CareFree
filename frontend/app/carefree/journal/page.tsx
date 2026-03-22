@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import useSWR, { mutate } from "swr";
 import Image from "next/image";
 import { getJournalEntries, createJournalEntry, deleteJournalEntry, updateJournalEntry } from "@/fetchers/journal";
@@ -11,6 +11,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Trash2, BookOpen, Edit2, NotebookPen, PencilOff } from "lucide-react";
 import type { JournalEntry as FetcherJournalEntry } from "@/fetchers/journal";
+import { readSessionCache, writeSessionCache } from "@/lib/session-cache";
+
+const JOURNAL_CACHE_KEY = "carefree:journal:entries";
+const JOURNAL_CACHE_TTL_MS = 5 * 60 * 1000;
 
 interface JournalEntry {
   id: number;
@@ -22,7 +26,21 @@ interface JournalEntry {
 
 export default function JournalPage() {
   // Dohvaćanje podataka pomoću SWR-a (automatski cache i revalidacija)
-  const { data: entries, error, isLoading } = useSWR("/api/journal/", getJournalEntries);
+  const [cachedEntries] = useState<FetcherJournalEntry[]>(
+    () => readSessionCache<FetcherJournalEntry[]>(JOURNAL_CACHE_KEY) ?? []
+  );
+  const { data: entries, error, isLoading } = useSWR("/api/journal/", getJournalEntries, {
+    fallbackData: cachedEntries,
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+    dedupingInterval: JOURNAL_CACHE_TTL_MS,
+  });
+
+  useEffect(() => {
+    if (entries) {
+      writeSessionCache(JOURNAL_CACHE_KEY, entries, JOURNAL_CACHE_TTL_MS);
+    }
+  }, [entries]);
   
   // Stanje za formu novog unosa
   const [isCreating, setIsCreating] = useState(false);

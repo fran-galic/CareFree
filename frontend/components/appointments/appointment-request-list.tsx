@@ -1,13 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Inbox, AlertCircle, CheckCircle2, XCircle } from "lucide-react";
-import { getCaretakerRequests } from "@/fetchers/appointments";
+import { getCaretakerRequests, type AppointmentRequest } from "@/fetchers/appointments";
 import { AppointmentRequestCard } from "./appointment-request-card";
+import { readSessionCache, writeSessionCache } from "@/lib/session-cache";
+
+const PENDING_REQUESTS_CACHE_KEY = "carefree:caretaker-requests:pending";
+const ALL_REQUESTS_CACHE_KEY = "carefree:caretaker-requests:all";
+const REQUESTS_CACHE_TTL_MS = 5 * 60 * 1000;
 
 export function AppointmentRequestList() {
   const [activeTab, setActiveTab] = useState<"pending" | "all">("pending");
@@ -15,17 +20,47 @@ export function AppointmentRequestList() {
     type: "success" | "warning";
     text: string;
   } | null>(null);
+  const [cachedPendingRequests] = useState<AppointmentRequest[]>(
+    () => readSessionCache<AppointmentRequest[]>(PENDING_REQUESTS_CACHE_KEY) ?? []
+  );
+  const [cachedAllRequests] = useState<AppointmentRequest[]>(
+    () => readSessionCache<AppointmentRequest[]>(ALL_REQUESTS_CACHE_KEY) ?? []
+  );
 
   // Dohvaćanje zahtjeva
   const { data: pendingRequests, error: pendingError, mutate: mutatePending } = useSWR(
     "appointments-pending",
-    () => getCaretakerRequests("pending")
+    () => getCaretakerRequests("pending"),
+    {
+      fallbackData: cachedPendingRequests,
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: REQUESTS_CACHE_TTL_MS,
+    }
   );
 
   const { data: allRequests, error: allError, mutate: mutateAll } = useSWR(
     activeTab === "all" ? "appointments-all" : null,
-    () => getCaretakerRequests()
+    () => getCaretakerRequests(),
+    {
+      fallbackData: cachedAllRequests,
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: REQUESTS_CACHE_TTL_MS,
+    }
   );
+
+  useEffect(() => {
+    if (pendingRequests) {
+      writeSessionCache(PENDING_REQUESTS_CACHE_KEY, pendingRequests, REQUESTS_CACHE_TTL_MS);
+    }
+  }, [pendingRequests]);
+
+  useEffect(() => {
+    if (allRequests) {
+      writeSessionCache(ALL_REQUESTS_CACHE_KEY, allRequests, REQUESTS_CACHE_TTL_MS);
+    }
+  }, [allRequests]);
 
   const handleStatusChange = (result?: {
     action: "approved" | "rejected";

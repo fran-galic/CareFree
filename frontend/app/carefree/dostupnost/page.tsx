@@ -8,6 +8,7 @@ import { Loader2, Calendar as CalendarIcon, Save, RefreshCw, Info, ChevronLeft, 
 import { format, setHours, isSameDay, parseISO } from "date-fns";
 import { hr } from "date-fns/locale";
 import { getTwoWeekWindowDays, isPastDay, WORKDAY_END_HOUR, WORKDAY_START_HOUR } from "@/lib/calendar";
+import { readSessionCache, writeSessionCache } from "@/lib/session-cache";
 
 interface AvailabilitySlot {
   start: string;
@@ -24,15 +25,31 @@ interface GridSlot {
   isChanged: boolean;
 }
 
+function readCachedGridSlots(): GridSlot[] {
+  const cached = readSessionCache<Array<Omit<GridSlot, "date"> & { date: string }>>(AVAILABILITY_GRID_CACHE_KEY);
+  if (!cached) {
+    return [];
+  }
+
+  return cached.map((slot) => ({
+    ...slot,
+    date: new Date(slot.date),
+  }));
+}
+
 const HOURS = Array.from(
   { length: WORKDAY_END_HOUR - WORKDAY_START_HOUR },
   (_, i) => i + WORKDAY_START_HOUR
 ); // 8-18 (8:00-17:00, last slot ends at 18:00)
 const DAYS_TO_SHOW = 14;
+const AVAILABILITY_GRID_CACHE_KEY = `carefree:caretaker-availability:${DAYS_TO_SHOW}`;
+const AVAILABILITY_CACHE_TTL_MS = 5 * 60 * 1000;
 
 export default function DostupnostPage() {
-  const [gridSlots, setGridSlots] = useState<GridSlot[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [gridSlots, setGridSlots] = useState<GridSlot[]>(
+    () => readCachedGridSlots()
+  );
+  const [loading, setLoading] = useState(gridSlots.length === 0);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [visibleWeekIndex, setVisibleWeekIndex] = useState(0);
@@ -83,6 +100,7 @@ export default function DostupnostPage() {
 
     setGridSlots(grid);
     setHasChanges(false);
+    writeSessionCache(AVAILABILITY_GRID_CACHE_KEY, grid, AVAILABILITY_CACHE_TTL_MS);
   }, [days]);
 
   const fetchAvailability = useCallback(async () => {
