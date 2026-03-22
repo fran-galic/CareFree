@@ -61,6 +61,11 @@ class Migration(migrations.Migration):
             name="label",
             field=models.CharField(max_length=150, unique=True),
         ),
+        migrations.AlterField(
+            model_name="helpcategory",
+            name="slug",
+            field=models.SlugField(blank=True, max_length=150, unique=True),
+        ),
         migrations.AddField(
             model_name="helpcategory",
             name="assistant_code",
