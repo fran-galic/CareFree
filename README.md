@@ -229,7 +229,7 @@ Bez `OPENAI_API_KEY` assistant neće raditi.
 
 Backend podržava:
 
-- Resend kao primarni provider
+- Resend kao primarni providera
 - SMTP fallback
 
 ### Google Calendar / Google Meet
