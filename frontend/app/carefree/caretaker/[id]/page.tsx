@@ -67,17 +67,34 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
   const { id } = React.use(params);
   
   // Dohvat podataka o psihologu s backenda
-  const { data: caretaker, error, isLoading } = useSWR(id || null, (id) => searchCaretakerById(id));
+  const { data: caretaker, error, isLoading } = useSWR(
+    id ? ["caretaker-detail", id] : null,
+    ([, caretakerId]) => searchCaretakerById(caretakerId),
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 60000,
+    }
+  );
   
   // Dohvat dostupnih slotova
   const { data: slotsData, error: slotsError, isLoading: slotsLoading } = useSWR(
-    caretaker ? `slots-${id}` : null,
-    () => getCaretakerSlots(Number(id), 14)
+    caretaker ? ["slots", id, 14] : null,
+    ([, caretakerId, days]) => getCaretakerSlots(Number(caretakerId), days),
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 30000,
+      keepPreviousData: true,
+    }
   );
 
   const { data: assistantSummaries } = useSWR(
     "assistant-summaries",
     getAssistantSummaries,
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 60000,
+    }
   );
   
   // State za formu

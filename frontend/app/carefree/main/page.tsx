@@ -23,7 +23,8 @@ export default function MainPage() {
     fetcher,
     {
       revalidateOnMount: true,
-      dedupingInterval: 0
+      dedupingInterval: 30000,
+      revalidateOnFocus: false,
     }
   );
 

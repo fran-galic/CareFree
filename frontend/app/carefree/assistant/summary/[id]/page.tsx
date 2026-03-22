@@ -23,7 +23,11 @@ export default function AssistantSummaryDetailPage({ params }: { params: Promise
   const router = useRouter();
   const { data: summary, error, isLoading } = useSWR<AssistantSummaryDetail>(
     `${BACKEND_URL}/assistant/summaries/${id}`,
-    fetcher
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 60000,
+    }
   );
 
   if (isLoading) {

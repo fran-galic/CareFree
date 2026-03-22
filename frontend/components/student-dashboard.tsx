@@ -103,7 +103,8 @@ export function StudentDashboard({ firstName }: StudentDashboardProps) {
     fetcher,
     {
       revalidateOnFocus: false,
-      revalidateOnReconnect: false
+      revalidateOnReconnect: false,
+      dedupingInterval: 30000,
     }
   );
 
@@ -113,6 +114,7 @@ export function StudentDashboard({ firstName }: StudentDashboardProps) {
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
+      dedupingInterval: 30000,
     }
   );
   const {
@@ -125,6 +127,7 @@ export function StudentDashboard({ firstName }: StudentDashboardProps) {
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
+      dedupingInterval: 30000,
     }
   );
 
