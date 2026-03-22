@@ -1,176 +1,192 @@
 CareFree session summary
 
 Current state
-- The repository is in a solid MVP / pre-release state.
-- Core app flows are implemented and working together.
-- Booking, calendar, auth and caretaker availability are the most mature areas.
-- Assistant / AI is functional and already significantly beyond a rough prototype, but it is still the area that deserves the most additional hardening before production.
+- Repository is now in a working deployed-demo state, not just a local MVP state.
+- Backend is deployed on Railway.
+- Frontend is deployed on Vercel.
+- Core flows work end-to-end:
+  - email/password login
+  - Google login
+  - student onboarding
+  - caretaker onboarding/profile completion
+  - caretaker search
+  - public caretaker profile
+  - booking request flow
+  - caretaker request approval/rejection
+  - student and caretaker calendars
+  - caretaker availability editing
+  - AI assistant flow
+  - demo seed users
+  - Django admin
 
-Implemented product scope
-- Email/password auth with cookie-based JWT flow.
-- Optional Google login handled by backend token verification.
-- Student onboarding and caretaker onboarding.
-- Caretaker profile completion with uploads:
-  - profile image
-  - CV
+Live deployment state
+- Frontend URL:
+  - `https://carefree-mu.vercel.app`
+- Backend URL:
+  - `https://carefree-production.up.railway.app`
+- Admin URL:
+  - `https://carefree-production.up.railway.app/admin/login/`
+- Shared Google Calendar credential is connected and passing checks.
+- Backend external services check reached:
+  - `4/4 OK`
+
+Important deployment/config work completed
+- Railway backend deploy from repo root Dockerfile was aligned and made to work.
+- Railway public networking issue was diagnosed and fixed:
+  - app was listening on `PORT=8080`
+  - public Railway domain had to point to `8080`
+- Frontend and backend were wired together through:
+  - `FRONTEND_URL`
+  - `CORS_ALLOWED_ORIGINS`
+  - `CSRF_TRUSTED_ORIGINS`
+- Google OAuth was configured for both:
+  - frontend Google login
+  - backend shared Google Calendar callback
+- Vercel and Railway env values were aligned to the same Google OAuth client.
+
+Backend hardening and migration fixes completed
+- Fresh production database migration path was fixed.
+- Main fixes:
+  - `HelpCategory.label` length increased
+  - `HelpCategory.slug` length increased
+  - `accounts.0018` migration updated to alter schema before seeding data
+  - `accounts.0018` made non-atomic for PostgreSQL trigger/index compatibility
+  - `Caretaker.tel_num` length increased
+  - missing appointments index rename migration added
+- Result:
+  - fresh production migration now works
+  - demo seed works on a clean production DB
+
+Demo data state
+- Demo caretaker seed is implemented and production-usable.
+- Demo seed creates:
+  - 15 demo caretakers from `demo_profiles/`
+  - 4 demo students
+  - caretaker images
+  - CVs
   - diplomas
-  - optional certificates
-- Approved caretaker search with category filters and stable randomized ordering.
-- Public caretaker profile page with slot selection and request submission.
-- Appointment request lifecycle:
-  - student creates request
-  - caretaker approves or rejects
-  - confirmed appointment is created
-- Shared Google Calendar event creation and Google Meet link generation.
-- Student and caretaker in-app calendars.
-- Caretaker availability management across a two-week booking window.
-- Student journal with encrypted entry content.
-- Post-session appointment feedback.
-- AI assistant sessions, summaries and recommendation flow.
+  - certificates
+  - help category assignments
+  - availability
+  - sample appointment/feedback data
+- Demo caretakers are approved and profile-complete after seed.
+- Shared demo passwords:
+  - caretakers: `DemoPsiholog123!`
+  - students: `DemoStudent123!`
+
+Auth and account-flow fixes completed
+- Email/password login works.
+- Google login works.
+- Delete account flow was cleaned up:
+  - backend deletes the user and clears auth cookies
+  - frontend clears session cache and returns user to landing page
+- Caretaker guard was added:
+  - unapproved or incomplete caretaker is forced onto caretaker profile completion page
+  - restricted caretaker navigation is hidden until profile is complete and approved
+
+Calendar / booking state
+- Shared Google Calendar and Meet integration works through shared OAuth credential.
+- Booking flow supports:
+  - student request creation
+  - caretaker approval/rejection
+  - appointment creation
+  - Google Meet generation
+  - email notifications
+- Calendar UIs include completed sessions as history where appropriate.
+- Availability window and student slot window are aligned around the shared calendar constants.
+
+Performance work completed
+- Multiple frontend pages now use session cache / fallback snapshots so returning to a page no longer starts from empty state.
+- Session/local cache now covers the main high-traffic flows:
+  - student dashboard
+  - caretaker request list
+  - student search
+  - public caretaker detail
+  - caretaker slots
+  - student calendar
+  - caretaker calendar
+  - caretaker availability grid
+  - journal
+  - active AI conversation state
+- Route prefetching added on:
+  - student dashboard quick actions
+  - caretaker dashboard quick actions
+- Avatar/image loading improved with more aggressive client-side reuse and preload behavior.
+- Backend query optimization/hardening completed on:
+  - caretaker search
+  - help categories
+  - caretaker detail
+  - appointment list/calendar querysets
+  - caretaker slots service
 
 Assistant / AI state
 - Julija assistant is implemented in `backend/assistant/`.
-- Sessions are persisted through:
-  - `AssistantSession`
-  - `AssistantMessage`
-  - `AssistantSessionSummary`
-- Assistant supports:
-  - normal support conversation
-  - recommendation offer / recommendation-ready flow
-  - crisis mode
-  - manual session ending
-- Summaries store:
-  - summary text
-  - category codes and labels
-  - transcript snapshot
-  - recommended caretaker ids
-- Recommendation matching is category-based and enriches caretaker cards with assistant-relevant categories.
-- Frontend chat UX already supports:
-  - persisted active session restore
-  - crisis panel
-  - recommendation transition screen
-  - summary detail page
+- Sessions, messages and summaries persist in DB.
+- Frontend assistant UX now supports:
+  - immediate local welcome message
+  - restored active chat from session storage
+  - recommendation state persistence
+  - smoother revisit to messages page
+- AI remains the most behaviorally complex subsystem, but it is functioning for demo use.
 
-Assistant caveats
-- The AI area still contains the highest concentration of behavioral complexity.
-- `backend/assistant/views.py` still owns too much orchestration logic.
-- Crisis handling and fallback heuristics are present and tested, but should still get a deliberate QA pass with real conversational edge cases.
-- Recommendation closure and session-end behavior should be re-checked before production.
-
-Calendar / Meet state
-- Current preferred setup is shared OAuth credential for a shared Google account.
-- Relevant model:
-  - `SystemGoogleCredential`
-- Relevant endpoints:
-  - `/api/calendar/system/connect/`
-  - `/api/calendar/shared-status/`
-- Important behavior:
-  - if `GOOGLE_SHARED_CALENDAR_ACCOUNT_EMAIL` is configured, backend expects a stored shared OAuth credential
-  - if it is missing, backend surfaces that as a configuration problem instead of silently hiding it
-- Service-account-based access still exists as fallback when shared OAuth is not configured.
-
-Known calendar caveat
-- After a local DB reset, the stored shared OAuth credential may disappear because it lives in the DB.
-- If that happens:
-  - Meet generation can stop working
-  - first check `/api/calendar/shared-status/`
-  - then run `python manage.py check_external_services`
-  - then reconnect the shared account through `/api/calendar/system/connect/`
-
-Scheduling rules
-- Shared frontend scheduling constants live in `frontend/lib/calendar.ts`.
-- Current booking window:
-  - current week + next week
-  - total 14 days
-- Current workday:
-  - `08:00-18:00`
-- Caretaker availability UI and student booking UI both follow that window.
-
-Student-side state
-- Search UX includes:
-  - text query
+Student-side UX state
+- Search now supports:
+  - query
   - category filters
-  - stable randomized seed
-  - pagination
-  - smoother loading behavior
-- Public caretaker page supports:
-  - availability view grouped by day
-  - booking note
-  - request creation
-- Student dashboard supports:
-  - upcoming appointment card
-  - latest request state
-  - post-session feedback prompt
-- Student calendar supports:
-  - active appointments
-  - completed sessions as history
-  - Meet link visibility
-  - own feedback visibility on completed sessions
+  - seeded stable ordering
+  - backend batch fetch with frontend 6-per-page presentation
+- Public caretaker detail now feels faster because detail, summaries and slots can return from cache immediately on revisit.
+- Student dashboard cards no longer need to fully reload every time the user returns to the page.
+- Student calendar and journal now resume from cached snapshots before background revalidation.
 
-Caretaker-side state
-- Caretaker dashboard links to:
-  - requests
-  - calendar
-  - availability
-- Request handling supports:
-  - pending filter
-  - full request history
-  - approve / reject
-  - visibility of feedback for completed sessions
-- Availability UI supports:
-  - two-week window
-  - week-by-week display
-  - bulk save
-  - occupied-slot protection
-- Caretaker calendar includes completed sessions in history.
+Caretaker-side UX state
+- Caretaker dashboard is wired to requests / calendar / availability.
+- Requests page now reuses cached request lists.
+- Caretaker calendar reuses cached appointments.
+- Availability grid reuses cached rendered slot state and then refreshes in background.
 
-Journal state
-- Journal entries are encrypted at rest through `ENCRYPTION_KEY`.
-- In debug mode, backend can generate a temporary encryption key automatically.
-- That is development-only behavior and must not be relied on in production.
+Testing / verification state
+- Backend `manage.py check` passes.
+- Frontend `pnpm exec tsc --noEmit` passes.
+- Frontend targeted lint passes on the touched files.
+- Backend automated test suite previously reached:
+  - `35/35` passing for targeted test sets in this session
+- Additional targeted appointment tests passed after slot/runtime fixes.
 
-Feedback MVP state
-- `AppointmentFeedback` is implemented and tied 1:1 to `Appointment`.
-- Student can:
-  - submit a private response
-  - add optional comment
-  - dismiss with a final `dismissed` state
-- Feedback is visible only in the relevant student/caretaker context.
+Known architectural caveats
+- Cookie auth across `vercel.app` frontend and `railway.app` backend can still be browser-dependent, especially on mobile / stricter privacy setups.
+- For the most stable long-term auth behavior, custom domains under the same root domain would still be the preferred next deployment improvement.
+- AI latency can still feel slower than the rest of the app because the first model response is a real upstream wait, not just frontend rendering time.
 
-Testing state
-- Backend automated tests:
-  - 35 tests
-  - all passing
-- Frontend automated tests:
-  - 6 tests
-  - all passing
-- Existing old test documentation that mentions 11 backend tests is outdated and has been superseded by the current repo state.
+What still makes sense to do later
+- Custom domains for frontend and backend:
+  - for more reliable cookie/auth behavior
+  - e.g. `app.<domain>` and `api.<domain>`
+- Real backend profiling under deployed traffic:
+  - measure the slowest routes instead of guessing
+- Potential DB/index tuning based on profiling results
+- Optional further AI orchestration cleanup in `backend/assistant/views.py`
+- Final QA pass across:
+  - mobile login behavior
+  - booking flow
+  - Google Meet flow
+  - demo account flows
+  - delete-account flow
+  - caretaker approval/profile restrictions
 
-Repo hygiene state
-- Repo should not track:
-  - `.env` files
-  - virtual environments
-  - IDE metadata
-  - local media
-  - ad hoc screenshots and unused asset dumps
-- This cleanup has been aligned with the current repo state.
+Operational reset guidance
+- If you want a true clean reset of the demo system:
+  - reset Railway Postgres
+  - clear or replace B2 bucket if you want media fully reset too
+  - re-run migrations
+  - recreate admin
+  - re-seed help categories
+  - re-seed demo caretakers/students
+  - reconnect shared Google Calendar credential
+- If you only want demo accounts refreshed, `seed_demo_caretakers` is enough.
 
-Likely next work
-- Finalize documentation and setup guidance.
-- Hardening pass on assistant orchestration and conversational edge cases.
-- Full end-to-end QA across:
-  - auth
-  - onboarding
-  - search
-  - booking
-  - approval
-  - Meet generation
-  - assistant summaries
-  - feedback
-  - journal
-- Production deployment setup:
-  - env vars
-  - secrets
-  - shared Google credential bootstrap
-  - media strategy
-  - HTTPS / cookies / CORS / CSRF
+Source-of-truth docs added
+- Deployment / setup guide:
+  - `DEPLOYMENT_GUIDE.md`
+- Demo sharing / reset handoff:
+  - `DEMO_HANDOFF.md`
