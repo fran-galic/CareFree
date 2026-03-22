@@ -132,6 +132,7 @@ Frontend se lokalno vrti na `http://localhost:3001`.
 Za lokalni razvoj bez vanjskih servisa dovoljno je:
 
 ```env
+APP_ENV=development
 SECRET_KEY=change-me
 DEBUG=True
 FRONTEND_URL=http://localhost:3001
@@ -142,6 +143,7 @@ Napomene:
 - SQLite se koristi ako `DATABASE_URL` nije postavljen.
 - U `DEBUG=True` modu Celery taskovi se izvršavaju eager/sinkrono.
 - Ako `ENCRYPTION_KEY` nije postavljen u debug modu, backend generira privremeni ključ. To je prihvatljivo samo lokalno.
+- Lokalni cookieji defaultno koriste `SameSite=Lax` i nisu `Secure`, upravo da auth radi na `localhost`.
 
 ### Backend za puni feature set
 
@@ -168,6 +170,40 @@ USE_CLOUD_MEDIA=False
 
 ENCRYPTION_KEY=
 ```
+
+## Production konfiguracija
+
+Backend je sada pripremljen za jasan prijelaz na production preko env varijabli.
+
+Minimalni sigurni production setup:
+
+```env
+APP_ENV=production
+DEBUG=False
+SECRET_KEY=<dugacak-random-secret>
+ENCRYPTION_KEY=<stabilan-fernet-kljuc>
+FRONTEND_URL=https://your-frontend-domain.com
+ALLOWED_HOSTS=your-backend-domain.com,.railway.app
+CORS_ALLOWED_ORIGINS=https://your-frontend-domain.com
+CSRF_TRUSTED_ORIGINS=https://your-frontend-domain.com,https://your-backend-domain.com
+SESSION_COOKIE_SECURE=True
+CSRF_COOKIE_SECURE=True
+SESSION_COOKIE_SAMESITE=None
+CSRF_COOKIE_SAMESITE=None
+SECURE_SSL_REDIRECT=True
+USE_X_FORWARDED_PROTO=True
+USE_X_FORWARDED_HOST=True
+SECURE_HSTS_SECONDS=31536000
+SECURE_HSTS_INCLUDE_SUBDOMAINS=True
+```
+
+Važne napomene:
+
+- U productionu backend sada faila pri startu ako `SECRET_KEY` nije dovoljno jak.
+- U productionu backend sada faila pri startu ako `ENCRYPTION_KEY` nije postavljen.
+- Cookie postavke su centralizirane kroz Django settings, pa auth viewevi više ne ovise o ručnom grananju po `DEBUG`.
+- Ako su frontend i backend na različitim domenama, za cross-site cookie auth treba ostaviti `SameSite=None` i `Secure=True`.
+- Ako HTTPS redirect već radi na reverse proxyju, `SECURE_SSL_REDIRECT` se i dalje može ostaviti uključenim; bitno je da je `USE_X_FORWARDED_PROTO=True` iza Railwayja ili sličnog proxya.
 
 ### Frontend obavezno
 

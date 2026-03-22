@@ -14,26 +14,69 @@ import os
 
 from pathlib import Path
 from datetime import timedelta
+from urllib.parse import urlparse
 
 import dj_database_url
 from dotenv import load_dotenv
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv(BASE_DIR / ".env")
 
+
+def env_bool(name: str, default: bool = False) -> bool:
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def env_list(name: str, default: list[str] | None = None) -> list[str]:
+    value = os.environ.get(name)
+    if value is None:
+        return list(default or [])
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def unique(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    result: list[str] = []
+    for value in values:
+        if value not in seen:
+            seen.add(value)
+            result.append(value)
+    return result
+
+
+def is_unsafe_secret_key(value: str) -> bool:
+    stripped = value.strip()
+    return (
+        not stripped
+        or stripped in {"dev-secret-key", "change-me"}
+        or stripped.startswith("django-insecure-")
+        or len(set(stripped)) < 5
+        or len(stripped) < 32
+    )
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
+APP_ENV = os.environ.get("APP_ENV", "development").strip().lower()
+DEBUG = env_bool("DEBUG", APP_ENV not in {"production", "staging", "preview"})
+IS_PRODUCTION = APP_ENV in {"production", "staging", "preview"} or not DEBUG
+
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key")
+if IS_PRODUCTION and is_unsafe_secret_key(SECRET_KEY):
+    raise ImproperlyConfigured(
+        "Production requires a strong SECRET_KEY provided through the environment."
+    )
 
 # Registration token TTL (seconds) for stateless JWT used during signup
 REGISTRATION_TOKEN_EXP_SECONDS = int(os.environ.get("REGISTRATION_TOKEN_EXP_SECONDS", 7200))
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get("DEBUG", "True") == "True"
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 AI_CONVERSATION_MODEL = os.environ.get("AI_CONVERSATION_MODEL", "gpt-5.2-chat-latest")
 AI_STRUCTURED_MODEL = os.environ.get("AI_STRUCTURED_MODEL", "gpt-5.2")
@@ -44,12 +87,13 @@ AI_BACKUP_CONVERSATION_TIMEOUT_SEC = float(os.environ.get("AI_BACKUP_CONVERSATIO
 AI_MAX_PREVIOUS_SUMMARIES = int(os.environ.get("AI_MAX_PREVIOUS_SUMMARIES", "2"))
 AI_MAX_RECENT_CHAT_MESSAGES = int(os.environ.get("AI_MAX_RECENT_CHAT_MESSAGES", "8"))
 
-ALLOWED_HOSTS = [
+DEFAULT_ALLOWED_HOSTS = [
     ".railway.app",
     "programsko-inzenjerstvo-production-9d1d4up.railway.app",
     "localhost",
-    "127.0.0.1"
+    "127.0.0.1",
 ]
+ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", DEFAULT_ALLOWED_HOSTS)
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
@@ -245,25 +289,61 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOW_CREDENTIALS = True
-
-CORS_ALLOWED_ORIGINS = [
+DEFAULT_CORS_ALLOWED_ORIGINS = [
     "https://programsko-inzenjerstvo.vercel.app",
     "https://programsko-inzenjerstvo-production-9d1d4up.railway.app",
     "http://localhost:3000",
     "http://localhost:3001",
 ]
+CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS", DEFAULT_CORS_ALLOWED_ORIGINS)
 
-CORS_ALLOWED_ORIGIN_REGEXES = [
+DEFAULT_CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://programsko-inzenjerstvo.*\.vercel\.app$",
 ]
+CORS_ALLOWED_ORIGIN_REGEXES = env_list(
+    "CORS_ALLOWED_ORIGIN_REGEXES", DEFAULT_CORS_ALLOWED_ORIGIN_REGEXES
+)
 
-CSRF_TRUSTED_ORIGINS = [
+DEFAULT_CSRF_TRUSTED_ORIGINS = [
     "https://programsko-inzenjerstvo.vercel.app",
     "https://*.railway.app",
 ]
+CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS", DEFAULT_CSRF_TRUSTED_ORIGINS)
 
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3001")
 EMAIL_ASSETS_BASE_URL = os.environ.get("EMAIL_ASSETS_BASE_URL", "").strip()
+
+frontend_host = urlparse(FRONTEND_URL).hostname
+if frontend_host and frontend_host not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS = unique([*ALLOWED_HOSTS, frontend_host])
+if FRONTEND_URL.startswith(("http://", "https://")) and FRONTEND_URL not in CORS_ALLOWED_ORIGINS:
+    CORS_ALLOWED_ORIGINS = unique([*CORS_ALLOWED_ORIGINS, FRONTEND_URL])
+if FRONTEND_URL.startswith(("http://", "https://")) and FRONTEND_URL not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS = unique([*CSRF_TRUSTED_ORIGINS, FRONTEND_URL])
+
+SESSION_COOKIE_SECURE = env_bool("SESSION_COOKIE_SECURE", IS_PRODUCTION)
+CSRF_COOKIE_SECURE = env_bool("CSRF_COOKIE_SECURE", IS_PRODUCTION)
+SESSION_COOKIE_SAMESITE = os.environ.get(
+    "SESSION_COOKIE_SAMESITE", "None" if IS_PRODUCTION else "Lax"
+)
+CSRF_COOKIE_SAMESITE = os.environ.get(
+    "CSRF_COOKIE_SAMESITE", "None" if IS_PRODUCTION else "Lax"
+)
+SESSION_COOKIE_DOMAIN = os.environ.get("SESSION_COOKIE_DOMAIN") or None
+CSRF_COOKIE_DOMAIN = os.environ.get("CSRF_COOKIE_DOMAIN") or None
+
+SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", IS_PRODUCTION)
+SECURE_PROXY_SSL_HEADER = (
+    ("HTTP_X_FORWARDED_PROTO", "https")
+    if env_bool("USE_X_FORWARDED_PROTO", IS_PRODUCTION)
+    else None
+)
+USE_X_FORWARDED_HOST = env_bool("USE_X_FORWARDED_HOST", IS_PRODUCTION)
+SECURE_HSTS_SECONDS = int(os.environ.get("SECURE_HSTS_SECONDS", "31536000" if IS_PRODUCTION else "0"))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", IS_PRODUCTION)
+SECURE_HSTS_PRELOAD = env_bool("SECURE_HSTS_PRELOAD", False)
+SECURE_CONTENT_TYPE_NOSNIFF = env_bool("SECURE_CONTENT_TYPE_NOSNIFF", True)
+SECURE_REFERRER_POLICY = os.environ.get("SECURE_REFERRER_POLICY", "strict-origin-when-cross-origin")
 
 #Google service account settings for Calendar API (server-to-server)
 GOOGLE_SERVICE_ACCOUNT_JSON = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON")
@@ -350,3 +430,8 @@ if not ENCRYPTION_KEY:
         ENCRYPTION_KEY = Fernet.generate_key().decode()
     else:
         ENCRYPTION_KEY = None
+
+if IS_PRODUCTION and not ENCRYPTION_KEY:
+    raise ImproperlyConfigured(
+        "Production requires ENCRYPTION_KEY so encrypted journal data remains readable across restarts."
+    )

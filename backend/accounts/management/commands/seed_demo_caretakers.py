@@ -31,6 +31,49 @@ LAST_NAMES = [
     "Rukavina", "Vuković", "Petrović", "Mlinarić", "Kralj", "Vidović", "Kovač", "Lukić",
 ]
 
+DEMO_STUDENT_PROFILES = [
+    {
+        "email": "demo.student@carefree.local",
+        "username": "demo-student-01",
+        "first_name": "Demo",
+        "last_name": "Student",
+        "age": 22,
+        "sex": "F",
+        "studying_at": "FER",
+        "year_of_study": 3,
+    },
+    {
+        "email": "lea.student@carefree.local",
+        "username": "demo-student-02",
+        "first_name": "Lea",
+        "last_name": "Student",
+        "age": 21,
+        "sex": "F",
+        "studying_at": "FFZG",
+        "year_of_study": 2,
+    },
+    {
+        "email": "ivan.student@carefree.local",
+        "username": "demo-student-03",
+        "first_name": "Ivan",
+        "last_name": "Student",
+        "age": 24,
+        "sex": "M",
+        "studying_at": "TVZ",
+        "year_of_study": 4,
+    },
+    {
+        "email": "petra.student@carefree.local",
+        "username": "demo-student-04",
+        "first_name": "Petra",
+        "last_name": "Student",
+        "age": 23,
+        "sex": "F",
+        "studying_at": "PMF",
+        "year_of_study": 5,
+    },
+]
+
 ABOUT_ME_OPTIONS = [
     "U radu sa studentima nastojim ponuditi siguran, smiren i povjerljiv prostor u kojem je moguće otvoreno govoriti o onome što opterećuje, bez pritiska i bez osjećaja da se sve mora odmah riješiti.",
     "Važno mi je da se student tijekom susreta osjeća saslušano i razumijeno. Razgovor vodim mirno i strukturirano, s fokusom na ono što osobi u tom trenutku može donijeti više jasnoće, olakšanja i oslonca.",
@@ -130,6 +173,12 @@ class Command(BaseCommand):
             "--student-password",
             default="DemoStudent123!",
             help="Password assigned to the generated demo student.",
+        )
+        parser.add_argument(
+            "--student-count",
+            type=int,
+            default=4,
+            help="How many demo students to create. Default: 4.",
         )
 
     @transaction.atomic
@@ -251,20 +300,30 @@ class Command(BaseCommand):
                 )
             )
 
-        stale_demo_users = User.objects.filter(email__endswith="@demo.carefree.local").exclude(email__in=generated_emails)
+        demo_students = self._seed_demo_students(User, options["student_password"], options["student_count"])
+        generated_demo_emails = generated_emails + [student.user.email for student in demo_students]
+        stale_demo_users = User.objects.filter(email__endswith="@demo.carefree.local").exclude(email__in=generated_demo_emails)
         stale_count = stale_demo_users.count()
         if stale_count:
             stale_demo_users.delete()
-            self.stdout.write(self.style.WARNING(f"Removed {stale_count} stale demo caretaker user(s) without a matching image."))
+            self.stdout.write(self.style.WARNING(f"Removed {stale_count} stale demo user(s) without a matching current seed profile."))
 
         if seeded_caretakers:
-            demo_student = self._seed_demo_student(User, options["student_password"])
+            demo_student = demo_students[0] if demo_students else None
             self._seed_demo_feedback_examples(demo_student, seeded_caretakers, tz)
+
+        self._write_local_credentials_snapshot(
+            seeded_caretakers=seeded_caretakers,
+            demo_students=demo_students,
+            caretaker_password=options["password"],
+            student_password=options["student_password"],
+        )
 
         self.stdout.write("")
         self.stdout.write(self.style.SUCCESS(f"Demo caretaker seeding complete. Created: {created}, updated: {updated}."))
         self.stdout.write(f"Shared password for demo caretakers: {options['password']}")
-        self.stdout.write(f"Demo student login: demo.student@carefree.local / {options['student_password']}")
+        self.stdout.write(f"Demo student password: {options['student_password']}")
+        self.stdout.write(f"Local credentials snapshot: {base_dir / 'generated' / 'LOCAL_DEMO_CREDENTIALS.md'}")
 
     def _image_sort_key(self, path: Path):
         stem = path.stem.lower()
@@ -310,32 +369,46 @@ class Command(BaseCommand):
         suffix = f"{4100000 + index * 173:07d}"[-7:]
         return f"+385 {prefix} {suffix[:3]} {suffix[3:]}"
 
-    def _seed_demo_student(self, User, password: str):
-        user, _ = User.objects.update_or_create(
-            email="demo.student@carefree.local",
-            defaults={
-                "username": "demo-student",
-                "first_name": "Demo",
-                "last_name": "Student",
-                "age": 22,
-                "sex": "F",
-                "role": "student",
-            },
-        )
-        user.set_password(password)
-        user.save(update_fields=["password"])
+    def _seed_demo_students(self, User, password: str, student_count: int):
+        if student_count <= 0:
+            return []
 
-        student, _ = Student.objects.update_or_create(
-            user=user,
-            defaults={
-                "studying_at": "FER",
-                "year_of_study": 3,
-                "is_anonymous": True,
-            },
-        )
-        return student
+        selected_profiles = DEMO_STUDENT_PROFILES[:student_count]
+        if len(selected_profiles) < student_count:
+            raise CommandError(
+                f"Requested {student_count} demo students, but only {len(DEMO_STUDENT_PROFILES)} predefined profiles exist."
+            )
+
+        students = []
+        for profile in selected_profiles:
+            user, _ = User.objects.update_or_create(
+                email=profile["email"],
+                defaults={
+                    "username": profile["username"],
+                    "first_name": profile["first_name"],
+                    "last_name": profile["last_name"],
+                    "age": profile["age"],
+                    "sex": profile["sex"],
+                    "role": "student",
+                },
+            )
+            user.set_password(password)
+            user.save(update_fields=["password"])
+
+            student, _ = Student.objects.update_or_create(
+                user=user,
+                defaults={
+                    "studying_at": profile["studying_at"],
+                    "year_of_study": profile["year_of_study"],
+                    "is_anonymous": True,
+                },
+            )
+            students.append(student)
+        return students
 
     def _seed_demo_feedback_examples(self, student: Student, caretakers: list[Caretaker], tz: ZoneInfo):
+        if student is None:
+            return
         if len(caretakers) < 2:
             return
 
@@ -492,3 +565,51 @@ class Command(BaseCommand):
                         "is_available": True,
                     },
                 )
+
+    def _write_local_credentials_snapshot(
+        self,
+        *,
+        seeded_caretakers: list[Caretaker],
+        demo_students: list[Student],
+        caretaker_password: str,
+        student_password: str,
+    ):
+        base_dir = Path(__file__).resolve().parents[4]
+        output_dir = base_dir / "generated"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        output_path = output_dir / "LOCAL_DEMO_CREDENTIALS.md"
+
+        lines = [
+            "# Local Demo Credentials",
+            "",
+            "Ovaj dokument je automatski generiran iz `seed_demo_caretakers` komande.",
+            "Namijenjen je lokalnom/demo korištenju i ignoriran je u Git-u.",
+            "",
+            "## Admin",
+            "",
+            "- email: `admin@carefree.com`",
+            "- password: `admin123`",
+            "",
+            "## Demo caretakers",
+            "",
+            f"- shared password: `{caretaker_password}`",
+            "",
+        ]
+
+        for caretaker in seeded_caretakers:
+            lines.append(f"- `{caretaker.user.email}` | {caretaker.user.first_name} {caretaker.user.last_name}")
+
+        lines.extend([
+            "",
+            "## Demo students",
+            "",
+            f"- shared password: `{student_password}`",
+            "",
+        ])
+
+        for student in demo_students:
+            lines.append(
+                f"- `{student.user.email}` | {student.user.first_name} {student.user.last_name} | {student.studying_at}, godina {student.year_of_study}"
+            )
+
+        output_path.write_text("\n".join(lines) + "\n", encoding="utf-8")

@@ -27,6 +27,21 @@ ime.prezime.XX@demo.carefree.local
 - demo caretakeri: `DemoPsiholog123!`
 - demo student: `DemoStudent123!`
 
+## Demo studenti
+
+Seed trenutno po defaultu stvara 4 demo studenta:
+
+- `demo.student@carefree.local`
+- `lea.student@carefree.local`
+- `ivan.student@carefree.local`
+- `petra.student@carefree.local`
+
+Točan lokalni snapshot svih accounta nakon seedanja zapisuje se i u:
+
+```text
+generated/LOCAL_DEMO_CREDENTIALS.md
+```
+
 ## Trenutni lokalni seed najčešće daje 15 demo caretakera
 
 Primjeri:
