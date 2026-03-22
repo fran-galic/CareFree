@@ -327,6 +327,36 @@ def get_caretaker_slots(caretaker_obj, days=3, start_hour=8, end_hour=18, tz_nam
     local_tz = ZoneInfo(tz_name)
     now_local = datetime.now(tz=local_tz)
 
+    range_start_local = datetime.combine(
+        now_local.date(),
+        time(hour=start_hour, minute=0),
+        tzinfo=local_tz,
+    )
+    range_end_local = datetime.combine(
+        now_local.date() + timedelta(days=days),
+        time(hour=end_hour, minute=0),
+        tzinfo=local_tz,
+    )
+    range_start_utc = range_start_local.astimezone(dt_timezone.utc)
+    range_end_utc = range_end_local.astimezone(dt_timezone.utc)
+
+    occupied_starts: set[datetime] = set(
+        Appointment.objects.filter(
+            caretaker=caretaker_obj,
+            start__lt=range_end_utc,
+            end__gt=range_start_utc,
+            status__in=ACTIVE_APPOINTMENT_STATUSES,
+        ).values_list("start", flat=True)
+    )
+    availability_by_start = {
+        slot.start: bool(slot.is_available)
+        for slot in AvailabilitySlot.objects.filter(
+            caretaker=caretaker_obj,
+            start__gte=range_start_utc,
+            start__lt=range_end_utc,
+        ).only("start", "is_available")
+    }
+
     for d in range(days):
         day = (now_local.date()) + timedelta(days=d)
         for hh in range(start_hour, end_hour):
@@ -336,21 +366,10 @@ def get_caretaker_slots(caretaker_obj, days=3, start_hour=8, end_hour=18, tz_nam
             utc_start = local_start.astimezone(dt_timezone.utc)
             utc_end = local_end.astimezone(dt_timezone.utc)
 
-            # check for overlapping confirmed appointments
-            occupied = Appointment.objects.filter(
-                caretaker=caretaker_obj,
-                start__lt=utc_end,
-                end__gt=utc_start,
-                status__in=ACTIVE_APPOINTMENT_STATUSES,
-            ).exists()
+            occupied = utc_start in occupied_starts
 
-            # check for explicit override
-            try:
-                slot_obj = AvailabilitySlot.objects.get(caretaker=caretaker_obj, start=utc_start)
-                is_avail = bool(slot_obj.is_available)
-            except AvailabilitySlot.DoesNotExist:
-                # If caretaker hasn't set this slot, it's NOT available by default
-                is_avail = False
+            # If caretaker hasn't set this slot, it's NOT available by default.
+            is_avail = availability_by_start.get(utc_start, False)
 
             if occupied:
                 is_avail = False
