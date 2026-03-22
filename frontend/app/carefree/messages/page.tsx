@@ -54,13 +54,22 @@ function defaultUiHint(): AssistantUiHint {
   };
 }
 
+function buildWelcomeMessage(hint: AssistantUiHint): AssistantMessage {
+  return {
+    id: 0,
+    sender: "bot",
+    content: hint.welcome_message,
+    created_at: new Date().toISOString(),
+  };
+}
+
 export default function ChatPage() {
   const router = useRouter();
-  const [messages, setMessages] = useState<AssistantMessage[]>([]);
+  const [uiHint, setUiHint] = useState<AssistantUiHint>(defaultUiHint);
+  const [messages, setMessages] = useState<AssistantMessage[]>(() => [buildWelcomeMessage(defaultUiHint())]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [session, setSession] = useState<AssistantSessionData | null>(null);
-  const [uiHint, setUiHint] = useState<AssistantUiHint>(defaultUiHint);
   const [recommendedCaretakers, setRecommendedCaretakers] = useState<Caretaker[]>([]);
   const [recommendationSummary, setRecommendationSummary] = useState("");
   const [, setRecommendationMatchScope] = useState<string | null>(null);
@@ -168,7 +177,7 @@ export default function ChatPage() {
             setUiHint(defaultUiHint());
             setPageError(null);
             setSendError(null);
-            setMessages([]);
+            setMessages([buildWelcomeMessage(defaultUiHint())]);
             return;
           } catch {
             window.sessionStorage.removeItem(RECOMMENDATION_STORAGE_KEY);
@@ -196,14 +205,7 @@ export default function ChatPage() {
         return;
       }
 
-      setMessages([
-        {
-          id: 0,
-          sender: "bot",
-          content: res.ui_hint.welcome_message,
-          created_at: new Date().toISOString(),
-        },
-      ]);
+      setMessages([buildWelcomeMessage(res.ui_hint)]);
     };
 
     initSession().catch((error) => {
