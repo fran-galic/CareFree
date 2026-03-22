@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { useState } from 'react';
 import useSWR from "swr";
+import { getAssistantSummaries, type AssistantSummaryListItem } from "@/fetchers/assistant";
 import { searchCaretakerById } from "@/fetchers/users";
 import { getCaretakerSlots, createAppointmentRequest, Slot } from "@/fetchers/appointments";
 import {
@@ -52,6 +53,15 @@ function fromLocalDateKey(dateKey: string): Date {
   return new Date(year, month - 1, day);
 }
 
+function buildSuggestedBookingNote(summary: AssistantSummaryListItem | null | undefined): string {
+  const summaryText = summary?.summary_text?.trim();
+  if (!summaryText) {
+    return "";
+  }
+
+  return `Sažetak mog razgovora s Julijom: ${summaryText}\n\nVolio/la bih na prvom susretu krenuti od ovoga.`;
+}
+
 export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: string }> }) {
   // Otpakiravanje parametara (Next.js 15 pattern)
   const { id } = React.use(params);
@@ -64,10 +74,16 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
     caretaker ? `slots-${id}` : null,
     () => getCaretakerSlots(Number(id), 14)
   );
+
+  const { data: assistantSummaries } = useSWR(
+    "assistant-summaries",
+    getAssistantSummaries,
+  );
   
   // State za formu
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
   const [bookingNote, setBookingNote] = useState("");
+  const [hasEditedBookingNote, setHasEditedBookingNote] = useState(false);
   const [visibleWeekIndex, setVisibleWeekIndex] = useState(0);
   
   // State za loading i uspjeh
@@ -83,6 +99,28 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
 
     return () => window.cancelAnimationFrame(frame);
   }, []);
+
+  const latestAssistantSummary = assistantSummaries?.[0] ?? null;
+  const suggestedBookingNote = React.useMemo(
+    () => buildSuggestedBookingNote(latestAssistantSummary),
+    [latestAssistantSummary]
+  );
+
+  React.useEffect(() => {
+    if (hasEditedBookingNote) {
+      return;
+    }
+
+    if (bookingNote.trim()) {
+      return;
+    }
+
+    if (!suggestedBookingNote) {
+      return;
+    }
+
+    setBookingNote(suggestedBookingNote);
+  }, [bookingNote, hasEditedBookingNote, suggestedBookingNote]);
 
   // Grupiraj slotove po danima
   const slotsByDay: SlotsByDay[] = React.useMemo(() => {
@@ -159,7 +197,8 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
       setTimeout(() => {
         setIsBookingSuccess(false);
         setSelectedSlot(null);
-        setBookingNote("");
+        setHasEditedBookingNote(false);
+        setBookingNote(suggestedBookingNote);
       }, 5000);
 
     } catch (err) {
@@ -522,10 +561,18 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
                           Razlog dolaska
                           <span className="text-xs font-normal text-muted-foreground">(kratko)</span>
                         </label>
+                        {suggestedBookingNote && (
+                          <p className="text-xs text-muted-foreground">
+                            Polje je unaprijed ispunjeno kratkim sažetkom razgovora s Julijom. Tekst možete slobodno urediti ili obrisati.
+                          </p>
+                        )}
                         <Textarea 
                           placeholder="Npr. osjećam veliku anksioznost prije ispita..."
                           value={bookingNote}
-                          onChange={(e) => setBookingNote(e.target.value)}
+                          onChange={(e) => {
+                            setHasEditedBookingNote(true);
+                            setBookingNote(e.target.value);
+                          }}
                           required
                           rows={5}
                           className="resize-none"

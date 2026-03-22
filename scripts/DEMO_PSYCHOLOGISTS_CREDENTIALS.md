@@ -1,35 +1,40 @@
-# Demo psiholozi
+# Demo caretaker credentials
 
-Ovaj dokument sadrzi trenutne demo psihologe seedane iz `demo_profiles/`.
+Ovaj dokument opisuje kako funkcioniraju demo caretaker accounti.
 
-Zajednicka lozinka za sve demo psihologe:
+## Bitno
 
-- `DemoPsiholog123!`
+Emailovi ovise o trenutno dostupnim slikama u `demo_profiles/` i redoslijedu seeda.
 
-## Mailovi
+Zato ovu listu tretiraj kao snapshot, ne kao trajni ugovor.
+
+## Generiranje
+
+Pokreni:
+
+```bash
+bash scripts/seed_demo_caretakers.sh
+```
+
+Skripta generira emailove oblika:
+
+```text
+ime.prezime.XX@demo.carefree.local
+```
+
+## Default lozinke
+
+- demo caretakeri: `DemoPsiholog123!`
+- demo student: `DemoStudent123!`
+
+## Trenutni lokalni seed najčešće daje 15 demo caretakera
+
+Primjeri:
 
 - `ana.maric.04@demo.carefree.local`
 - `dora.blazevic.15@demo.carefree.local`
 - `filip.horvat.01@demo.carefree.local`
 - `iva.novak.06@demo.carefree.local`
 - `ivan.kovacevic.02@demo.carefree.local`
-- `ivana.tomic.10@demo.carefree.local`
-- `katarina.juric.08@demo.carefree.local`
-- `lucija.knezevic.09@demo.carefree.local`
-- `luka.babic.03@demo.carefree.local`
-- `marija.bozic.07@demo.carefree.local`
-- `matea.pavlovic.11@demo.carefree.local`
-- `nika.grgic.13@demo.carefree.local`
-- `petra.peric.05@demo.carefree.local`
-- `tea.milic.12@demo.carefree.local`
-- `tena.lovric.14@demo.carefree.local`
 
-## Napomena
-
-- Ova lista vrijedi za trenutno seedano lokalno stanje.
-- Ako se promijeni broj `m_*` / `w_*` slika u `demo_profiles/` i ponovno pokrene seed, lista se moze promijeniti.
-
-## Demo student
-
-- `demo.student@carefree.local`
-- `DemoStudent123!`
+Ako promijeniš slike u `demo_profiles/` i ponovno seed-aš, lista se može promijeniti.

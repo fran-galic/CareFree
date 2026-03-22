@@ -1,17 +1,50 @@
-#ignoriraanje osjetljivih i privremenih datoteka
+# Secrets and local credentials
+.env
+.env.*
+!.env.example
+!.env*.example
 .secrets/
-*.json
+*.pem
+*.p12
+*.pfx
+*.key
+service-account*.json
+google-credentials*.json
 
-#python cache i baza podataka
+# Python
 __pycache__/
 *.py[cod]
-backend/db.sqlite3
-
-#virtualno okruženje
 .pytest_cache/
 .ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+env/
+backend/.venv/
+backend/db.sqlite3
+*.sqlite3
+
+# Node / frontend
+node_modules/
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/coverage/
+*.tsbuildinfo
+
+# Media / uploads / local generated files
+backend/media/
+caretakers/
+
+# IDE / OS
+.idea/
 .vscode/
 .DS_Store
 
-#environment variables
-.env
+# Project-local disposable assets
+images/
+demo_profiles/copies/
+260128_ProInz_Finalna.pptx

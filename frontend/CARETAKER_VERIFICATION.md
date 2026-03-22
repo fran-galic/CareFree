@@ -1,151 +1,64 @@
-# Caretaker Verification - Frontend Implementacija
+# Caretaker Verification / Profile Completion
 
-## 📋 Što je implementirano
+Ovaj dokument opisuje trenutno implementiran caretaker onboarding i profile-completion flow.
 
-Kompletna stranica za verifikaciju caretaker profila sa svim potrebnim funkcionalnostima:
+## Glavna stranica
 
-### ✅ Implementirane funkcije
+- `/carefree/profile/caretaker`
 
-1. **Upload dokumenta**
-   - CV upload (PDF/JPG/JPEG, max 10MB)
-   - Diploma upload - multiple (PDF/JPG/JPEG, max 10MB)
-   - Profilna slika upload (JPG/JPEG, max 10MB)
+## Što korisnik može napraviti
 
-2. **Profil podaci**
-   - Telefon (obavezno)
-   - O meni (obavezno)
-   - Godina diplomiranja
-   - Kategorije pomoći (multi-select, obavezno)
+- uploadati profilnu sliku
+- uploadati CV
+- uploadati jednu ili više diploma
+- uploadati certifikate
+- unijeti telefon
+- unijeti `about_me`
+- unijeti godinu diplomiranja
+- odabrati help kategorije
+- kontrolirati prikaz emaila i telefona studentima
 
-3. **Status verifikacije**
-   - `is_profile_complete` - pokazuje da li je profil potpun
-   - `approval_status` - PENDING/APPROVED/DENIED
-   - `is_approved` - boolean za odobrenje
+## Backend endpointi
 
-4. **UI Indikatori**
-   - ✅ Badge za status (Odobren, Čeka odobrenje, Odbijen, Nepotpun profil)
-   - ⚠️ Alert upozorenje ako profil nije potpun
-   - ✓ CheckCircle ikone za uploadane dokumente
-   - Real-time feedback pri uploadu
+- `GET /auth/caretaker/register/`
+- `POST /auth/caretaker/register/`
+- `PATCH /auth/caretaker/register/`
+- `POST /auth/caretaker/cv/`
+- `DELETE /auth/caretaker/cv/`
+- `POST /auth/caretaker/diploma/`
+- `DELETE /auth/caretaker/diploma/<id>/`
+- `POST /auth/caretaker/certificate/`
+- `DELETE /auth/caretaker/certificate/<id>/`
+- `POST /auth/caretaker/image/`
+- `DELETE /auth/caretaker/image/`
 
----
+## Stanje profila
 
-## 🗂️ Datoteke
+Relevantna polja:
 
-### Nove/Izmijenjene datoteke:
+- `is_profile_complete`
+- `approval_status`
+- `is_approved`
 
-1. **`fetchers/users.ts`**
-   - `getCaretakerProfile()` - dohvat profila
-   - `uploadCV(file)` - upload CV-a
-   - `uploadDiploma(file)` - upload diplome
-   - `uploadCaretakerImage(file)` - upload slike
-   - `updateCaretakerProfile(data)` - ažuriranje profila
-   - `getHelpCategories()` - dohvat kategorija pomoći
+`is_profile_complete` ovisi o stvarnoj cjelovitosti profila i uploadova, ne samo o jednom requestu.
 
-2. **`app/carefree/profile/caretaker/page.tsx`**
-   - Potpuno prepisana stranica sa upload funkcionalnostima
-   - Multi-step verifikacija
-   - Status prikaz
+## Trenutna validacija
 
-3. **`components/ui/alert.tsx`** (NOVO)
-   - Alert komponenta za upozorenja
+Profil da bi bio kompletan treba imati:
 
----
+- telefon
+- profilnu sliku
+- `about_me`
+- barem jednu help kategoriju
+- CV
+- barem jednu diplomu
 
-## 🔄 Backend API Endpointi
+## Što nije automatski riješeno
 
-| Endpoint | Metoda | Opis |
-|----------|--------|------|
-| `/auth/caretaker/register/` | GET | Dohvat caretaker profila |
-| `/auth/caretaker/register/` | POST | Ažuriranje profila (sve obavezno) |
-| `/auth/caretaker/cv/` | POST | Upload CV-a |
-| `/auth/caretaker/diploma/` | POST | Upload diplome |
-| `/auth/caretaker/image/` | POST | Upload profilne slike |
-| `/users/caretakers/help-categories` | GET | Dohvat kategorija pomoći |
+- admin notifikacije za novu prijavu nisu centralni dio ovog flowa
+- finalno odobrenje i dalje ide kroz admin proces
 
----
+## Povezani frontend fileovi
 
-## 🎯 Kako koristiti
-
-### Korak 1: Prijava kao caretaker
-Registrirajte se ili prijavite kao korisnik s `role="caretaker"`
-
-### Korak 2: Popunite profil
-Idite na `/carefree/profile/caretaker`
-
-### Korak 3: Upload dokumenta
-1. Kliknite na "Choose File" za svaki dokument
-2. Odaberite datoteku
-3. Kliknite Upload button (ikona Upload)
-4. Pričekajte potvrdu
-
-### Korak 4: Popunite podatke
-- Unesite telefon
-- Napišite biografiju (O meni)
-- Odaberite godinu diplomiranja
-- **OBAVEZNO:** Odaberite barem jednu kategoriju pomoći
-
-### Korak 5: Spremi profil
-Kliknite "Spremi profil" button
-
----
-
-## ⚠️ Validacija
-
-Backend će odbiti spremanje ako:
-- ❌ Nema uploadanog CV-a
-- ❌ Nema uploadane barem jedne diplome
-- ❌ Nema uploadane profilne slike
-- ❌ Telefon nije unesen
-- ❌ "O meni" nije uneseno
-- ❌ Nema odabrane kategorije pomoći
-
----
-
-## 🎨 Status Badgeovi
-
-| Status | Badge | Značenje |
-|--------|-------|----------|
-| Nepotpun | 🔴 Nepotpun profil | Dokumenti ili podaci nedostaju |
-| Pending | ⏱️ Čeka odobrenje | Profil potpun, čeka admin odobrenje |
-| Approved | ✅ Odobren | Administrator je odobrio profil |
-| Denied | ❌ Odbijen | Administrator je odbio profil |
-
----
-
-## 🔐 Permisije
-
-- `IsCaretaker` - samo korisnici s `role='caretaker'` mogu pristupiti
-- `IsApprovedCaretaker` - samo odobreni caretakeri mogu koristiti određene funkcije (npr. chat)
-
----
-
-## 📝 Napomene
-
-1. **Dokumenti se mogu uploadati samo jedan po jedan**
-2. **CV se zamjenjuje** - ako uploadate novi, stari se briše
-3. **Diplome se akumuliraju** - možete uploadati više njih
-4. **Slika se zamjenjuje** - zadnja uploadana ostaje
-5. **Kategorije** - hijerarhijski sustav (parent-child)
-   - Možete odabrati glavnu kategoriju i/ili subkategorije
-
----
-
-## 🐛 Debugging
-
-Ako nešto ne radi:
-
-1. Provjerite konzolu u browseru (F12)
-2. Provjerite network tab za API odgovore
-3. Provjerite da li su svi environment variables postavljeni (`NEXT_PUBLIC_BACKEND_URL`)
-4. Provjerite da li backend radi i da li su endpointi dostupni
-
----
-
-## 🚀 Idući koraci
-
-Nakon što caretaker popuni profil:
-1. Administrator dobiva obavijest (TODO: implementirati)
-2. Administrator pregleda dokumente u Django Admin panelu
-3. Administrator postavlja `is_approved = True` ili `approval_status = 'DENIED'`
-4. Caretaker vidi ažuriran status na svom profilu
+- `frontend/app/carefree/profile/caretaker/page.tsx`
+- `frontend/fetchers/users.ts`

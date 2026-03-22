@@ -1,119 +1,184 @@
 # External Services Setup
 
-Current status in this repo:
-- `OpenAI` is configured in `backend/.env`.
-- `Resend` is configured in `backend/.env`.
-- `Shared Google Calendar` service account is configured in `backend/.env`.
-- `Backblaze B2` is configured in `backend/.env`.
-- `Google login` is the main remaining manual setup step.
+Ovaj dokument opisuje stvarni setup koji repo trenutno koristi.
 
-## What the current Google login flow actually needs
+## 1. OpenAI
 
-The active flow does **not** require NextAuth.
+Koristi se za Julija assistant flow.
 
-It currently works like this:
-1. Frontend uses `@react-oauth/google` to get a Google access token in the browser.
-2. Frontend sends that token to `POST /api/accounts/google/`.
-3. Backend verifies the token against Google userinfo and creates/logs in the user.
-
-Because of that, the only required frontend env var for the current Google login button is:
+Obavezni backend env:
 
 ```env
-NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_google_web_client_id
+OPENAI_API_KEY=
+AI_CONVERSATION_MODEL=gpt-5.2-chat-latest
+AI_STRUCTURED_MODEL=gpt-5.2
+AI_BACKUP_CONVERSATION_MODEL=gpt-4o-mini
 ```
 
-You do **not** need `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, or `NEXTAUTH_GOOGLE_ENABLED` unless you intentionally want to revive the separate NextAuth route.
+Bez `OPENAI_API_KEY`:
 
-## Google Cloud Console steps
+- assistant endpointi postoje
+- ali AI generiranje neće raditi
 
-Create a Google OAuth **Web application** credential and add these authorized JavaScript origins:
+## 2. Email
 
-```text
-http://localhost:3001
-https://programsko-inzenjerstvo.vercel.app
-```
+Repo podržava dva moda:
 
-If you deploy another frontend URL later, add that origin too.
-
-Then copy the generated client ID into:
-
-`frontend/.env.local`
-
-```env
-NEXT_PUBLIC_GOOGLE_CLIENT_ID=...
-```
-
-## Local verification steps
-
-1. Run backend readiness checks:
-
-```bash
-cd backend
-source .venv/bin/activate
-python manage.py check
-python manage.py check_external_services
-```
-
-2. Start backend:
-
-```bash
-cd backend
-source .venv/bin/activate
-python manage.py runserver
-```
-
-3. Start frontend:
-
-```bash
-cd frontend
-pnpm dev
-```
-
-4. Test Google login at:
-
-```text
-http://localhost:3001/accounts/login
-```
-
-Expected result:
-- Google popup opens
-- backend sets auth cookies
-- existing onboarded user lands on `/carefree/main`
-- new Google user lands on `/accounts/signup`
-
-## Other configured external services
+- `EMAIL_PROVIDER=resend` kao primarni path
+- SMTP fallback
 
 ### Resend
-- Provider is backend-managed through `send_project_email(...)`
-- Relevant backend env:
-  - `EMAIL_PROVIDER=resend`
-  - `RESEND_API_KEY`
-  - `DEFAULT_FROM_EMAIL`
 
-### Shared Google Calendar
-- Used for appointment events and Google Meet link generation
-- Relevant backend env:
-  - `GOOGLE_SERVICE_ACCOUNT_FILE` or `GOOGLE_SERVICE_ACCOUNT_JSON`
-  - `GOOGLE_CALENDAR_ID`
+```env
+EMAIL_PROVIDER=resend
+RESEND_API_KEY=
+DEFAULT_FROM_EMAIL=
+FRONTEND_URL=http://localhost:3001
+```
 
-Important:
-- `GOOGLE_CALENDAR_ID` must be the shared calendar ID
-- it must not be `primary`
+### SMTP fallback
 
-### Backblaze B2
-- Used for caretaker uploads and media files
-- Relevant backend env:
-  - `B2_KEY_ID`
-  - `B2_APPLICATION_KEY`
-  - `B2_BUCKET_NAME`
-  - `B2_ENDPOINT`
-  - `B2_REGION`
+```env
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_HOST_USER=
+EMAIL_HOST_PASSWORD=
+EMAIL_USE_TLS=True
+DEFAULT_FROM_EMAIL=
+```
 
-## Security note
+## 3. Shared Google Calendar / Google Meet
 
-Secrets are currently present in local env files and some were previously exposed in terminal history.
+Trenutni preferirani setup je shared OAuth account, ne per-user NextAuth i ne isključivo service account.
 
-Before production or sharing logs:
-- rotate the OpenAI API key
-- rotate the Resend API key
-- rotate the Backblaze B2 application key
+### Obavezno
+
+```env
+GOOGLE_CALENDAR_ID=
+GOOGLE_OAUTH_CLIENT_ID=
+GOOGLE_OAUTH_CLIENT_SECRET=
+GOOGLE_OAUTH_REDIRECT_URI=
+GOOGLE_SHARED_CALENDAR_ACCOUNT_EMAIL=
+ENABLE_USER_GOOGLE_CALENDAR_SYNC=True
+```
+
+Napomene:
+
+- `GOOGLE_CALENDAR_ID` mora biti shared calendar ID
+- ne smije biti `primary`
+- `GOOGLE_SHARED_CALENDAR_ACCOUNT_EMAIL` treba biti Google račun kojim autorizirate shared kalendar
+
+### Bootstrap shared credentiala
+
+1. Pokreni backend.
+2. Otvori:
+
+```text
+GET /api/calendar/system/connect/
+```
+
+3. Autoriziraj shared Google account.
+4. Callback sprema `SystemGoogleCredential` u bazu.
+5. Provjeri stanje na:
+
+```text
+GET /api/calendar/shared-status/
+```
+
+### Važno nakon DB reseta
+
+Ako resetiraš lokalnu bazu:
+
+- `SystemGoogleCredential` nestaje
+- shared status postaje disconnected
+- Meet generation može prestati raditi
+
+Tada ponovno spoji account preko `/api/calendar/system/connect/`.
+
+### Fallback service account path
+
+Ako ne koristiš shared OAuth account, backend i dalje podržava service account:
+
+```env
+GOOGLE_SERVICE_ACCOUNT_FILE=
+```
+
+ili
+
+```env
+GOOGLE_SERVICE_ACCOUNT_JSON=
+```
+
+To je fallback, ne više jedini očekivani setup.
+
+## 4. Google login
+
+Aktivni login flow ne ovisi o NextAuth.
+
+Trenutni flow:
+
+1. Frontend koristi `@react-oauth/google`.
+2. Browser dobije Google access token.
+3. Frontend ga šalje na `POST /api/accounts/google/`.
+4. Backend provjeri userinfo i kreira / logira korisnika.
+
+Frontend env:
+
+```env
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=
+```
+
+Ne trebaju ti `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` ni `NEXTAUTH_GOOGLE_ENABLED` osim ako svjesno želiš reaktivirati zaseban NextAuth path koji danas nije primarni.
+
+## 5. Backblaze B2
+
+Koristi se za caretaker uploadove i media kad je `USE_CLOUD_MEDIA=True`.
+
+```env
+B2_KEY_ID=
+B2_APPLICATION_KEY=
+B2_BUCKET_NAME=
+B2_ENDPOINT=
+B2_REGION=
+USE_CLOUD_MEDIA=True
+```
+
+Ako `USE_CLOUD_MEDIA=False`, backend lokalno koristi `backend/media/`.
+
+## 6. Journal encryption
+
+Za produkciju obavezno postavi:
+
+```env
+ENCRYPTION_KEY=
+```
+
+To mora biti stabilan Fernet key. Ne smije se mijenjati bez planirane rotacije.
+
+## 7. Readiness check
+
+Repo već ima sigurni readiness check bez ispisivanja tajni:
+
+```bash
+cd backend
+./.venv/bin/python manage.py check_external_services
+```
+
+Provjerava:
+
+- OpenAI
+- email
+- shared Google Calendar
+- Backblaze B2
+
+## 8. Security pravila
+
+Nikad ne committaj:
+
+- `.env`
+- credential JSON datoteke
+- API ključeve
+- privatne OAuth secret-e
+- privatne certifikate
+
+Prije deploya ili dijeljenja logova obavezno rotiraj sve ranije kompromitirane ključeve.
