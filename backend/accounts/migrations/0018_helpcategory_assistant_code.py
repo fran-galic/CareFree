@@ -50,6 +50,7 @@ def assign_assistant_codes(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
+    atomic = False
 
     dependencies = [
         ("accounts", "0017_caretaker_show_email_to_students_and_more"),
