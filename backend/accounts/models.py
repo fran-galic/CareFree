@@ -104,7 +104,7 @@ class Caretaker(models.Model):
         related_name='caretaker'
     )
 
-    tel_num = models.CharField(max_length=15, blank=True, null=True)
+    tel_num = models.CharField(max_length=32, blank=True, null=True)
     show_email_to_students = models.BooleanField(default=False)
     show_phone_to_students = models.BooleanField(default=False)
     image = models.ImageField(upload_to=caretaker_image_upload_to, blank=True, null=True, validators=[validate_caretaker_image])
