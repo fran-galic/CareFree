@@ -22,6 +22,7 @@ import { Bot, CheckCircle, ChevronLeft, ChevronRight, LifeBuoy, Send, StopCircle
 
 const RECOMMENDATION_STORAGE_KEY = "carefree:assistant:recommendation-state";
 const RECOMMENDATION_EXPIRED_NOTICE_KEY = "carefree:assistant:recommendation-expired";
+const ACTIVE_CHAT_STORAGE_KEY = "carefree:assistant:active-chat-state";
 const RECOMMENDATION_TTL_MS = 20 * 60 * 1000;
 const RECOMMENDATION_TRANSITION_MS = 40000;
 const SUPPORT_CLOSURE_TRANSITION_MS = 15000;
@@ -31,6 +32,13 @@ interface PendingRecommendationState {
   caretakers: Caretaker[];
   summaryText: string;
   summaryId: number | null;
+}
+
+interface ActiveChatSnapshot {
+  session: AssistantSessionData | null;
+  messages: AssistantMessage[];
+  uiHint: AssistantUiHint;
+  storedAt: number;
 }
 
 const TypingIndicator = () => (
@@ -132,6 +140,27 @@ export default function ChatPage() {
     window.sessionStorage.removeItem(RECOMMENDATION_STORAGE_KEY);
   };
 
+  const persistActiveChatState = (
+    nextSession: AssistantSessionData | null,
+    nextMessages: AssistantMessage[],
+    nextUiHint: AssistantUiHint
+  ) => {
+    if (typeof window === "undefined") return;
+
+    const snapshot: ActiveChatSnapshot = {
+      session: nextSession,
+      messages: nextMessages,
+      uiHint: nextUiHint,
+      storedAt: Date.now(),
+    };
+    window.sessionStorage.setItem(ACTIVE_CHAT_STORAGE_KEY, JSON.stringify(snapshot));
+  };
+
+  const clearActiveChatState = () => {
+    if (typeof window === "undefined") return;
+    window.sessionStorage.removeItem(ACTIVE_CHAT_STORAGE_KEY);
+  };
+
   const finalizeRecommendationTransition = (payload: PendingRecommendationState | null) => {
     if (!payload) return;
     if (recommendationTransitionTimerRef.current) {
@@ -152,6 +181,24 @@ export default function ChatPage() {
 
     const initSession = async () => {
       if (typeof window !== "undefined") {
+        const activeChatRaw = window.sessionStorage.getItem(ACTIVE_CHAT_STORAGE_KEY);
+        if (activeChatRaw) {
+          try {
+            const parsed = JSON.parse(activeChatRaw) as ActiveChatSnapshot;
+            if (parsed.session?.is_active && parsed.messages?.length) {
+              setSession(parsed.session);
+              setUiHint(parsed.uiHint || defaultUiHint());
+              setMessages(parsed.messages);
+              setPageError(null);
+              setSendError(null);
+              return;
+            }
+            window.sessionStorage.removeItem(ACTIVE_CHAT_STORAGE_KEY);
+          } catch {
+            window.sessionStorage.removeItem(ACTIVE_CHAT_STORAGE_KEY);
+          }
+        }
+
         const stored = window.sessionStorage.getItem(RECOMMENDATION_STORAGE_KEY);
         if (stored) {
           try {
@@ -217,6 +264,19 @@ export default function ChatPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading, showRecommendations, showSupportClosure]);
+
+  useEffect(() => {
+    if (sessionClosed || showRecommendations || showSupportClosure) {
+      clearActiveChatState();
+      return;
+    }
+
+    if (!session || messages.length === 0) {
+      return;
+    }
+
+    persistActiveChatState(session, messages, uiHint);
+  }, [messages, session, sessionClosed, showRecommendations, showSupportClosure, uiHint]);
 
   useEffect(() => {
     return () => {
@@ -351,6 +411,7 @@ export default function ChatPage() {
       setIsRecommendationTransitioning(false);
       setIsSupportClosureTransitioning(false);
       setPendingRecommendation(null);
+      clearActiveChatState();
       clearRecommendationState();
       router.push("/carefree/main");
     } catch (error) {
@@ -378,6 +439,7 @@ export default function ChatPage() {
       setIsRecommendationTransitioning(false);
       setIsSupportClosureTransitioning(false);
       setPendingRecommendation(null);
+      clearActiveChatState();
       setMessages([
         {
           id: 0,
