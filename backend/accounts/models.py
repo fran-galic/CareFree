@@ -232,7 +232,7 @@ class Diploma(models.Model):
 
 class HelpCategory(models.Model):
     label = models.CharField(max_length=150, unique=True)
-    slug = models.SlugField(max_length=60, unique=True, blank=True)
+    slug = models.SlugField(max_length=150, unique=True, blank=True)
     assistant_code = models.CharField(max_length=16, unique=True, null=True, blank=True)
     description = models.TextField(max_length=200, blank=True, null=True)
     parent = models.ForeignKey(
