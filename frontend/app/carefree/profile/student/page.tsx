@@ -191,7 +191,10 @@ export default function StudentProfilePage() {
       });
 
       if (response.ok) {
-        router.push("/accounts/login");
+        if (typeof window !== "undefined") {
+          window.sessionStorage.clear();
+        }
+        router.push("/");
       } else {
         const errorData = await response.json().catch(() => ({}));
         console.error("Delete account error:", response.status, errorData);

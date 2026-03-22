@@ -698,7 +698,10 @@ export default function CaretakerProfilePage() {
       }
 
       alert("Račun uspješno obrisan.");
-      router.push("/accounts/login");
+      if (typeof window !== "undefined") {
+        window.sessionStorage.clear();
+      }
+      router.push("/");
     } catch {
       alert("Greška pri brisanju računa. Pokušajte ponovno.");
     }

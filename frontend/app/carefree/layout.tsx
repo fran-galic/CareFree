@@ -32,7 +32,12 @@ interface User {
   role: "student" | "caretaker";
   first_name?: string; 
   last_name?: string;
-  caretaker?: { user_image_url?: string }; 
+  caretaker?: {
+    user_image_url?: string;
+    is_profile_complete?: boolean;
+    is_approved?: boolean;
+    approval_status?: "PENDING" | "APPROVED" | "DENIED";
+  };
 }
 
 function readCachedUser(): User | null {
@@ -74,9 +79,14 @@ export default function CarefreeLayout({
     {
       fallbackData: cachedUser ?? undefined,
       revalidateOnMount: true,
-      dedupingInterval: 0
+      dedupingInterval: 30000,
+      revalidateOnFocus: false,
     }
   );
+
+  const caretakerNeedsVerification =
+    user?.role === "caretaker" &&
+    (!user.caretaker?.is_profile_complete || user.caretaker?.approval_status !== "APPROVED");
 
   useEffect(() => {
     if (error && error.message.includes('401') && !isLoading) {
@@ -99,6 +109,16 @@ export default function CarefreeLayout({
       // Best effort cache only.
     }
   }, [user]);
+
+  useEffect(() => {
+    if (!user || isLoading || !caretakerNeedsVerification) {
+      return;
+    }
+
+    if (pathname !== "/carefree/profile/caretaker") {
+      router.replace("/carefree/profile/caretaker");
+    }
+  }, [caretakerNeedsVerification, isLoading, pathname, router, user]);
 
   useEffect(() => {
     let lastScrollY = window.scrollY;
@@ -160,7 +180,11 @@ export default function CarefreeLayout({
 
   
   const isCaretaker = user?.role === "caretaker";
-  const navigationLinks = isCaretaker ? caretakerLinks : studentLinks;
+  const navigationLinks = isCaretaker
+    ? caretakerNeedsVerification
+      ? []
+      : caretakerLinks
+    : studentLinks;
 
   
   if (isLoading) {

@@ -40,11 +40,20 @@ export default function SearchPageClient() {
     router.replace(`${pathname}?${search}`, { scroll: false });
   }, [pathname, router, searchParams, seedParam]);
 
-  const { data: categoriesData } = useSWR('help-categories', getHelpCategories);
+  const { data: categoriesData } = useSWR('help-categories', getHelpCategories, {
+    revalidateOnFocus: false,
+    dedupingInterval: 5 * 60 * 1000,
+  });
   
   const { data: caretakersData, error: searchError, isLoading } = useSWR(
     seedParam ? [`search`, q, categoriesParam, currentPage, seedParam] : null,
-    ([, query, cats, page, seed]) => searchCaretakers(query, cats, page, seed)
+    ([, query, cats, page, seed]) => searchCaretakers(query, cats, page, seed),
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      keepPreviousData: true,
+      dedupingInterval: 30000,
+    }
   );
 
   const caretakerList = caretakersData?.results ?? [];
