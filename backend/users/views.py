@@ -23,7 +23,7 @@ from .serializers import (
 @permission_classes([IsAuthenticated])
 def help_categories(request):
     """Return help categories grouped with their direct subcategories."""
-    roots = HelpCategory.objects.filter(parent__isnull=True).order_by('label')
+    roots = HelpCategory.objects.filter(parent__isnull=True).prefetch_related('subcategories').order_by('label')
     serializer = CategoryWithSubcategoriesSerializer(roots, many=True)
     return Response({"categories": serializer.data})
 
@@ -60,22 +60,24 @@ def search_caretakers(request):
     if categories_list:
         raw_slugs = [c.strip() for c in categories_list if c and c.strip()]
         if raw_slugs:
+            category_map = {
+                category.slug.lower(): category
+                for category in HelpCategory.objects.prefetch_related("subcategories").filter(slug__in=raw_slugs)
+            }
             found_slugs = []
             missing = []
-            for s in raw_slugs:
-                matched = HelpCategory.objects.filter(slug__iexact=s)
-                if not matched.exists():
-                    missing.append(s)
+            for slug in raw_slugs:
+                category = category_map.get(slug.lower())
+                if category is None:
+                    missing.append(slug)
                     continue
 
-                for cat in matched:
-                    # include the category slug itself
-                    if cat.slug and cat.slug not in found_slugs:
-                        found_slugs.append(cat.slug)
-                    # include direct subcategories' slugs
-                    for sub in cat.subcategories.all():
-                        if sub.slug and sub.slug not in found_slugs:
-                            found_slugs.append(sub.slug)
+                if category.slug and category.slug not in found_slugs:
+                    found_slugs.append(category.slug)
+
+                for sub in category.subcategories.all():
+                    if sub.slug and sub.slug not in found_slugs:
+                        found_slugs.append(sub.slug)
 
             if missing:
                 return Response({
@@ -98,7 +100,11 @@ def search_caretakers(request):
     paginator.page_size = PAGE_SIZE
     page_ids = paginator.paginate_queryset(ordered_ids, request)
 
-    page_caretakers = Caretaker.objects.filter(user_id__in=page_ids).select_related("user").prefetch_related("help_categories")
+    page_caretakers = (
+        Caretaker.objects.filter(user_id__in=page_ids)
+        .select_related("user")
+        .prefetch_related("help_categories")
+    )
     caretakers_by_id = {caretaker.user_id: caretaker for caretaker in page_caretakers}
     ordered_page = [caretakers_by_id[user_id] for user_id in page_ids if user_id in caretakers_by_id]
 
@@ -180,8 +186,12 @@ def my_student_profile(request):
 @api_view(["GET"])
 def caretaker_by_id(request, id):
     try:
-        caretaker = Caretaker.objects.get(user_id=id)
-    except:
+        caretaker = (
+            Caretaker.objects.select_related("user")
+            .prefetch_related("help_categories")
+            .get(user_id=id)
+        )
+    except Caretaker.DoesNotExist:
         return Response({"error":f"No caretaker was found matching the specified ID ({id})."}, status=404)
 
     serialized = CaretakerLongSerializer(caretaker, context={"request": request})

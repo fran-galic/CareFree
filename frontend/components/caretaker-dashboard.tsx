@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { 
   Card, 
@@ -24,6 +25,12 @@ interface CaretakerDashboardProps {
 
 export function CaretakerDashboard({ firstName }: CaretakerDashboardProps) {
   const router = useRouter();
+
+  useEffect(() => {
+    router.prefetch("/carefree/requests");
+    router.prefetch("/carefree/availability");
+    router.prefetch("/carefree/dostupnost");
+  }, [router]);
 
   return (
     <div className="container mx-auto max-w-6xl animate-in space-y-6 p-6 fade-in duration-500">

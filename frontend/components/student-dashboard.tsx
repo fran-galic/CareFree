@@ -165,6 +165,13 @@ export function StudentDashboard({ firstName }: StudentDashboardProps) {
   const [feedbackComment, setFeedbackComment] = useState("");
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
 
+  useEffect(() => {
+    router.prefetch("/carefree/messages");
+    router.prefetch("/carefree/search");
+    router.prefetch("/carefree/calendar");
+    router.prefetch("/carefree/journal");
+  }, [router]);
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("hr-HR", {
       day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"
