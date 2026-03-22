@@ -37,7 +37,7 @@ SUPERUSER_LAST_NAME=User \
 bash scripts/reset_local_app.sh
 ```
 
-## 2. Seed demo psihologa i demo studenta
+## 2. Seed demo psihologa i demo studenata
 
 ```bash
 bash scripts/seed_demo_caretakers.sh
@@ -51,20 +51,22 @@ Skripta:
 - dodjeljuje kategorije
 - attacha placeholder dokumente
 - puni availability za dvotjedni booking prozor
-- kreira demo studenta
+- kreira 4 demo studenta po defaultu
 - kreira završene demo appointmente za feedback flow
+- generira lokalni credentials snapshot u `generated/LOCAL_DEMO_CREDENTIALS.md`
 
 Opcionalni argumenti:
 
 ```bash
 bash scripts/seed_demo_caretakers.sh --count 10
 bash scripts/seed_demo_caretakers.sh --password '<redacted-demo-psychologist-password>'
+bash scripts/seed_demo_caretakers.sh --student-count 4 --student-password '<redacted-demo-student-password>'
 ```
 
 Default lozinke:
 
 - demo caretakeri: `<redacted-demo-psychologist-password>`
-- demo student: `<redacted-demo-student-password>`
+- demo studenti: `<redacted-demo-student-password>`
 
 ## 3. Preporučeni redoslijed
 

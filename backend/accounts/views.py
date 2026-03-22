@@ -22,7 +22,6 @@ from rest_framework.views import APIView
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes
-from django.conf import settings
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 import jwt
@@ -48,7 +47,7 @@ from .models import CaretakerCV, Diploma, HelpCategory, Certificate
 from .serializers import CertificateSerializer
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.generics import ListAPIView
-from backend.emailing import render_branded_email, send_project_email
+from backend.emailing import get_email_asset_urls, render_branded_email, send_project_email
 
 
 User = get_user_model()
@@ -83,6 +82,25 @@ def _serialize_auth_user(user):
     }
 
 
+def _auth_cookie_kwargs():
+    return {
+        "httponly": True,
+        "secure": settings.SESSION_COOKIE_SECURE,
+        "samesite": settings.SESSION_COOKIE_SAMESITE,
+        "path": "/",
+        "domain": settings.SESSION_COOKIE_DOMAIN,
+    }
+
+
+def _delete_auth_cookie(response, key: str):
+    response.delete_cookie(
+        key=key,
+        path="/",
+        domain=settings.SESSION_COOKIE_DOMAIN,
+        samesite=settings.SESSION_COOKIE_SAMESITE,
+    )
+
+
 def build_auth_response(user, *, status_code=200, extra_data=None):
     """Return a Response containing JWT tokens and set auth cookies for a given user."""
     refresh = RefreshToken.for_user(user)
@@ -101,19 +119,13 @@ def build_auth_response(user, *, status_code=200, extra_data=None):
     response.set_cookie(
         key="accessToken",
         value=str(access),
-        httponly=True,
-        secure=False if settings.DEBUG else True,    #True
-        samesite='Lax' if settings.DEBUG else 'None',
-        path="/",
+        **_auth_cookie_kwargs(),
     )
 
     response.set_cookie(
         key="refreshToken",
         value=str(refresh),
-        httponly=True,
-        secure=False if settings.DEBUG else True,    #True
-        samesite='Lax' if settings.DEBUG else 'None',
-        path="/",
+        **_auth_cookie_kwargs(),
     )
 
     return response
@@ -187,8 +199,7 @@ class RequestRegistrationTokenView(APIView):
         ctx = {
             'registration_link': registration_link,
             'expiry_hours': expiry_hours,
-            'logo_url': f"{settings.FRONTEND_URL.rstrip('/')}/images/logo.png",
-            'hero_image_url': f"{settings.FRONTEND_URL.rstrip('/')}/images/for_email.png",
+            **get_email_asset_urls(),
         }
         html_message = render_to_string('emails/confirm_registration.html', ctx)
         plain_message = strip_tags(html_message)
@@ -780,16 +791,8 @@ def logoutView(request):
         pass
 
     response = Response({"message": "Uspješno odjavljen"}, status=200)
-    response.delete_cookie(
-        key="accessToken",
-        samesite='Lax' if settings.DEBUG else 'None',
-        path="/",
-        )
-    response.delete_cookie(
-        key="refreshToken",
-        samesite='Lax' if settings.DEBUG else 'None',
-        path="/",
-        )
+    _delete_auth_cookie(response, "accessToken")
+    _delete_auth_cookie(response, "refreshToken")
     return response
 
 
@@ -880,16 +883,8 @@ def resetPasswordConfirmView(request, uidb64, token):
     user.save()
 
     response = Response({"message": "Lozinka je uspješno resetirana."}, status=200) 
-    response.delete_cookie(
-        key="accessToken",
-        samesite='Lax' if settings.DEBUG else 'None',
-        path="/",
-        )
-    response.delete_cookie(
-        key="refreshToken",
-        samesite='Lax' if settings.DEBUG else 'None',
-        path="/",
-        )
+    _delete_auth_cookie(response, "accessToken")
+    _delete_auth_cookie(response, "refreshToken")
     return response
 
 
@@ -907,16 +902,8 @@ def refresh_access_token_view(request):
 
     except TokenError:
         response = Response({"error": "Neispravan ili istekao refresh token"}, status=401)
-        response.delete_cookie(
-            key="accessToken",
-            samesite='Lax' if settings.DEBUG else 'None',
-            path="/",
-        )
-        response.delete_cookie(
-            key="refreshToken",
-            samesite='Lax' if settings.DEBUG else 'None',
-            path="/",
-        )
+        _delete_auth_cookie(response, "accessToken")
+        _delete_auth_cookie(response, "refreshToken")
         return response
     
     new_access = serializer.validated_data.get("access")
@@ -927,20 +914,14 @@ def refresh_access_token_view(request):
     response.set_cookie(
         key="accessToken",
         value=new_access,
-        httponly=True,
-        secure=False if settings.DEBUG else True,    #True
-        samesite='Lax' if settings.DEBUG else 'None',
-        path="/",
+        **_auth_cookie_kwargs(),
     )
 
     if new_refresh:
         response.set_cookie(
             key="refreshToken",
             value=new_refresh,
-            httponly=True,
-            secure=False if settings.DEBUG else True,    #True
-            samesite='Lax' if settings.DEBUG else 'None',
-            path="/",
+            **_auth_cookie_kwargs(),
         )
 
     return response

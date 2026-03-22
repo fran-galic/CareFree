@@ -33,7 +33,7 @@ const locales = {
 const localizer = dateFnsLocalizer({
   format,
   parse,
-  startOfWeek: (date, culture) =>
+  startOfWeek: (date: Date, culture?: string) =>
     startOfWeek(date, { locale: culture === "hr" ? CALENDAR_LOCALE : hr, weekStartsOn: 1 }),
   getDay,
   locales,
