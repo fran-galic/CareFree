@@ -4,7 +4,7 @@ from django.utils import timezone
 from datetime import timedelta
 from datetime import timezone as dt_timezone
 from zoneinfo import ZoneInfo
-from datetime import datetime
+from datetime import datetime, time
 from django.conf import settings
 
 from .models import AppointmentRequest, Appointment
