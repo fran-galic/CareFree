@@ -28,7 +28,7 @@ def help_categories(request):
     return Response({"categories": serializer.data})
 
 
-PAGE_SIZE = 15
+PAGE_SIZE = 18
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
@@ -40,7 +40,7 @@ def search_caretakers(request):
     - `categories`: repeatable category slugs; matches category or its direct subcategories.
     - `seed`: stable randomization seed for fair shuffled ordering across pagination.
 
-    Response: paginated (page_size=6) `{count, next, previous, results}`.
+    Response: paginated in backend batches for frontend display pagination.
     """
     query = request.GET.get("name", "").strip()
     categories_list = request.GET.getlist("categories")
@@ -192,4 +192,3 @@ def caretaker_by_id(request, id):
 @api_view(["GET"])
 def caretaker_by_slug(request, slug):
     return Response(f"slug: {id}")
-
