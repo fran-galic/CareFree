@@ -44,9 +44,6 @@ AI_BACKUP_CONVERSATION_TIMEOUT_SEC = float(os.environ.get("AI_BACKUP_CONVERSATIO
 AI_MAX_PREVIOUS_SUMMARIES = int(os.environ.get("AI_MAX_PREVIOUS_SUMMARIES", "2"))
 AI_MAX_RECENT_CHAT_MESSAGES = int(os.environ.get("AI_MAX_RECENT_CHAT_MESSAGES", "8"))
 
-#Google id za register/login
-GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
-
 ALLOWED_HOSTS = [
     ".railway.app",
     "programsko-inzenjerstvo-production-9d1d4up.railway.app",

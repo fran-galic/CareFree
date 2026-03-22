@@ -1,104 +1,48 @@
-# Testiranje komponenti - Backend
+# Backend Tests
 
-## Opis
+Backend testovi trenutno pokrivaju više od početnog minimalnog skupa i aktivno uključuju:
 
-Ovaj direktorij sadrži automatske testove za backend CareFree aplikacije. Testovi pokrivaju:
+- `accounts`
+- `appointments`
+- `assistant`
 
-- ✅ Redovne slučajeve korištenja
-- ✅ Rubne uvjete (granice validnosti)
-- ✅ Izazivanje iznimki
-- ✅ Nepostojeće funkcionalnosti
+Trenutno stanje:
 
-**Ukupno: 11 testova**
+- 35 testova
+- svi prolaze
 
-## Lokacija testova
+## Pokretanje
 
-```
-backend/
-├── accounts/
-│   └── tests.py                              # 9 testova
-├── appointments/
-│   └── tests.py                              # 2 testa
-└── TEST_DOKUMENTACIJA.md                     # Detaljna dokumentacija
-```
-
-## Pokretanje testova
-
-### 1. Pokreni sve testove
+Iz `backend/` direktorija:
 
 ```bash
-python manage.py test
+./.venv/bin/python manage.py test
 ```
 
-### 2. Pokreni testove s detaljnim outputom
+Detaljniji output:
 
 ```bash
-python manage.py test --verbosity=2
+./.venv/bin/python manage.py test --verbosity=2
 ```
 
-### 3. Pokreni specifičan test razred
+Samo jedna aplikacija:
 
 ```bash
-python manage.py test accounts.tests.UserModelTest
+./.venv/bin/python manage.py test assistant
+./.venv/bin/python manage.py test appointments
+./.venv/bin/python manage.py test accounts
 ```
 
-### 4. Pokreni jedan test
+## Što testovi realno pokrivaju
 
-```bash
-python manage.py test accounts.tests.UserModelTest.test_create_user_regular_case
-```
+- user i student model ponašanje
+- validatore uploadova
+- appointment service edge caseove
+- assistant session flow
+- recommendation flow
+- crisis fallback ponašanje
+- summary persistence
 
-## Rezultati testova
+## Bitna napomena
 
-```
-Ran 11 tests in 2.698s
-
-OK
-```
-
-Svi testovi prolaze
-
-## Pokrivene kategorije
-
-| Kategorija                  | Broj testova | Status         |
-| --------------------------- | ------------ | -------------- |
-| Redovni slučajevi           | 3            | ✅ Svi prolaze |
-| Rubni uvjeti                | 2            | ✅ Svi prolaze |
-| Izazivanje iznimki          | 4            | ✅ Svi prolaze |
-| Nepostojeće funkcionalnosti | 4            | ✅ Svi prolaze |
-
-## Testirane komponente
-
-### 1. **User Management** (accounts/tests.py)
-
-- Kreiranje korisnika
-- Validacija email adrese
-- Validacija starosti (0-100)
-- Kreiranje studenata
-- File validatori (PDF, JPG, JPEG, max 10MB)
-- Nepostojeće metode i atributi
-
-### 2. **Appointments Services** (appointments/tests.py)
-
-- Nepostojeće servisne funkcije
-- Nepostojeći parametri funkcija
-
-## Detaljna dokumentacija
-
-Za potpunu dokumentaciju svakog testa (ulazni podaci, očekivani rezultati, postupak izvođenja), pogledaj:
-
-📄 **[TEST_DOKUMENTACIJA.md](TEST_DOKUMENTACIJA.md)**
-
-## Napomene
-
-1. Testovi automatski kreiraju privremenu test bazu podataka
-2. Svi podaci se brišu nakon završetka testova
-3. Testovi su izolirani i ne utječu jedni na druge
-4. Koristi se mocking za eksterne pozive (email, Celery tasks)
-
-## Tehnički detalji
-
-- **Framework:** Django TestCase
-- **Python:** 3.x
-- **Baza podataka:** SQLite (in-memory test DB)
-- **CI/CD ready:** ✅
+Starija dokumentacija koja spominje 11 backend testova više nije aktualna.

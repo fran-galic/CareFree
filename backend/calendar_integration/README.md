@@ -1,89 +1,83 @@
-CALENDAR INTEGRATION
+# Calendar Integration Module
 
-Aplikacija služi za serversku (backend) integraciju s Google Calendarom pomoću Google Service Accounta. Cilj aplikacije je sinkronizirati događaje iz Google Calendara u lokalnu bazu podataka te omogućiti kreiranje novih događaja u Google Calendaru iz aplikacije.
+`calendar_integration` povezuje CareFree s Google Calendarom.
 
-Aplikacija je zamišljena kao osnovna na koju se kasnije može proširivati (povezivanje s terminima, periodička sinkronizacija...).
+Trenutni preferirani produkcijski model:
 
+- jedan shared Google account
+- OAuth credential spremljen u `SystemGoogleCredential`
+- backend stvara evente u shared kalendaru
+- backend pokušava generirati Meet link
 
-GLAVNE FUNKCIONALNOSTI
+## Podržana dva moda
 
-1) Modeli Calendar i CalendarEvent  
-U bazi se čuvaju kalendar i njihovi događaji. Svaki događaj ima Google event ID, osnovne informacije (naslov, opis, početak, kraj), opcionalni Google Meet link te raw podatke koje vraća Google API.
+### 1. Shared OAuth credential
 
-2) Management command sync_google_calendar  
-Postoji poseban Django command koji:
-- dohvaća događaje iz Google Calendara
-- sprema ih u lokalnu bazu
-- ažurira postojeće zapise ako već postoje
-- radi u "dry-run" modu ako credentials nisu postavljeni (stvara simulirani događaj)
+Preferirani path.
 
-Ovaj command je centralno mjesto za sinkronizaciju i koristi se i ručno i iz pozadine.
+Uvjeti:
 
-3) API endpointi (samo za admin korisnike)
-- endpoint za dohvat posljednjih događaja iz baze
-- endpoint za ručno pokretanje sinkronizacije
-- endpoint za kreiranje novog Google Calendar događaja (uz opcionalni Google Meet link)
+- `GOOGLE_SHARED_CALENDAR_ACCOUNT_EMAIL`
+- `GOOGLE_OAUTH_CLIENT_ID`
+- `GOOGLE_OAUTH_CLIENT_SECRET`
+- `GOOGLE_OAUTH_REDIRECT_URI`
+- spremljen `SystemGoogleCredential`
 
-4) Celery task
-Postoji Celery task koji samo poziva management command za sinkronizaciju. Time se omogućuje:
-- pozadinsko izvođenje
-- retry mehanizam
-- kasnije jednostavno zakazivanje periodične sinkronizacije
+Endpointi:
 
+- `GET /api/calendar/system/connect/`
+- `GET /api/calendar/oauth/callback/`
+- `GET /api/calendar/shared-status/`
 
+### 2. Service account fallback
 
-SINKRONIZACIJA
-- aplikacija se autentificira prema Google Calendar API-ju pomoću Service Accounta
-- dohvaćaju se događaji u određenom vremenskom rasponu (nedavni i nadolazeći)
-- svaki događaj se sprema ili ažurira u lokalnoj bazi
-- Google event ID se koristi kao jedinstveni ključ
-- ako događaj sadrži Google Meet link, on se izdvaja i sprema
+Koristi se samo ako shared OAuth nije konfiguriran.
 
-Ako credentials nisu dostupni, aplikacija ne puca, nego se pokreće u razvojnom (dry-run) načinu rada.
+Uvjeti:
 
+- `GOOGLE_SERVICE_ACCOUNT_FILE` ili `GOOGLE_SERVICE_ACCOUNT_JSON`
+- `GOOGLE_CALENDAR_ID`
 
-KREIRANJE DOGAĐAJA PUTEM API-JA
+## Važno ponašanje
 
-Aplikacija ima admin-only endpoint za kreiranje Google Calendar evenata.
+Ako je `GOOGLE_SHARED_CALENDAR_ACCOUNT_EMAIL` postavljen:
 
-Tijek:
-- backend primi podatke (naslov, opis, vrijeme početka i kraja, sudionike)
-- poziva Google Calendar API
-- po potrebi zatraži Google Meet link
-- nakon uspješnog kreiranja događaja, isti se sprema i u lokalnu bazu
+- backend očekuje da shared OAuth credential postoji
+- ako ne postoji, to tretira kao konfiguracijsku grešku
+- ne fallbacka tiho na stari model
 
-Na taj način lokalna baza i Google Calendar ostaju sinkronizirani.
+To je namjerno kako bi se problem odmah vidio nakon DB reseta ili deploya.
 
+## Modeli
 
-KONFIGURACIJA I ENV VARIJABLE
+- `Calendar`
+- `CalendarEvent`
+- `GoogleCredential`
+- `SystemGoogleCredential`
+- `ReconcileLog`
 
-Za rad aplikacije potrebno je postaviti sljedeće varijable okruženja:
+Napomena:
 
-- GOOGLE_SERVICE_ACCOUNT_FILE  
-  Putanja do JSON datoteke sa Service Account credentialsima (preporučeno za produkciju)
+- `GoogleCredential` i per-user calendar sync postoje kao scaffold i legacy put
+- CareFree trenutno ne ovisi o tome kao glavnom business flowu
 
-ILI
+## Admin / utility endpointi
 
-- GOOGLE_SERVICE_ACCOUNT_JSON  
-  Base64 enkodirani sadržaj JSON credentialsa (korisno za CI i secret managere)
+- `GET /api/calendar/events/`
+- `POST /api/calendar/sync-now/`
+- `POST /api/calendar/create/`
 
-- GOOGLE_CALENDAR_ID  
-  ID ili email Google kalendara s kojim se radi (npr. group.calendar.google.com)
+## Operativni savjet
 
-- CELERY_BROKER_URL  
-  URL brokera za Celery (lokalno se najčešće koristi Redis)
+Nakon svakog lokalnog DB reseta provjeri:
 
+```bash
+cd backend
+./.venv/bin/python manage.py check_external_services
+```
 
-SIGURNOSNE NAPOMENE
-- Service Account JSON se nikada ne smije commitati u Git
-- Credentials treba držati u sigurnoj lokaciji ili secret manageru
-- Google Calendar treba podijeliti sa service account email adresom i dati prava za izmjenu događaja
-- Koristi se minimalni potrebni scope za Google Calendar API
+Ako shared credential nedostaje:
 
-
-
-Vjerojatne buduće nadogradnje koje se moraju napraviti:
-- dodati periodičku sinkronizaciju (Celery Beat)
-- dodati retry i rate-limit handling
-- dodati testove za sync i create flow
-- implementirati Google Calendar push notifikacije (webhook)
+1. spoji shared account preko `/api/calendar/system/connect/`
+2. provjeri `/api/calendar/shared-status/`
+3. tek onda testiraj approve / Meet flow

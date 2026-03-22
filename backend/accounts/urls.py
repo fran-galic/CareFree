@@ -3,7 +3,6 @@ from .views import CaretakerCVUploadView, CaretakerCompleteRegistrationView, Con
 from .views import CaretakerImageUploadView, CertificateCreateView
 from .views import loginOrRegisterWithWGogleView
 from .views import CaretakerSearchView, StudentCompleteRegistrationView
-from .views import debug_s3_config
 
 
 urlpatterns = [
@@ -27,7 +26,4 @@ urlpatterns = [
     path('caretaker/certificate/<int:certificate_id>/', CertificateCreateView.as_view(), name='caretaker-certificate-delete'),
     path('caretaker/image/', CaretakerImageUploadView.as_view(), name='caretaker-image-upload'),
     path('caretakers/search/', CaretakerSearchView.as_view(), name='caretaker-search'),
-    
-    # Debug endpoint
-    path('debug/s3-config/', debug_s3_config, name='debug-s3-config'),
 ]

@@ -93,6 +93,17 @@ export interface AssistantSummaryDetail {
   session_status: AssistantSessionStatus | null;
 }
 
+export interface AssistantSummaryListItem {
+  id: number;
+  created_at: string;
+  summary_text: string;
+  summary_type: "support" | "recommendation" | "crisis";
+  main_category_code: string;
+  main_category: string;
+  subcategory_codes: string[];
+  subcategories: string[];
+}
+
 export function startSession() {
   return fetcher<SessionResponse>(`${BACKEND_API}/assistant/session/start`, {
     method: "POST",
@@ -114,6 +125,12 @@ export function sendMessage(content: string) {
 export function endSession() {
   return fetcher<EndSessionResponse>(`${BACKEND_API}/assistant/session/end`, {
     method: "POST",
+    credentials: "include",
+  });
+}
+
+export function getAssistantSummaries() {
+  return fetcher<AssistantSummaryListItem[]>(`${BACKEND_API}/assistant/summaries`, {
     credentials: "include",
   });
 }
