@@ -15,7 +15,15 @@ import { Button } from '@/components/ui/button';
 import { PersistentAvatar } from '@/components/persistent-avatar-image';
 
 function createSearchSeed() {
-  return globalThis.crypto.randomUUID();
+  try {
+    if (typeof globalThis !== "undefined" && "crypto" in globalThis && globalThis.crypto?.randomUUID) {
+      return globalThis.crypto.randomUUID();
+    }
+  } catch {
+    // fallback below
+  }
+
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 export default function SearchPageClient() {
@@ -25,7 +33,8 @@ export default function SearchPageClient() {
 
   const q = searchParams.get("q") ?? "";
   const categoriesParam = searchParams.getAll("categories");
-  const currentPage = parseInt(searchParams.get("page") ?? "1");
+  const rawPage = Number.parseInt(searchParams.get("page") ?? "1", 10);
+  const currentPage = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
   const seedParam = searchParams.get("seed") ?? "";
   const shouldScrollToResultsRef = useRef(false);
   const displayPageSize = 6;
