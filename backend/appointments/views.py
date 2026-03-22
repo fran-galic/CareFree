@@ -52,7 +52,7 @@ class HoldCreateView(APIView):
         if not caretaker_id or not slot_start:
             return Response({'detail': 'caretaker_id and slot_start required'}, status=status.HTTP_400_BAD_REQUEST)
 
-        caretaker = get_object_or_404(Caretaker, pk=caretaker_id)
+        caretaker = get_object_or_404(Caretaker.objects.select_related("user"), pk=caretaker_id)
 
         try:
             # parse ISO
@@ -100,7 +100,7 @@ class AppointmentRequestCreateView(APIView):
         if not caretaker_id or not start_time or not slot_time:
             return Response({'detail': 'caretaker_id, start_time and slot_time are required'}, status=status.HTTP_400_BAD_REQUEST)
 
-        caretaker = get_object_or_404(Caretaker, pk=caretaker_id)
+        caretaker = get_object_or_404(Caretaker.objects.select_related("user"), pk=caretaker_id)
 
         # Interpret the provided date string as a day, then apply the slot_time in Europe/Zagreb
         try:
@@ -235,7 +235,11 @@ class StudentAppointmentListView(generics.ListAPIView):
 
     def get_queryset(self):
         student = getattr(self.request.user, 'student', None)
-        qs = Appointment.objects.filter(student=student)
+        qs = Appointment.objects.filter(student=student).select_related(
+            'student__user',
+            'caretaker__user',
+            'feedback',
+        )
         status_q = self.request.query_params.get('status')
         if status_q:
             qs = qs.filter(status=status_q)
@@ -278,7 +282,7 @@ class StudentPendingFeedbackView(APIView):
             )
             .exclude(status=Appointment.STATUS_CANCELLED)
             .filter(feedback__isnull=True)
-            .select_related('caretaker__user', 'student__user')
+            .select_related('caretaker__user', 'student__user', 'feedback')
             .order_by('-end')
             .first()
         )
@@ -529,7 +533,10 @@ class MyCalendarView(APIView):
         else:
             return Response({'detail': 'No calendar for this user'}, status=status.HTTP_400_BAD_REQUEST)
 
-        serializer = AppointmentSerializer(appts.select_related('feedback').order_by('start'), many=True)
+        serializer = AppointmentSerializer(
+            appts.select_related('feedback', 'student__user', 'caretaker__user').order_by('start'),
+            many=True,
+        )
         data = serializer.data
         # convert start/end to local tz ISO
         for item in data:
