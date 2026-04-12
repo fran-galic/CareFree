@@ -19,13 +19,36 @@ from .serializers import (
     StudentUpdateSerializer
 )
 
+
+def _category_sort_priority(label: str) -> tuple[int, str]:
+    normalized = (label or "").strip().casefold()
+    if "ostalo" in normalized:
+        return (2, normalized)
+    if "kriz" in normalized:
+        return (1, normalized)
+    return (0, normalized)
+
+
+def _sort_category_payload(categories: list[dict]) -> list[dict]:
+    sorted_categories = sorted(
+        categories,
+        key=lambda category: _category_sort_priority(category.get("label", "")),
+    )
+    for category in sorted_categories:
+        subcategories = category.get("subcategories") or []
+        category["subcategories"] = sorted(
+            subcategories,
+            key=lambda subcategory: (subcategory.get("label", "").strip().casefold()),
+        )
+    return sorted_categories
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def help_categories(request):
     """Return help categories grouped with their direct subcategories."""
     roots = HelpCategory.objects.filter(parent__isnull=True).prefetch_related('subcategories').order_by('label')
     serializer = CategoryWithSubcategoriesSerializer(roots, many=True)
-    return Response({"categories": serializer.data})
+    return Response({"categories": _sort_category_payload(serializer.data)})
 
 
 PAGE_SIZE = 18
