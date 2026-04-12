@@ -420,7 +420,7 @@ export function StudentDashboard({ firstName }: StudentDashboardProps) {
           </CardHeader>
           <CardContent>
             <p className="text-lg font-medium text-foreground/80 leading-relaxed">
-              "Ako ti je svega previše ili ne znaš odakle krenuti, mogu ti pomoći da napraviš prvi korak i usmjerim te prema pravoj podršci."
+              "Ako ti je svega previše ili ne znaš odakle krenuti, mogu ti pomoći da mirnije sagledaš što prolaziš i usmjeriti te prema podršci koja ti najviše odgovara."
             </p>
           </CardContent>
           <CardFooter>

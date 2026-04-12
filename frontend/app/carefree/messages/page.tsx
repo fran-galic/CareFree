@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { PersistentAvatar } from "@/components/persistent-avatar-image";
-import { Bot, CheckCircle, ChevronLeft, ChevronRight, CircleAlert, LifeBuoy, Send, StopCircle, User, X } from "lucide-react";
+import { Bot, CheckCircle, ChevronLeft, ChevronRight, Info, LifeBuoy, Send, StopCircle, User, X } from "lucide-react";
 
 const RECOMMENDATION_STORAGE_KEY = "carefree:assistant:recommendation-state";
 const RECOMMENDATION_EXPIRED_NOTICE_KEY = "carefree:assistant:recommendation-expired";
@@ -34,6 +34,20 @@ const CHAT_PRIVACY_NOTE =
   "Za privatnost, pokušaj ne pisati puno ime, kontakt podatke ili druge podatke po kojima te se može prepoznati.";
 const CHAT_EMERGENCY_NOTE =
   "CareFree nije zamjena za hitnu medicinsku ili psihološku pomoć. Ako si u neposrednoj opasnosti, odmah nazovi hitne službe ili krizne kontakte.";
+const CHAT_INFO_SECTIONS = [
+  {
+    title: "Kako ti Julija može pomoći",
+    body: CHAT_PURPOSE_NOTE,
+  },
+  {
+    title: "Privatnost",
+    body: CHAT_PRIVACY_NOTE,
+  },
+  {
+    title: "Ako je hitno",
+    body: CHAT_EMERGENCY_NOTE,
+  },
+];
 
 interface PendingRecommendationState {
   session: AssistantSessionData;
@@ -581,10 +595,13 @@ export default function ChatPage() {
       {showChatInfoNotice && (
         <Alert className="mb-4 w-full border-amber-300 bg-amber-50 text-amber-950">
           <AlertDescription className="flex items-start justify-between gap-4">
-            <div className="space-y-1">
-              <p className="font-medium">{CHAT_PURPOSE_NOTE}</p>
-              <p>{CHAT_PRIVACY_NOTE}</p>
-              <p>{CHAT_EMERGENCY_NOTE}</p>
+            <div className="space-y-3">
+              {CHAT_INFO_SECTIONS.map((section) => (
+                <div key={section.title} className="space-y-1">
+                  <p className="font-medium">{section.title}</p>
+                  <p>{section.body}</p>
+                </div>
+              ))}
             </div>
             <Button
               type="button"
@@ -780,7 +797,7 @@ export default function ChatPage() {
                 <Bot className="w-8 h-8 text-primary" />
               </div>
               <div className="space-y-0">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
                   <CardTitle className="text-[1.05rem] font-semibold text-slate-900">
                     Julija
                   </CardTitle>
@@ -790,19 +807,22 @@ export default function ChatPage() {
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7 rounded-full text-amber-700 hover:bg-amber-50 hover:text-amber-900"
+                        className="h-6 w-6 rounded-full text-amber-600 hover:bg-amber-50 hover:text-amber-700"
                         onClick={toggleChatInfoPopover}
                         aria-label="Prikaži informacije o Juliji"
                       >
-                        <CircleAlert className="h-4 w-4" />
+                        <Info className="h-3.5 w-3.5" />
                       </Button>
                       {showChatInfoPopover && (
                         <div className="absolute left-0 top-9 z-20 w-80 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950 shadow-lg">
                           <div className="flex items-start justify-between gap-3">
-                            <div className="space-y-1">
-                              <p className="font-medium">{CHAT_PURPOSE_NOTE}</p>
-                              <p>{CHAT_PRIVACY_NOTE}</p>
-                              <p>{CHAT_EMERGENCY_NOTE}</p>
+                            <div className="space-y-3">
+                              {CHAT_INFO_SECTIONS.map((section) => (
+                                <div key={section.title} className="space-y-1">
+                                  <p className="font-medium">{section.title}</p>
+                                  <p>{section.body}</p>
+                                </div>
+                              ))}
                             </div>
                             <Button
                               type="button"
@@ -821,7 +841,7 @@ export default function ChatPage() {
                   )}
                 </div>
                 <CardDescription className="text-sm leading-tight text-slate-600">
-                  Početni razgovor, prvi korak i nježno usmjeravanje prema podršci kada ti zatreba.
+                  Siguran prvi razgovor koji ti pomaže steći više jasnoće i lakše doći do podrške kad ti zatreba.
                 </CardDescription>
               </div>
             </div>

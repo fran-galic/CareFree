@@ -28,7 +28,7 @@ export default function HomePage() {
       icon: "fi fi-rr-brain",
       title: "Julija - prvi razgovor i usmjeravanje",
       description:
-        "Razgovarajte s Julijom kad trebate prvi korak, malo više jasnoće i pomoć pri odabiru psihologa",
+        "Razgovarajte s Julijom kada trebate prvi korak, više jasnoće i pomoć pri pronalasku podrške koja vam odgovara",
       role: "student" as const,
       badge: "S",
     },
