@@ -16,6 +16,21 @@ import { PersistentAvatar } from '@/components/persistent-avatar-image';
 import { readSessionCache, writeSessionCache } from '@/lib/session-cache';
 
 const SEARCH_CATEGORIES_CACHE_KEY = "carefree:search:categories";
+
+function categorySortPriority(category: { slug: string; label: string }) {
+  const normalizedLabel = category.label.trim().toLowerCase();
+  const normalizedSlug = category.slug.trim().toLowerCase();
+  const isOther = normalizedSlug === "ostalo" || normalizedLabel === "ostalo";
+  const isCrisis = normalizedSlug.includes("kriz") || normalizedLabel.includes("kriz");
+
+  if (isOther) {
+    return 2;
+  }
+  if (isCrisis) {
+    return 1;
+  }
+  return 0;
+}
 const SEARCH_CACHE_TTL_MS = 10 * 60 * 1000;
 
 function buildSearchResultsCacheKey(
@@ -117,14 +132,13 @@ export default function SearchPageClient() {
   const sortedCategories = useMemo(() => {
     const categories = categoriesData?.categories ?? [];
     return [...categories].sort((a, b) => {
-      const aIsOther = a.slug === "ostalo" || a.label.trim().toLowerCase() === "ostalo";
-      const bIsOther = b.slug === "ostalo" || b.label.trim().toLowerCase() === "ostalo";
+      const priorityDiff = categorySortPriority(a) - categorySortPriority(b);
 
-      if (aIsOther === bIsOther) {
-        return a.label.localeCompare(b.label, "hr");
+      if (priorityDiff !== 0) {
+        return priorityDiff;
       }
 
-      return aIsOther ? 1 : -1;
+      return a.label.localeCompare(b.label, "hr");
     });
   }, [categoriesData]);
 

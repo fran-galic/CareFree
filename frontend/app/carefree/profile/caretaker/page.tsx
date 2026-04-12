@@ -113,6 +113,21 @@ function formatFileName(name: string) {
   return name.split("/").pop() || name;
 }
 
+function categorySortPriority(category: { slug: string; label: string }) {
+  const normalizedLabel = category.label.trim().toLowerCase();
+  const normalizedSlug = category.slug.trim().toLowerCase();
+  const isOther = normalizedSlug === "ostalo" || normalizedLabel === "ostalo";
+  const isCrisis = normalizedSlug.includes("kriz") || normalizedLabel.includes("kriz");
+
+  if (isOther) {
+    return 2;
+  }
+  if (isCrisis) {
+    return 1;
+  }
+  return 0;
+}
+
 function collectMissingProfileItems(formData: CaretakerFormData, profile: CaretakerProfile) {
   const missing: string[] = [];
 
@@ -359,14 +374,13 @@ export default function CaretakerProfilePage() {
   const [message, setMessage] = useState<{ type: "success" | "error" | "warning"; text: string } | null>(null);
   const sortedCategories = useMemo(() => {
     return [...categories].sort((a, b) => {
-      const aIsOther = a.slug === "ostalo" || a.label.trim().toLowerCase() === "ostalo";
-      const bIsOther = b.slug === "ostalo" || b.label.trim().toLowerCase() === "ostalo";
+      const priorityDiff = categorySortPriority(a) - categorySortPriority(b);
 
-      if (aIsOther === bIsOther) {
-        return a.label.localeCompare(b.label, "hr");
+      if (priorityDiff !== 0) {
+        return priorityDiff;
       }
 
-      return aIsOther ? 1 : -1;
+      return a.label.localeCompare(b.label, "hr");
     });
   }, [categories]);
 
