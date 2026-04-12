@@ -848,7 +848,7 @@ export default function ChatPage() {
                     <div className="relative">
                       <button
                         type="button"
-                        className="inline-flex h-auto w-auto items-center justify-center bg-transparent p-0 text-[#d2ae43] outline-none ring-0 hover:bg-transparent hover:text-[#b8891f] focus:outline-none"
+                        className="mt-0.5 inline-flex h-auto w-auto items-center justify-center bg-transparent p-0 text-[#d2ae43] outline-none ring-0 hover:bg-transparent hover:text-[#b8891f] focus:outline-none"
                         onClick={toggleChatInfoPopover}
                         aria-label="Prikaži informacije o Juliji"
                       >
