@@ -23,6 +23,7 @@ import { Button } from "./ui/button"
 import { Textarea } from "./ui/textarea"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { BACKEND_URL } from "@/lib/config"
 
 
 interface ISignupCaretakerFormProps {
@@ -47,7 +48,7 @@ export default function SignupCaretakerForm({ userId } : ISignupCaretakerFormPro
 
             console.log("payload: ", payload)
 
-            const endpoint = `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/register/caretaker/`
+            const endpoint = `${BACKEND_URL}/auth/register/caretaker/`
 
             const response = await fetch(endpoint, {
                 method: "POST",

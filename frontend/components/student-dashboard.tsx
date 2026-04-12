@@ -13,6 +13,7 @@ import {
   type Appointment,
 } from "@/fetchers/appointments";
 import { readSessionCache, writeSessionCache } from "@/lib/session-cache";
+import { BACKEND_URL } from "@/lib/config";
 import { 
   Card, 
   CardContent, 
@@ -38,7 +39,7 @@ import {
   HeartHandshake
 } from "lucide-react";
 
-const BACKEND_API = process.env.NEXT_PUBLIC_BACKEND_URL;
+const BACKEND_API = BACKEND_URL;
 const SEEN_APPOINTMENTS_KEY = "carefree-seen-appointment-ids";
 const STUDENT_APPOINTMENTS_CACHE_KEY = "carefree:student-dashboard:appointments";
 const STUDENT_REQUESTS_CACHE_KEY = "carefree:student-dashboard:requests";

@@ -291,6 +291,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOW_CREDENTIALS = True
 DEFAULT_CORS_ALLOWED_ORIGINS = [
     "https://programsko-inzenjerstvo.vercel.app",
+    "https://carefree-mu.vercel.app",
     "https://programsko-inzenjerstvo-production-9d1d4up.railway.app",
     "http://localhost:3000",
     "http://localhost:3001",
@@ -299,6 +300,7 @@ CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS", DEFAULT_CORS_ALLOWED_ORI
 
 DEFAULT_CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://programsko-inzenjerstvo.*\.vercel\.app$",
+    r"^https://carefree.*\.vercel\.app$",
 ]
 CORS_ALLOWED_ORIGIN_REGEXES = env_list(
     "CORS_ALLOWED_ORIGIN_REGEXES", DEFAULT_CORS_ALLOWED_ORIGIN_REGEXES
@@ -306,11 +308,15 @@ CORS_ALLOWED_ORIGIN_REGEXES = env_list(
 
 DEFAULT_CSRF_TRUSTED_ORIGINS = [
     "https://programsko-inzenjerstvo.vercel.app",
+    "https://carefree-mu.vercel.app",
     "https://*.railway.app",
 ]
 CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS", DEFAULT_CSRF_TRUSTED_ORIGINS)
 
-FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3001")
+DEFAULT_FRONTEND_URL = (
+    "https://carefree-mu.vercel.app" if IS_PRODUCTION else "http://localhost:3001"
+)
+FRONTEND_URL = os.environ.get("FRONTEND_URL", DEFAULT_FRONTEND_URL)
 EMAIL_ASSETS_BASE_URL = os.environ.get("EMAIL_ASSETS_BASE_URL", "").strip()
 
 frontend_host = urlparse(FRONTEND_URL).hostname

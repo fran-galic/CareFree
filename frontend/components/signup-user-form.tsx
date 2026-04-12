@@ -28,6 +28,7 @@ import { RadioGroup, RadioGroupItem } from "./ui/radio-group"
 import Link from "next/link"
 import { useState } from "react"
 import GoogleAuthButton from "@/components/google-auth-button"
+import { BACKEND_URL } from "@/lib/config"
 
 
 interface ISignupUserFormProps {
@@ -60,7 +61,7 @@ export default function SignupUserForm({ logInPath, onSignupComplete }: ISignupU
       // console.log("payload: ", payload)
       // console.log("role: ", payload.role)
 
-      const endpoint = `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/register/user/`
+      const endpoint = `${BACKEND_URL}/auth/register/user/`
 
       const response = await fetch(endpoint, {
         method: "POST",

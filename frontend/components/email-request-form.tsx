@@ -12,6 +12,7 @@ import {
 import { Field, FieldGroup, FieldLabel, FieldDescription } from "@/components/ui/field";
 import Link from "next/link";
 import GoogleAuthButton from "@/components/google-auth-button";
+import { BACKEND_URL } from "@/lib/config";
 
 interface EmailRequestFormProps {
   onSuccess: (email: string) => void;
@@ -29,7 +30,7 @@ export default function EmailRequestForm({ onSuccess }: EmailRequestFormProps) {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/register/request-email/`,
+        `${BACKEND_URL}/auth/register/request-email/`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

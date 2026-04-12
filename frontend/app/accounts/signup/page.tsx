@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Mail, Clock } from "lucide-react"
+import { BACKEND_URL } from "@/lib/config"
 
 function SignupContent() {
   const searchParams = useSearchParams()
@@ -33,7 +34,7 @@ function SignupContent() {
       for (let attempt = 0; attempt < attempts; attempt += 1) {
         try {
           const response = await fetch(
-            `${process.env.NEXT_PUBLIC_BACKEND_URL}/users/me/`,
+            `${BACKEND_URL}/users/me/`,
             {
               credentials: "include",
               cache: "no-store",
@@ -85,7 +86,7 @@ function SignupContent() {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/register/request-email/`,
+        `${BACKEND_URL}/auth/register/request-email/`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
