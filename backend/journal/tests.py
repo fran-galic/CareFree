@@ -55,10 +55,10 @@ class JournalSafetyTests(APITestCase):
         self.assertTrue(response.data["crisis_detected"])
         self.assertIn("hitnu stručnu pomoć", response.data["analysis_summary"])
 
-    @patch("journal.views.transaction.on_commit", side_effect=lambda fn: fn())
-    @patch("journal.views.analyze_journal_entry_safety.delay")
-    def test_journal_entry_queues_ai_check_for_non_obvious_risk(self, mock_delay, _mock_on_commit):
-
+    @patch("journal.views.classify_journal_safety")
+    def test_journal_entry_runs_ai_check_for_non_obvious_risk(self, mock_classify):
+        mock_classify.return_value.crisis_detected = True
+        mock_classify.return_value.reason = "ozbiljna bezizlaznost"
         response = self.client.post(
             "/api/journal/",
             {
@@ -70,9 +70,9 @@ class JournalSafetyTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, 201)
-        self.assertFalse(response.data["crisis_detected"])
-        self.assertIsNone(response.data["analysis_summary"])
-        mock_delay.assert_called_once()
+        self.assertTrue(response.data["crisis_detected"])
+        self.assertIn("hitnu stručnu pomoć", response.data["analysis_summary"])
+        mock_classify.assert_called_once()
 
     def test_journal_text_for_safety_combines_title_and_content(self):
         combined = journal_text_for_safety(title="Težak naslov", content="Težak sadržaj")

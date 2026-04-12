@@ -1,19 +1,22 @@
 from rest_framework import viewsets, permissions
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from django.db import transaction
 from .models import JournalEntry
 from .serializers import JournalEntrySerializer
+from .ai import classify_journal_safety
 from .safety import (
     CRISIS_SUPPORT_NOTE,
     journal_analysis_allowed,
     journal_text_for_safety,
     looks_like_crisis_content,
 )
-from .tasks import analyze_journal_entry_safety
 from django.http import JsonResponse
 from django.utils import timezone
 import json
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class IsOwnerOrReadOnly(permissions.BasePermission):
@@ -60,14 +63,20 @@ class JournalEntryViewSet(viewsets.ModelViewSet):
             "crisis_detected": False,
         }, True)
 
-    def _schedule_analysis(self, entry_id: int) -> None:
-        def enqueue():
-            try:
-                analyze_journal_entry_safety.delay(entry_id)
-            except Exception:
-                pass
+    def _run_ai_analysis(self, entry: JournalEntry, title: str, content: str) -> None:
+        combined_text = journal_text_for_safety(title=title, content=content)
+        if not combined_text.strip():
+            return
 
-        transaction.on_commit(enqueue)
+        try:
+            result = classify_journal_safety(combined_text)
+        except Exception as exc:
+            logger.warning("journal_ai_safety_sync_failed entry_id=%s error=%s", entry.id, exc)
+            return
+
+        entry.crisis_detected = bool(result.crisis_detected)
+        entry.analysis_summary = CRISIS_SUPPORT_NOTE if result.crisis_detected else None
+        entry.save(update_fields=["crisis_detected", "analysis_summary", "updated_at"])
 
     def perform_create(self, serializer):
         title = serializer.validated_data.get("title") or ""
@@ -75,7 +84,7 @@ class JournalEntryViewSet(viewsets.ModelViewSet):
         analysis_fields, should_enqueue = self._analysis_fields(title, content)
         entry = serializer.save(student=self.request.user, **analysis_fields)
         if should_enqueue:
-            self._schedule_analysis(entry.id)
+            self._run_ai_analysis(entry, title, content)
 
     def perform_update(self, serializer):
         title = serializer.validated_data.get("title")
@@ -87,7 +96,7 @@ class JournalEntryViewSet(viewsets.ModelViewSet):
         analysis_fields, should_enqueue = self._analysis_fields(title, content)
         entry = serializer.save(**analysis_fields)
         if should_enqueue:
-            self._schedule_analysis(entry.id)
+            self._run_ai_analysis(entry, title, content)
 
     #ograničavamo prikaz unosa samo na one koje je kreirao prijavljeni korisnik
     def get_queryset(self):
