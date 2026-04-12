@@ -42,6 +42,9 @@ def _request_missing_conference(service, calendar_id: str, event_id: str) -> dic
             body={
                 "conferenceData": {
                     "createRequest": {
+                        "conferenceSolutionKey": {
+                            "type": "hangoutsMeet",
+                        },
                         "requestId": uuid.uuid4().hex,
                     },
                 },
@@ -181,6 +184,9 @@ def create_event(
     if create_conference:
         event["conferenceData"] = {
             "createRequest": {
+                "conferenceSolutionKey": {
+                    "type": "hangoutsMeet",
+                },
                 "requestId": uuid.uuid4().hex,
             },
         }
