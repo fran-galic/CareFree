@@ -25,6 +25,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { BACKEND_URL } from "@/lib/config";
 
 interface StudentDetails {
   studying_at?: string;
@@ -62,7 +63,7 @@ export default function StudentProfilePage() {
   useEffect(() => {
     async function fetchUser() {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users/me/`, {
+        const res = await fetch(`${BACKEND_URL}/users/me/`, {
           headers: { "Content-Type": "application/json" },
           credentials: "include",
         });
@@ -126,7 +127,7 @@ export default function StudentProfilePage() {
         sex: form.sex || null,
       };
 
-      const userRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users/me/`, {
+      const userRes = await fetch(`${BACKEND_URL}/users/me/`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -145,7 +146,7 @@ export default function StudentProfilePage() {
         year_of_study: form.year_of_study ? Number(form.year_of_study) : null,
       };
 
-      const studentRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users/me/student/`, {
+      const studentRes = await fetch(`${BACKEND_URL}/users/me/student/`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -159,7 +160,7 @@ export default function StudentProfilePage() {
       }
 
       // Refresh user data from /users/me/
-      const refreshRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users/me/`, {
+      const refreshRes = await fetch(`${BACKEND_URL}/users/me/`, {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
       });
@@ -179,13 +180,13 @@ export default function StudentProfilePage() {
   };
 
   const handleLogout = async () => {
-    await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/logout/`, { method: "POST", credentials: "include" });
+    await fetch(`${BACKEND_URL}/auth/logout/`, { method: "POST", credentials: "include" });
     router.push("/accounts/login");
   };
 
   const handleDeleteAccount = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/delete/`, {
+      const response = await fetch(`${BACKEND_URL}/auth/delete/`, {
         method: "DELETE",
         credentials: "include",
       });

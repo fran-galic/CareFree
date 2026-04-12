@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { BACKEND_URL } from "@/lib/config";
 import { Eye, EyeOff } from "lucide-react";
 
 interface ConfirmRegistrationFormProps {
@@ -42,7 +43,7 @@ export function ConfirmRegistrationForm({
       return;
     }
 
-    await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/register/student/`, {
+    await fetch(`${BACKEND_URL}/auth/register/student/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -58,7 +59,7 @@ export function ConfirmRegistrationForm({
 
   const redirectToLogin = async () => {
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/logout/`, {
+      await fetch(`${BACKEND_URL}/auth/logout/`, {
         method: "POST",
         credentials: "include",
       });
@@ -117,7 +118,7 @@ export function ConfirmRegistrationForm({
 
     try {
       
-      const registerResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/register/confirm/`, {
+      const registerResponse = await fetch(`${BACKEND_URL}/auth/register/confirm/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

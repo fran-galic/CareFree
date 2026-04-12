@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { BACKEND_URL } from "@/lib/config";
 import { Lock, AlertCircle, CheckCircle } from "lucide-react";
 import React from "react";
 
@@ -25,7 +26,7 @@ export default function ResetPasswordPage({ params }: { params: Promise<{ uidb64
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users/me/`, {
+        const response = await fetch(`${BACKEND_URL}/users/me/`, {
           credentials: "include",
         });
         
@@ -60,7 +61,7 @@ export default function ResetPasswordPage({ params }: { params: Promise<{ uidb64
     setLoading(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/reset-password/${uidb64}/${token}/`, {
+      const response = await fetch(`${BACKEND_URL}/auth/reset-password/${uidb64}/${token}/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

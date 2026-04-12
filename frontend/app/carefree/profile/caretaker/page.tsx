@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { ProfileHeader } from "@/components/profile-header";
 import { clearPersistentAvatarCache, setPersistentAvatarCache } from "@/components/persistent-avatar-image";
+import { BACKEND_URL } from "@/lib/config";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -424,7 +425,7 @@ export default function CaretakerProfilePage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const userRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users/me/`, {
+        const userRes = await fetch(`${BACKEND_URL}/users/me/`, {
           headers: { "Content-Type": "application/json" },
           credentials: "include",
         });
@@ -679,7 +680,7 @@ export default function CaretakerProfilePage() {
   };
 
   const handleLogout = async () => {
-    await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/logout/`, { method: "POST", credentials: "include" });
+    await fetch(`${BACKEND_URL}/auth/logout/`, { method: "POST", credentials: "include" });
     router.push("/accounts/login");
   };
 
@@ -692,7 +693,7 @@ export default function CaretakerProfilePage() {
     }
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/delete/`, {
+      const response = await fetch(`${BACKEND_URL}/auth/delete/`, {
         method: "DELETE",
         credentials: "include",
       });

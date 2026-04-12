@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { BACKEND_URL } from "@/lib/config";
 import { Mail, AlertCircle, CheckCircle, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
@@ -21,7 +22,7 @@ export default function ForgotPasswordPage() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users/me/`, {
+        const response = await fetch(`${BACKEND_URL}/users/me/`, {
           credentials: "include",
         });
         
@@ -45,7 +46,7 @@ export default function ForgotPasswordPage() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/forgot-password/`, {
+      const response = await fetch(`${BACKEND_URL}/auth/forgot-password/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

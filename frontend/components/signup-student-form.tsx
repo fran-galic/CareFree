@@ -24,6 +24,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Label } from "./ui/label"
 import { Checkbox } from "./ui/checkbox"
+import { BACKEND_URL } from "@/lib/config"
 
 
 interface ISignupStudentFormProps {
@@ -49,7 +50,7 @@ export default function SignupStudentForm({ userId }: ISignupStudentFormProps) {
                 payload.sex = sex;
             }
 
-            const endpoint = `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/register/student/`
+            const endpoint = `${BACKEND_URL}/auth/register/student/`
 
             const response = await fetch(endpoint, {
                 method: "POST",

@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import GoogleAuthButton from "@/components/google-auth-button";
 import { Eye, EyeOff } from "lucide-react";
+import { BACKEND_URL } from "@/lib/config";
 
 export function LoginForm({
   className,
@@ -38,7 +39,7 @@ export function LoginForm({
     setLoading(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/login/`, {
+      const response = await fetch(`${BACKEND_URL}/auth/login/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

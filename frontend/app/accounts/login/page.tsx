@@ -1,6 +1,7 @@
 "use client";
 
 import { LoginForm } from "@/components/login-form"
+import { BACKEND_URL } from "@/lib/config"
 import { useRouter } from "next/navigation"
 import { Suspense, useEffect, useMemo, useState } from "react"
 import { useSearchParams } from "next/navigation"
@@ -21,7 +22,7 @@ function LoginPageContent() {
     // Check if user is already logged in
     const checkAuth = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users/me/`, {
+        const response = await fetch(`${BACKEND_URL}/users/me/`, {
           credentials: "include",
         });
         

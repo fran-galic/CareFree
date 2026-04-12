@@ -21,8 +21,9 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { Footer } from "@/components/footer";
+import { BACKEND_URL } from "@/lib/config";
 
-const BACKEND_API = process.env.NEXT_PUBLIC_BACKEND_URL;
+const BACKEND_API = BACKEND_URL;
 const USER_CACHE_KEY = "carefree-user-cache";
 
 // Definiramo tipove podataka koji dolaze s backenda

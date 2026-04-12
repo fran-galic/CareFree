@@ -7,8 +7,9 @@ import { fetcher } from "@/fetchers/fetcher";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StudentDashboard } from "@/components/student-dashboard";
 import { CaretakerDashboard } from "@/components/caretaker-dashboard";
+import { BACKEND_URL } from "@/lib/config";
 
-const BACKEND_API = process.env.NEXT_PUBLIC_BACKEND_URL;
+const BACKEND_API = BACKEND_URL;
 
 interface User {
   first_name: string;
