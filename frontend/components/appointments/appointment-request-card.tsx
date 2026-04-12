@@ -55,6 +55,7 @@ export function AppointmentRequestCard({ request, onStatusChange }: AppointmentR
   const { date, time } = formatDateTime(request.requested_start);
   const appointmentEnd = new Date(request.requested_end);
   const isPastAppointment = appointmentEnd.getTime() < Date.now();
+  const primaryReasonText = (request.message || request.ai_summary || "").trim();
 
   const handleApprove = async () => {
     setIsApproving(true);
@@ -141,24 +142,14 @@ export function AppointmentRequestCard({ request, onStatusChange }: AppointmentR
         </div>
 
         {/* Poruka */}
-        {request.message && (
+        {primaryReasonText && (
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <MessageSquare className="w-4 h-4" />
               Razlog dolaska
             </div>
             <p className="whitespace-pre-wrap rounded-lg border border-border/60 bg-muted/70 p-3 text-sm">
-              {request.message}
-            </p>
-          </div>
-        )}
-
-        {/* AI sažetak */}
-        {request.ai_summary && (
-          <div className="space-y-2">
-            <div className="text-sm font-medium text-muted-foreground">AI Sažetak</div>
-            <p className="rounded-lg border border-primary/15 bg-secondary/55 p-3 text-sm text-foreground/85">
-              {request.ai_summary}
+              {primaryReasonText}
             </p>
           </div>
         )}
