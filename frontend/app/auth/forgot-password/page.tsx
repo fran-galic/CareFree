@@ -57,17 +57,17 @@ export default function ForgotPasswordPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Greška pri slanju emaila");
+        throw new Error(data.error || "Nismo uspjeli poslati email za promjenu lozinke.");
       }
 
       setMessage({ 
         type: "success", 
-        text: "Link za resetiranje lozinke je poslan na vaš email. Provjerite inbox (i spam folder)." 
+        text: "Poslali smo vam link za promjenu lozinke. Provjerite inbox i, po potrebi, spam folder." 
       });
       setEmail("");
 
     } catch (error: any) {
-      setMessage({ type: "error", text: error.message || "Greška pri slanju emaila" });
+      setMessage({ type: "error", text: error.message || "Nismo uspjeli poslati email za promjenu lozinke." });
     } finally {
       setLoading(false);
     }
@@ -78,7 +78,7 @@ export default function ForgotPasswordPage() {
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Provjera prijave...</p>
+          <p className="mt-4 text-muted-foreground">Samo trenutak, provjeravamo prijavu...</p>
         </div>
       </div>
     );
@@ -97,7 +97,7 @@ export default function ForgotPasswordPage() {
               <Mail className="w-5 h-5" /> Zaboravljena lozinka
             </CardTitle>
             <CardDescription>
-              Unesite svoj email i poslat ćemo vam link za resetiranje lozinke
+              Unesite svoj email, a mi ćemo vam poslati link za postavljanje nove lozinke.
             </CardDescription>
           </CardHeader>
           <CardContent>

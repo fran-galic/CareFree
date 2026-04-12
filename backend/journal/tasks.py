@@ -4,7 +4,7 @@ from celery import shared_task
 
 from .ai import classify_journal_safety
 from .models import JournalEntry
-from .safety import CRISIS_SUPPORT_NOTE
+from .safety import CRISIS_SUPPORT_NOTE, journal_text_for_safety
 
 
 logger = logging.getLogger(__name__)
@@ -17,12 +17,12 @@ def analyze_journal_entry_safety(self, entry_id: int):
     except JournalEntry.DoesNotExist:
         return
 
-    content = entry.content or ""
-    if not content or entry.crisis_detected:
+    combined_text = journal_text_for_safety(title=entry.title or "", content=entry.content or "")
+    if not combined_text.strip() or entry.crisis_detected:
         return
 
     try:
-        result = classify_journal_safety(content)
+        result = classify_journal_safety(combined_text)
     except Exception as exc:
         logger.warning("journal_ai_safety_task_failed entry_id=%s error=%s", entry_id, exc)
         raise self.retry(exc=exc, countdown=30 * (self.request.retries + 1))

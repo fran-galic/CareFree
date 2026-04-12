@@ -83,14 +83,14 @@ export default function SignupStudentForm({ userId }: ISignupStudentFormProps) {
             <CardHeader>
                 <CardTitle>Student</CardTitle>
                 <CardDescription>
-                    Complete your student account.
+                    Dovršite svoj studentski račun u nekoliko kratkih koraka.
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 <form onSubmit={handleSubmit}>
                     <FieldGroup>
                         <Field>
-                            <FieldLabel htmlFor="studying-at">Studying At</FieldLabel>
+                            <FieldLabel htmlFor="studying-at">Studiraš na</FieldLabel>
                             <Input
                                 name="studying_at"
                                 id="studying-at"
@@ -99,7 +99,7 @@ export default function SignupStudentForm({ userId }: ISignupStudentFormProps) {
                             />
                         </Field>
                         <Field>
-                            <FieldLabel htmlFor="year-of-study">Year Of Study</FieldLabel>
+                            <FieldLabel htmlFor="year-of-study">Godina studija</FieldLabel>
                             <Input
                                 name="year_of_study"
                                 id="year-of-study"
@@ -128,16 +128,16 @@ export default function SignupStudentForm({ userId }: ISignupStudentFormProps) {
                             />
                             <div className="grid gap-1.5 font-normal">
                                 <p className="text-sm leading-none font-medium">
-                                    Stay Anonymous  
+                                    Zadrži više privatnosti
                                 </p>
                                 <p className="text-muted-foreground text-sm">
-                                    If enabled, only your sex and age will be visible to the psychologist. You can change this anytime.
+                                    Ako ostaviš uključeno, psihologu će biti vidljivi samo spol i dob. To kasnije možeš promijeniti.
                                 </p>
                             </div>
                         </Label>
                         <FieldGroup>
                             <Field>
-                                <Button type="submit" disabled={isLoading}>Complete account setup</Button>
+                                <Button type="submit" disabled={isLoading}>{isLoading ? "Spremamo..." : "Dovrši postavljanje računa"}</Button>
                             </Field>
                         </FieldGroup>
                     </FieldGroup>

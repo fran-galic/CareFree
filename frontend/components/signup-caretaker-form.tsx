@@ -91,14 +91,14 @@ export default function SignupCaretakerForm({ userId } : ISignupCaretakerFormPro
                     <FieldGroup>
                         <div className="grid grid-cols-2 gap-4">
                             <Field>
-                                <FieldLabel htmlFor="academic-title">Academic Title</FieldLabel>
+                                <FieldLabel htmlFor="academic-title">Akademska titula</FieldLabel>
                                 <Input name="academic_title" id="academic-title" type="text" placeholder="Psy.D." required />
                             </Field>
                             <Field>
-                                <FieldLabel htmlFor="working-since">Working Since</FieldLabel>
+                                <FieldLabel htmlFor="working-since">Radi od godine</FieldLabel>
                                 <Select name="working_since" required>
                                     <SelectTrigger id="working-since">
-                                        <SelectValue placeholder="Year" />
+                                        <SelectValue placeholder="Odaberite godinu" />
                                     </SelectTrigger>
                                     <SelectContent className="h-42">
                                         {Array.from(
@@ -110,7 +110,7 @@ export default function SignupCaretakerForm({ userId } : ISignupCaretakerFormPro
                             </Field>
                         </div>
                         <Field>
-                            <FieldLabel htmlFor="specialisation">Specialisation</FieldLabel>
+                            <FieldLabel htmlFor="specialisation">Područje rada</FieldLabel>
                             <Input
                                 name="specialisation"
                                 id="specialisation"
@@ -120,7 +120,7 @@ export default function SignupCaretakerForm({ userId } : ISignupCaretakerFormPro
                             />
                         </Field>
                         <Field>
-                            <FieldLabel htmlFor="tel-num">Telephone number</FieldLabel>
+                            <FieldLabel htmlFor="tel-num">Broj telefona</FieldLabel>
                             <Input
                                 name="tel_num"
                                 id="tel-num"
@@ -130,7 +130,7 @@ export default function SignupCaretakerForm({ userId } : ISignupCaretakerFormPro
                             />
                         </Field>
                         <Field>
-                            <FieldLabel htmlFor="office-address">Office Address</FieldLabel>
+                            <FieldLabel htmlFor="office-address">Adresa rada</FieldLabel>
                             <Input
                                 name="office_address"
                                 id="office-address"
@@ -139,18 +139,18 @@ export default function SignupCaretakerForm({ userId } : ISignupCaretakerFormPro
                             />
                         </Field>
                         <Field>
-                            <FieldLabel htmlFor="office-address">Office Address</FieldLabel>
+                            <FieldLabel htmlFor="office-address">Nekoliko riječi o vama</FieldLabel>
                             <Textarea
                                 name="about_me"
                                 id="office-address"
-                                placeholder="About me..."
+                                placeholder="Napišite kratko kako pristupate radu i u čemu najčešće pomažete..."
                                 rows={4}
                                 className="h-32 overflow-y-auto overflow-x-hidden resize-none"
                             />
                         </Field>
                         <FieldGroup>
                             <Field>
-                                <Button type="submit" disabled={isLoading}>Complete account setup</Button>
+                                <Button type="submit" disabled={isLoading}>{isLoading ? "Spremamo..." : "Dovrši postavljanje računa"}</Button>
                             </Field>
                         </FieldGroup>
                     </FieldGroup>

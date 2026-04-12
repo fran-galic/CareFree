@@ -94,23 +94,23 @@ export function ConfirmRegistrationForm({
 
     
     if (!formData.first_name || !formData.last_name || !formData.password || !formData.role) {
-      setError("Sva polja su obavezna");
+      setError("Molimo ispunite sva obavezna polja.");
       return;
     }
 
     
     if (formData.role === "student" && (!formData.age || !formData.sex)) {
-      setError("Dob i spol su obavezni za studente");
+      setError("Za studentski račun potrebno je unijeti dob i spol.");
       return;
     }
 
     if (formData.password !== formData.confirmPassword) {
-      setError("Lozinke se ne podudaraju");
+      setError("Lozinke se ne podudaraju. Pokušajte još jednom.");
       return;
     }
 
     if (formData.password.length < 8) {
-      setError("Lozinka mora imati najmanje 8 znakova");
+      setError("Lozinka treba imati barem 8 znakova.");
       return;
     }
 
@@ -137,7 +137,7 @@ export function ConfirmRegistrationForm({
       const registerData = await registerResponse.json();
 
       if (!registerResponse.ok) {
-        setError(registerData.error || "Registracija nije uspjela. Pokušajte ponovno.");
+        setError(registerData.error || "Registracija ovaj put nije uspjela. Pokušajte ponovno.");
         return;
       }
 
@@ -181,7 +181,7 @@ export function ConfirmRegistrationForm({
 
       await redirectToLogin();
     } catch {
-      setError("Greška u mreži. Pokušajte ponovno.");
+      setError("Dogodila se greška u povezivanju. Pokušajte ponovno za trenutak.");
     } finally {
       setLoading(false);
     }
@@ -197,7 +197,7 @@ export function ConfirmRegistrationForm({
           <CardDescription>
             {isGoogleOnboarding ? (
               <span className="block">
-                Uspješno ste se prijavili Google računom. Još samo dovršite osnovne podatke i odaberite ulogu.
+                Uspješno ste se prijavili Google računom. Još samo dodajte nekoliko osnovnih podataka i odaberite svoju ulogu.
               </span>
             ) : null}
             {email && (

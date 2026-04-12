@@ -28,12 +28,12 @@ export default function ChangePasswordPage() {
     setMessage(null);
 
     if (formData.new_password !== formData.new_password2) {
-      setMessage({ type: "error", text: "Nove lozinke se ne podudaraju" });
+      setMessage({ type: "error", text: "Nove lozinke se ne podudaraju. Pokušaj još jednom." });
       return;
     }
 
     if (formData.new_password.length < 6) {
-      setMessage({ type: "error", text: "Nova lozinka mora imati najmanje 6 znakova" });
+      setMessage({ type: "error", text: "Nova lozinka treba imati barem 6 znakova." });
       return;
     }
 
@@ -56,10 +56,10 @@ export default function ChangePasswordPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || data.old_password?.[0] || data.new_password?.[0] || "Greška pri promjeni lozinke");
+        throw new Error(data.error || data.old_password?.[0] || data.new_password?.[0] || "Nismo uspjeli spremiti novu lozinku.");
       }
 
-      setMessage({ type: "success", text: "Lozinka uspješno promijenjena!" });
+      setMessage({ type: "success", text: "Lozinka je uspješno promijenjena." });
       
       // Clear form
       setFormData({
@@ -74,7 +74,7 @@ export default function ChangePasswordPage() {
       }, 2000);
 
     } catch (error: any) {
-      setMessage({ type: "error", text: error.message || "Greška pri promjeni lozinke" });
+      setMessage({ type: "error", text: error.message || "Nismo uspjeli spremiti novu lozinku." });
     } finally {
       setLoading(false);
     }
@@ -88,7 +88,7 @@ export default function ChangePasswordPage() {
             <Lock className="w-5 h-5" /> Promjena lozinke
           </CardTitle>
           <CardDescription>
-            Unesite svoju trenutnu lozinku i novu lozinku
+            Unesite trenutnu i novu lozinku. Promjenu možete dovršiti za nekoliko sekundi.
           </CardDescription>
         </CardHeader>
         <CardContent>

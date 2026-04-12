@@ -26,6 +26,14 @@ CRISIS_PATTERNS = (
 )
 
 
+def journal_text_for_safety(*, title: str = "", content: str = "") -> str:
+    title = (title or "").strip()
+    content = (content or "").strip()
+    if title and content:
+        return f"Naslov: {title}\n\nZapis: {content}"
+    return title or content
+
+
 def _normalized(text: str) -> str:
     normalized = unicodedata.normalize("NFKD", text or "")
     without_diacritics = "".join(ch for ch in normalized if not unicodedata.combining(ch))

@@ -49,12 +49,12 @@ export default function ResetPasswordPage({ params }: { params: Promise<{ uidb64
     setMessage(null);
 
     if (formData.password !== formData.repeatPassword) {
-      setMessage({ type: "error", text: "Lozinke se ne podudaraju" });
+      setMessage({ type: "error", text: "Lozinke se ne podudaraju. Pokušaj još jednom." });
       return;
     }
 
     if (formData.password.length < 6) {
-      setMessage({ type: "error", text: "Lozinka mora imati najmanje 6 znakova" });
+      setMessage({ type: "error", text: "Nova lozinka treba imati barem 6 znakova." });
       return;
     }
 
@@ -75,10 +75,10 @@ export default function ResetPasswordPage({ params }: { params: Promise<{ uidb64
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Greška pri resetiranju lozinke");
+        throw new Error(data.error || "Nismo uspjeli promijeniti lozinku.");
       }
 
-      setMessage({ type: "success", text: "Lozinka uspješno resetirana! Preusmjeravam na prijavu..." });
+      setMessage({ type: "success", text: "Lozinka je uspješno promijenjena. Vodimo vas natrag na prijavu..." });
       
       // Redirect to login after 2 seconds
       setTimeout(() => {
@@ -86,7 +86,7 @@ export default function ResetPasswordPage({ params }: { params: Promise<{ uidb64
       }, 2000);
 
     } catch (error: any) {
-      setMessage({ type: "error", text: error.message || "Greška pri resetiranju lozinke" });
+      setMessage({ type: "error", text: error.message || "Nismo uspjeli promijeniti lozinku." });
     } finally {
       setLoading(false);
     }
@@ -97,7 +97,7 @@ export default function ResetPasswordPage({ params }: { params: Promise<{ uidb64
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Provjera prijave...</p>
+          <p className="mt-4 text-muted-foreground">Samo trenutak, provjeravamo prijavu...</p>
         </div>
       </div>
     );
@@ -111,7 +111,7 @@ export default function ResetPasswordPage({ params }: { params: Promise<{ uidb64
             <Lock className="w-5 h-5" /> Resetiranje lozinke
           </CardTitle>
           <CardDescription>
-            Unesite novu lozinku za svoj račun
+            Unesite novu lozinku i dovršite promjenu računa.
           </CardDescription>
         </CardHeader>
         <CardContent>

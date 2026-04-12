@@ -49,18 +49,18 @@ export default function GoogleAuthButton({
           window.location.href = target
         } else {
           console.error('Google login failed:', data)
-          onError?.(data.error || 'Prijava s Googleom nije uspjela')
+          onError?.(data.error || 'Prijava putem Googlea ovaj put nije uspjela.')
         }
       } catch (error) {
         console.error('Error during Google login:', error)
-        onError?.('Došlo je do greške prilikom prijave')
+        onError?.('Dogodila se greška tijekom prijave putem Googlea.')
       } finally {
         setIsLoading(false)
       }
     },
     onError: (error) => {
       console.error('Google OAuth error:', error)
-      onError?.('Autentifikacija putem Googlea nije uspjela')
+      onError?.('Google prijava ovaj put nije uspjela.')
     },
   })
 
@@ -89,7 +89,7 @@ export default function GoogleAuthButton({
           d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
         />
       </svg>
-      <span>{isLoading ? 'Učitavanje...' : GOOGLE_CLIENT_ID ? text : 'Google prijava trenutno nije dostupna'}</span>
+      <span>{isLoading ? 'Samo trenutak...' : GOOGLE_CLIENT_ID ? text : 'Google prijava trenutačno nije dostupna'}</span>
     </button>
   )
 }
