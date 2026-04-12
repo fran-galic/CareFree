@@ -33,9 +33,14 @@ def sanitize_attendees(attendees: list[str] | None) -> list[str]:
 def extract_conference_link(result: dict | None) -> str | None:
     if not result:
         return None
+    conference_data = result.get("conferenceData", {}) or {}
+    entry_points = conference_data.get("entryPoints") or []
+    video_entry = next((entry for entry in entry_points if entry.get("entryPointType") == "video" and entry.get("uri")), None)
+    any_entry = next((entry for entry in entry_points if entry.get("uri")), None)
     return (
         result.get("hangoutLink")
-        or (result.get("conferenceData", {}).get("entryPoints") or [{}])[0].get("uri")
+        or (video_entry or {}).get("uri")
+        or (any_entry or {}).get("uri")
         or result.get("conference_link")
     )
 

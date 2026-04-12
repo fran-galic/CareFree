@@ -12,6 +12,47 @@ except Exception:  # pragma: no cover - dependency is present in runtime
     HttpError = Exception
 
 
+def _event_has_conference_link(event: dict | None) -> bool:
+    if not event:
+        return False
+    if event.get("hangoutLink"):
+        return True
+    entry_points = (event.get("conferenceData", {}) or {}).get("entryPoints") or []
+    return any(entry.get("uri") for entry in entry_points)
+
+
+def _refresh_event_with_conference(service, calendar_id: str, event_id: str) -> dict:
+    return (
+        service.events()
+        .get(
+            calendarId=calendar_id,
+            eventId=event_id,
+            conferenceDataVersion=1,
+        )
+        .execute()
+    )
+
+
+def _request_missing_conference(service, calendar_id: str, event_id: str) -> dict:
+    return (
+        service.events()
+        .patch(
+            calendarId=calendar_id,
+            eventId=event_id,
+            body={
+                "conferenceData": {
+                    "createRequest": {
+                        "requestId": uuid.uuid4().hex,
+                    },
+                },
+            },
+            conferenceDataVersion=1,
+            sendUpdates='none',
+        )
+        .execute()
+    )
+
+
 #funkcija za učitavanje Google service account credentials
 def _load_credentials():
     info = getattr(settings, "GOOGLE_SERVICE_ACCOUNT_INFO", None)
@@ -169,28 +210,27 @@ def create_event(
             else:
                 raise
         event_id = created.get("id")
-        has_link = bool(
-            created.get("hangoutLink")
-            or (created.get("conferenceData", {}).get("entryPoints") or [{}])[0].get("uri")
-        )
+        has_link = _event_has_conference_link(created)
         if event_id and not has_link:
-            for _ in range(3):
+            for _ in range(5):
                 time.sleep(1)
-                refreshed = (
-                    service.events()
-                    .get(
-                        calendarId=calendar_id,
-                        eventId=event_id,
-                    )
-                    .execute()
-                )
-                has_link = bool(
-                    refreshed.get("hangoutLink")
-                    or (refreshed.get("conferenceData", {}).get("entryPoints") or [{}])[0].get("uri")
-                )
+                refreshed = _refresh_event_with_conference(service, calendar_id, event_id)
+                has_link = _event_has_conference_link(refreshed)
                 created = refreshed
                 if has_link:
                     break
+        if event_id and not has_link:
+            patched = _request_missing_conference(service, calendar_id, event_id)
+            has_link = _event_has_conference_link(patched)
+            created = patched
+            if not has_link:
+                for _ in range(3):
+                    time.sleep(1)
+                    refreshed = _refresh_event_with_conference(service, calendar_id, event_id)
+                    has_link = _event_has_conference_link(refreshed)
+                    created = refreshed
+                    if has_link:
+                        break
     else:
         created = service.events().insert(calendarId=calendar_id, body=event, sendUpdates='none').execute()
     return created

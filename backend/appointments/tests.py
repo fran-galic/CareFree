@@ -2,6 +2,7 @@ from django.test import TestCase
 from django.utils import timezone
 from datetime import timedelta
 from accounts.models import User, Student, Caretaker
+from appointments.google_sync import extract_conference_link
 from appointments.services import create_appointment_request
 
 
@@ -97,3 +98,35 @@ class ServiceNonExistentFunctionalityTest(TestCase):
         self.assertEqual(req.ai_category, "Stres i akademski pritisci")
         self.assertTrue(req.ai_transcript_shared)
         self.assertEqual(len(req.ai_transcript_snapshot), 1)
+
+
+class ConferenceLinkExtractionTest(TestCase):
+    def test_extracts_video_entrypoint_when_not_first(self):
+        result = {
+            "conferenceData": {
+                "entryPoints": [
+                    {"entryPointType": "phone", "uri": "tel:+385123456"},
+                    {"entryPointType": "video", "uri": "https://meet.google.com/abc-defg-hij"},
+                ]
+            }
+        }
+
+        self.assertEqual(
+            extract_conference_link(result),
+            "https://meet.google.com/abc-defg-hij",
+        )
+
+    def test_prefers_hangout_link_when_present(self):
+        result = {
+            "hangoutLink": "https://meet.google.com/from-hangout-link",
+            "conferenceData": {
+                "entryPoints": [
+                    {"entryPointType": "video", "uri": "https://meet.google.com/from-entry-point"},
+                ]
+            },
+        }
+
+        self.assertEqual(
+            extract_conference_link(result),
+            "https://meet.google.com/from-hangout-link",
+        )
