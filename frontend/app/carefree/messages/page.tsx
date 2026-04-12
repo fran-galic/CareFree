@@ -846,16 +846,14 @@ export default function ChatPage() {
                   </CardTitle>
                   {!showChatInfoNotice && (
                     <div className="relative">
-                      <Button
+                      <button
                         type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 rounded-full border-0 bg-transparent text-[#d2ae43] shadow-none hover:bg-transparent hover:text-[#b8891f]"
+                        className="inline-flex h-auto w-auto items-center justify-center bg-transparent p-0 text-[#d2ae43] outline-none ring-0 hover:bg-transparent hover:text-[#b8891f] focus:outline-none"
                         onClick={toggleChatInfoPopover}
                         aria-label="Prikaži informacije o Juliji"
                       >
                         <Info className="h-3.5 w-3.5" />
-                      </Button>
+                      </button>
                       {showChatInfoPopover && (
                         <div className="absolute left-0 top-9 z-20 w-80 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950 shadow-lg">
                           <div className="flex items-start justify-between gap-3">
