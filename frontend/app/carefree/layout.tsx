@@ -22,6 +22,7 @@ import {
 import Image from "next/image";
 import { Footer } from "@/components/footer";
 import { BACKEND_URL } from "@/lib/config";
+import { authFetch, clearAuthTokens } from "@/lib/auth";
 
 const BACKEND_API = BACKEND_URL;
 const USER_CACHE_KEY = "carefree-user-cache";
@@ -140,7 +141,8 @@ export default function CarefreeLayout({
   }, [isMobileMenuOpen]);
 
   const handleLogout = async () => {
-    await fetch(`${BACKEND_API}/auth/logout/`, { method: "POST", credentials: "include" });
+    await authFetch(`${BACKEND_API}/auth/logout/`, { method: "POST", credentials: "include" }, false);
+    clearAuthTokens();
     if (typeof window !== "undefined") {
       window.sessionStorage.removeItem(USER_CACHE_KEY);
     }

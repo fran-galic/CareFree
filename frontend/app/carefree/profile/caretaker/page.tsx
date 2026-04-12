@@ -31,6 +31,7 @@ import {
 import { ProfileHeader } from "@/components/profile-header";
 import { clearPersistentAvatarCache, setPersistentAvatarCache } from "@/components/persistent-avatar-image";
 import { BACKEND_URL } from "@/lib/config";
+import { authFetch, clearAuthTokens } from "@/lib/auth";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -425,10 +426,10 @@ export default function CaretakerProfilePage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const userRes = await fetch(`${BACKEND_URL}/users/me/`, {
+        const userRes = await authFetch(`${BACKEND_URL}/users/me/`, {
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-        });
+        }, false);
 
         if (!userRes.ok) {
           if (userRes.status === 401) {
@@ -680,7 +681,8 @@ export default function CaretakerProfilePage() {
   };
 
   const handleLogout = async () => {
-    await fetch(`${BACKEND_URL}/auth/logout/`, { method: "POST", credentials: "include" });
+    await authFetch(`${BACKEND_URL}/auth/logout/`, { method: "POST", credentials: "include" }, false);
+    clearAuthTokens();
     router.push("/accounts/login");
   };
 
@@ -693,10 +695,10 @@ export default function CaretakerProfilePage() {
     }
 
     try {
-      const response = await fetch(`${BACKEND_URL}/auth/delete/`, {
+      const response = await authFetch(`${BACKEND_URL}/auth/delete/`, {
         method: "DELETE",
         credentials: "include",
-      });
+      }, false);
 
       if (!response.ok) {
         throw new Error("Greška pri brisanju računa");

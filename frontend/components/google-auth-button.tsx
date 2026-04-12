@@ -3,6 +3,7 @@
 import { useGoogleLogin } from '@react-oauth/google'
 import { useState } from 'react'
 import { API_URL, GOOGLE_CLIENT_ID } from '@/lib/config'
+import { storeAuthTokens } from '@/lib/auth'
 
 interface GoogleAuthButtonProps {
   text?: string
@@ -36,6 +37,7 @@ export default function GoogleAuthButton({
         const data = await response.json()
 
         if (response.ok) {
+          storeAuthTokens(data.access, data.refresh)
           const isOnboarding = data.auth_flow === "complete_registration"
           const baseTarget = isOnboarding
             ? data.onboarding_path || "/accounts/signup"

@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BACKEND_URL } from "@/lib/config";
+import { authFetch, clearAuthTokens } from "@/lib/auth";
 
 interface StudentDetails {
   studying_at?: string;
@@ -63,10 +64,10 @@ export default function StudentProfilePage() {
   useEffect(() => {
     async function fetchUser() {
       try {
-        const res = await fetch(`${BACKEND_URL}/users/me/`, {
+        const res = await authFetch(`${BACKEND_URL}/users/me/`, {
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-        });
+        }, false);
 
         if (!res.ok) {
           if (res.status === 401) router.push("/accounts/login");
@@ -127,12 +128,12 @@ export default function StudentProfilePage() {
         sex: form.sex || null,
       };
 
-      const userRes = await fetch(`${BACKEND_URL}/users/me/`, {
+      const userRes = await authFetch(`${BACKEND_URL}/users/me/`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify(userPayload),
-      });
+      }, false);
 
       if (!userRes.ok) {
         const err = await userRes.json().catch(() => ({}));
@@ -146,12 +147,12 @@ export default function StudentProfilePage() {
         year_of_study: form.year_of_study ? Number(form.year_of_study) : null,
       };
 
-      const studentRes = await fetch(`${BACKEND_URL}/users/me/student/`, {
+      const studentRes = await authFetch(`${BACKEND_URL}/users/me/student/`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify(studentPayload),
-      });
+      }, false);
 
       if (!studentRes.ok) {
         const err = await studentRes.json().catch(() => ({}));
@@ -160,10 +161,10 @@ export default function StudentProfilePage() {
       }
 
       // Refresh user data from /users/me/
-      const refreshRes = await fetch(`${BACKEND_URL}/users/me/`, {
+      const refreshRes = await authFetch(`${BACKEND_URL}/users/me/`, {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-      });
+      }, false);
 
       if (refreshRes.ok) {
         const updated = await refreshRes.json();
@@ -180,16 +181,17 @@ export default function StudentProfilePage() {
   };
 
   const handleLogout = async () => {
-    await fetch(`${BACKEND_URL}/auth/logout/`, { method: "POST", credentials: "include" });
+    await authFetch(`${BACKEND_URL}/auth/logout/`, { method: "POST", credentials: "include" }, false);
+    clearAuthTokens();
     router.push("/accounts/login");
   };
 
   const handleDeleteAccount = async () => {
     try {
-      const response = await fetch(`${BACKEND_URL}/auth/delete/`, {
+      const response = await authFetch(`${BACKEND_URL}/auth/delete/`, {
         method: "DELETE",
         credentials: "include",
-      });
+      }, false);
 
       if (response.ok) {
         if (typeof window !== "undefined") {

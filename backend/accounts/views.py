@@ -895,7 +895,7 @@ def resetPasswordConfirmView(request, uidb64, token):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def refresh_access_token_view(request):
-    refresh_token = request.COOKIES.get("refreshToken")
+    refresh_token = request.COOKIES.get("refreshToken") or request.data.get("refresh")
     if not refresh_token:
         return Response({"error": "Refresh token nije pronađen"}, status=401)
     
@@ -913,7 +913,7 @@ def refresh_access_token_view(request):
     new_access = serializer.validated_data.get("access")
     new_refresh = serializer.validated_data.get("refresh", None)
 
-    response = Response({"access": new_access})
+    response = Response({"access": new_access, "refresh": new_refresh})
 
     response.set_cookie(
         key="accessToken",

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { BACKEND_URL } from "@/lib/config";
+import { authFetch } from "@/lib/auth";
 import { Lock, AlertCircle, CheckCircle, Eye, EyeOff } from "lucide-react";
 
 export default function ChangePasswordPage() {
@@ -40,7 +41,7 @@ export default function ChangePasswordPage() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${BACKEND_URL}/users/me/change-password/`, {
+      const response = await authFetch(`${BACKEND_URL}/users/me/change-password/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -51,7 +52,7 @@ export default function ChangePasswordPage() {
           new_password: formData.new_password,
           new_password2: formData.new_password2,
         }),
-      });
+      }, false);
 
       const data = await response.json();
 
