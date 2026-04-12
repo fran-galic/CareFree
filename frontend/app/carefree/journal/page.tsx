@@ -17,6 +17,7 @@ import { readSessionCache, writeSessionCache } from "@/lib/session-cache";
 const JOURNAL_CACHE_KEY = "carefree:journal:entries";
 const JOURNAL_CACHE_TTL_MS = 5 * 60 * 1000;
 const JOURNAL_HANDOFF_STORAGE_KEY = "carefree:journal:crisis-handoff";
+const JOURNAL_HANDOFF_PRIORITY_KEY = "carefree:journal:crisis-handoff:force";
 
 interface JournalEntry {
   id: number;
@@ -142,6 +143,7 @@ export default function JournalPage() {
 
     const handoffMessage = `Upravo sam ovo zapisao/la u dnevnik i treba mi da ostaneš sa mnom u razgovoru:\n\n${postSaveSafetyEntry.content}`;
     window.sessionStorage.setItem(JOURNAL_HANDOFF_STORAGE_KEY, handoffMessage);
+    window.sessionStorage.setItem(JOURNAL_HANDOFF_PRIORITY_KEY, "1");
     router.push("/carefree/messages");
   };
 

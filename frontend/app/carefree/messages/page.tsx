@@ -24,6 +24,7 @@ const RECOMMENDATION_STORAGE_KEY = "carefree:assistant:recommendation-state";
 const RECOMMENDATION_EXPIRED_NOTICE_KEY = "carefree:assistant:recommendation-expired";
 const ACTIVE_CHAT_STORAGE_KEY = "carefree:assistant:active-chat-state";
 const JOURNAL_HANDOFF_STORAGE_KEY = "carefree:journal:crisis-handoff";
+const JOURNAL_HANDOFF_PRIORITY_KEY = "carefree:journal:crisis-handoff:force";
 const CHAT_INFO_DISMISSED_KEY = "carefree:assistant:chat-info-dismissed:v1";
 const RECOMMENDATION_TTL_MS = 20 * 60 * 1000;
 const RECOMMENDATION_TRANSITION_MS = 40000;
@@ -223,8 +224,9 @@ export default function ChatPage() {
         const infoDismissed = window.localStorage.getItem(CHAT_INFO_DISMISSED_KEY);
         setShowChatInfoNotice(infoDismissed !== "1");
         pendingJournalHandoffRef.current = window.sessionStorage.getItem(JOURNAL_HANDOFF_STORAGE_KEY);
+        const forceJournalHandoff = window.sessionStorage.getItem(JOURNAL_HANDOFF_PRIORITY_KEY) === "1";
         const activeChatRaw = window.sessionStorage.getItem(ACTIVE_CHAT_STORAGE_KEY);
-        if (activeChatRaw) {
+        if (activeChatRaw && !forceJournalHandoff) {
           try {
             const parsed = JSON.parse(activeChatRaw) as ActiveChatSnapshot;
             if (parsed.session?.is_active && parsed.messages?.length) {
@@ -244,7 +246,7 @@ export default function ChatPage() {
         }
 
         const stored = window.sessionStorage.getItem(RECOMMENDATION_STORAGE_KEY);
-        if (stored) {
+        if (stored && !forceJournalHandoff) {
           try {
             const parsed = JSON.parse(stored) as {
               session: AssistantSessionData;
@@ -333,6 +335,7 @@ export default function ChatPage() {
 
     if (typeof window !== "undefined") {
       window.sessionStorage.removeItem(JOURNAL_HANDOFF_STORAGE_KEY);
+      window.sessionStorage.removeItem(JOURNAL_HANDOFF_PRIORITY_KEY);
     }
 
     const sendJournalHandoff = async () => {
@@ -547,6 +550,7 @@ export default function ChatPage() {
       journalHandoffConsumedRef.current = true;
       if (typeof window !== "undefined") {
         window.sessionStorage.removeItem(JOURNAL_HANDOFF_STORAGE_KEY);
+        window.sessionStorage.removeItem(JOURNAL_HANDOFF_PRIORITY_KEY);
       }
 
       const continuationMessages = pendingRecommendation?.messages?.length
