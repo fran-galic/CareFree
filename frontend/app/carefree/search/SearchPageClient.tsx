@@ -214,7 +214,7 @@ export default function SearchPageClient() {
               Niste sigurni što vas točno muči?
             </h2>
             <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-              Ako još ne znate koji bi psiholog bio najbolji izbor, razgovarajte s Julijom. Kroz siguran i strukturiran razgovor pomoći će vam jasnije razumjeti situaciju i usmjeriti vas prema osobi koja vam najbolje odgovara.
+              Ako još niste sigurni kome biste se najradije obratili, razgovarajte s Julijom. Kroz miran i strukturiran prvi razgovor pomoći će vam jasnije razumjeti situaciju i lakše doći do psihologa koji vam najviše odgovara.
             </p>
           </div>
 
@@ -224,7 +224,7 @@ export default function SearchPageClient() {
                 Krenite od razgovora s AI asistenticom
               </p>
               <p className="text-sm text-muted-foreground">
-                Julija vam može pomoći prepoznati temu razgovora i napraviti prvi korak bez pritiska.
+                Julija vam može pomoći da bez pritiska oblikujete prvi korak i steknete jasniji osjećaj što vam sada najviše treba.
               </p>
             </div>
             <Button asChild className="w-full md:w-auto">

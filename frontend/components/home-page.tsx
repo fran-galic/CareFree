@@ -28,7 +28,7 @@ export default function HomePage() {
       icon: "fi fi-rr-brain",
       title: "Julija - prvi razgovor i usmjeravanje",
       description:
-        "Razgovarajte s Julijom kada trebate prvi korak, više jasnoće i pomoć pri pronalasku podrške koja vam odgovara",
+        "Razgovarajte s Julijom kada vam treba miran prvi korak, više jasnoće i pomoć pri pronalasku podrške koja vam odgovara",
       role: "student" as const,
       badge: "S",
     },
@@ -107,14 +107,12 @@ export default function HomePage() {
               </span>
             </h1>
             <p className="subtitle">
-              Vaš siguran prostor za mentalno zdravlje i podršku
+              Siguran prostor za prvi korak, razgovor i podršku
             </p>
           </div>
 
           <p className="description">
-            Povežite se s profesionalnim psihozima, pratite svoj napredak i
-            preuzmite kontrolu nad svojim mentalnim zdravljem u podržavajućem i
-            povjerljivom okruženju.
+            CareFree vam pomaže da lakše započnete razgovor, pronađete psihologa koji vam odgovara i zadržite osjećaj privatnosti i sigurnosti tijekom cijelog procesa.
           </p>
 
           <div className="button-group">
