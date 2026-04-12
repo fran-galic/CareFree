@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { PersistentAvatar } from "@/components/persistent-avatar-image";
-import { Bot, CheckCircle, ChevronLeft, ChevronRight, LifeBuoy, Send, StopCircle, User, X } from "lucide-react";
+import { Bot, CheckCircle, ChevronLeft, ChevronRight, CircleAlert, LifeBuoy, Send, StopCircle, User, X } from "lucide-react";
 
 const RECOMMENDATION_STORAGE_KEY = "carefree:assistant:recommendation-state";
 const RECOMMENDATION_EXPIRED_NOTICE_KEY = "carefree:assistant:recommendation-expired";
@@ -95,6 +95,7 @@ export default function ChatPage() {
   const [sendError, setSendError] = useState<string | null>(null);
   const [pageNotice, setPageNotice] = useState<string | null>(null);
   const [showChatInfoNotice, setShowChatInfoNotice] = useState(false);
+  const [showChatInfoPopover, setShowChatInfoPopover] = useState(false);
   const [isRecommendationTransitioning, setIsRecommendationTransitioning] = useState(false);
   const [isSupportClosureTransitioning, setIsSupportClosureTransitioning] = useState(false);
   const [pendingRecommendation, setPendingRecommendation] = useState<PendingRecommendationState | null>(null);
@@ -540,6 +541,10 @@ export default function ChatPage() {
     }
   };
 
+  const toggleChatInfoPopover = () => {
+    setShowChatInfoPopover((prev) => !prev);
+  };
+
   return (
     <div
       className={`mx-auto flex w-full max-w-5xl flex-col py-6 ${
@@ -586,7 +591,10 @@ export default function ChatPage() {
               variant="ghost"
               size="icon"
               className="h-8 w-8 shrink-0 text-amber-900 hover:bg-amber-100 hover:text-amber-950"
-              onClick={dismissChatInfoNotice}
+              onClick={() => {
+                dismissChatInfoNotice();
+                setShowChatInfoPopover(false);
+              }}
               aria-label="Zatvori informaciju"
             >
               <X className="h-4 w-4" />
@@ -772,9 +780,46 @@ export default function ChatPage() {
                 <Bot className="w-8 h-8 text-primary" />
               </div>
               <div className="space-y-0">
-                <CardTitle className="text-[1.05rem] font-semibold text-slate-900">
-                  Julija
-                </CardTitle>
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-[1.05rem] font-semibold text-slate-900">
+                    Julija
+                  </CardTitle>
+                  {!showChatInfoNotice && (
+                    <div className="relative">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 rounded-full text-amber-700 hover:bg-amber-50 hover:text-amber-900"
+                        onClick={toggleChatInfoPopover}
+                        aria-label="Prikaži informacije o Juliji"
+                      >
+                        <CircleAlert className="h-4 w-4" />
+                      </Button>
+                      {showChatInfoPopover && (
+                        <div className="absolute left-0 top-9 z-20 w-80 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950 shadow-lg">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="space-y-1">
+                              <p className="font-medium">{CHAT_PURPOSE_NOTE}</p>
+                              <p>{CHAT_PRIVACY_NOTE}</p>
+                              <p>{CHAT_EMERGENCY_NOTE}</p>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 shrink-0 text-amber-900 hover:bg-amber-100 hover:text-amber-950"
+                              onClick={() => setShowChatInfoPopover(false)}
+                              aria-label="Zatvori informacije"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
                 <CardDescription className="text-sm leading-tight text-slate-600">
                   Početni razgovor, prvi korak i nježno usmjeravanje prema podršci kada ti zatreba.
                 </CardDescription>

@@ -25,7 +25,10 @@ def classify_journal_safety(text: str) -> JournalSafetyResult:
         "Procijeni sadrži li dnevnički zapis znakove mogućeg neposrednog kriznog stanja, suicidalne namjere, "
         "samoozljeđivanja ili ozbiljne opasnosti za osobu. Vrati isključivo JSON objekt sa poljima "
         '`crisis_detected` (boolean) i `reason` (kratak sažetak na hrvatskom, max 20 riječi). '
-        "Označi true samo ako postoje ozbiljni signali kriznog rizika. Ne dijagnosticiraj i ne dodaj savjete.\n\n"
+        "Označi true samo ako postoje ozbiljni signali kriznog rizika, poput jasne suicidalne namjere, samoozljeđivanja, "
+        "izražene bezizlaznosti uz mogući rizik ili opisa neposredne opasnosti. "
+        "Za opći stres, tugu, frustraciju, anksioznost ili preopterećenost bez jasnog kriznog rizika vrati false. "
+        "Ne dijagnosticiraj i ne dodaj savjete.\n\n"
         f"Dnevnički zapis:\n{redacted_text}"
     )
 
