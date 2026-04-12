@@ -137,11 +137,15 @@ export default function JournalPage() {
   };
 
   const handleTalkToJulija = () => {
-    if (!postSaveSafetyEntry?.content) {
+    if (!postSaveSafetyEntry?.title && !postSaveSafetyEntry?.content) {
       return;
     }
 
-    const handoffMessage = `Upravo sam ovo zapisao/la u dnevnik i treba mi da ostaneš sa mnom u razgovoru:\n\n${postSaveSafetyEntry.content}`;
+    const titleLine = postSaveSafetyEntry.title?.trim()
+      ? `Naslov zapisa: ${postSaveSafetyEntry.title.trim()}\n\n`
+      : "";
+    const contentBlock = postSaveSafetyEntry.content?.trim() || "";
+    const handoffMessage = `Upravo sam ovo zapisao/la u dnevnik i treba mi da ostaneš sa mnom u razgovoru:\n\n${titleLine}${contentBlock}`;
     window.sessionStorage.setItem(JOURNAL_HANDOFF_STORAGE_KEY, handoffMessage);
     window.sessionStorage.setItem(JOURNAL_HANDOFF_PRIORITY_KEY, "1");
     router.push("/carefree/messages");
