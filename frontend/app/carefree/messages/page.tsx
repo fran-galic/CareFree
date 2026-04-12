@@ -18,12 +18,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { PersistentAvatar } from "@/components/persistent-avatar-image";
-import { Bot, CheckCircle, ChevronLeft, ChevronRight, LifeBuoy, Send, StopCircle, User } from "lucide-react";
+import { Bot, CheckCircle, ChevronLeft, ChevronRight, LifeBuoy, Send, StopCircle, User, X } from "lucide-react";
 
 const RECOMMENDATION_STORAGE_KEY = "carefree:assistant:recommendation-state";
 const RECOMMENDATION_EXPIRED_NOTICE_KEY = "carefree:assistant:recommendation-expired";
 const ACTIVE_CHAT_STORAGE_KEY = "carefree:assistant:active-chat-state";
 const JOURNAL_HANDOFF_STORAGE_KEY = "carefree:journal:crisis-handoff";
+const CHAT_INFO_DISMISSED_KEY = "carefree:assistant:chat-info-dismissed:v1";
 const RECOMMENDATION_TTL_MS = 20 * 60 * 1000;
 const RECOMMENDATION_TRANSITION_MS = 40000;
 const SUPPORT_CLOSURE_TRANSITION_MS = 15000;
@@ -93,6 +94,7 @@ export default function ChatPage() {
   const [pageError, setPageError] = useState<string | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
   const [pageNotice, setPageNotice] = useState<string | null>(null);
+  const [showChatInfoNotice, setShowChatInfoNotice] = useState(false);
   const [isRecommendationTransitioning, setIsRecommendationTransitioning] = useState(false);
   const [isSupportClosureTransitioning, setIsSupportClosureTransitioning] = useState(false);
   const [pendingRecommendation, setPendingRecommendation] = useState<PendingRecommendationState | null>(null);
@@ -190,6 +192,8 @@ export default function ChatPage() {
 
     const initSession = async () => {
       if (typeof window !== "undefined") {
+        const infoDismissed = window.localStorage.getItem(CHAT_INFO_DISMISSED_KEY);
+        setShowChatInfoNotice(infoDismissed !== "1");
         pendingJournalHandoffRef.current = window.sessionStorage.getItem(JOURNAL_HANDOFF_STORAGE_KEY);
         const activeChatRaw = window.sessionStorage.getItem(ACTIVE_CHAT_STORAGE_KEY);
         if (activeChatRaw) {
@@ -529,6 +533,13 @@ export default function ChatPage() {
 
   const crisisContacts = uiHint.crisis_contacts;
 
+  const dismissChatInfoNotice = () => {
+    setShowChatInfoNotice(false);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(CHAT_INFO_DISMISSED_KEY, "1");
+    }
+  };
+
   return (
     <div
       className={`mx-auto flex w-full max-w-5xl flex-col py-6 ${
@@ -559,6 +570,28 @@ export default function ChatPage() {
       {pageNotice && (
         <Alert className="mb-4 w-full border-slate-300 bg-slate-50 text-slate-800">
           <AlertDescription>{pageNotice}</AlertDescription>
+        </Alert>
+      )}
+
+      {showChatInfoNotice && (
+        <Alert className="mb-4 w-full border-amber-300 bg-amber-50 text-amber-950">
+          <AlertDescription className="flex items-start justify-between gap-4">
+            <div className="space-y-1">
+              <p className="font-medium">{CHAT_PURPOSE_NOTE}</p>
+              <p>{CHAT_PRIVACY_NOTE}</p>
+              <p>{CHAT_EMERGENCY_NOTE}</p>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0 text-amber-900 hover:bg-amber-100 hover:text-amber-950"
+              onClick={dismissChatInfoNotice}
+              aria-label="Zatvori informaciju"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </AlertDescription>
         </Alert>
       )}
 
@@ -760,12 +793,6 @@ export default function ChatPage() {
         </CardHeader>
 
         <CardContent className="flex-1 overflow-y-auto px-3 pt-2.5 pb-2.5 space-y-3.5 bg-white">
-          <div className="rounded-2xl border border-primary/10 bg-primary/5 px-4 py-3 text-sm leading-6 text-muted-foreground">
-            <p className="font-medium text-foreground">{CHAT_PURPOSE_NOTE}</p>
-            <p className="mt-1">{CHAT_PRIVACY_NOTE}</p>
-            <p className="mt-1">{CHAT_EMERGENCY_NOTE}</p>
-          </div>
-
           {messages.map((msg) => (
             <div
               key={`${msg.id}-${msg.created_at}`}
@@ -864,9 +891,6 @@ export default function ChatPage() {
                 </Button>
               </div>
             )}
-            <p className="mt-2 text-xs leading-5 text-muted-foreground">
-              {CHAT_PRIVACY_NOTE}
-            </p>
           </div>
         </div>
       </Card>
