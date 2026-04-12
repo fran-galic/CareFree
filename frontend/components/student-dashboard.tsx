@@ -416,12 +416,12 @@ export function StudentDashboard({ firstName }: StudentDashboardProps) {
               Julija - CareFree AI asistent
             </CardTitle>
             <CardDescription className="text-base">
-              Prvi razgovor, više jasnoće i usmjeravanje prema podršci.
+              Topao prvi razgovor, više jasnoće i nježno usmjeravanje prema podršci.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-lg font-medium text-foreground/80 leading-relaxed">
-              "Ako ti je svega previše ili ne znaš odakle krenuti, mogu ti pomoći da mirnije sagledaš što prolaziš i usmjeriti te prema podršci koja ti najviše odgovara."
+              "Ako ti je svega previše ili ne znaš odakle krenuti, mogu ti pomoći da mirnije sagledaš što prolaziš i da lakše dođeš do podrške koja ti najviše odgovara."
             </p>
           </CardContent>
           <CardFooter>

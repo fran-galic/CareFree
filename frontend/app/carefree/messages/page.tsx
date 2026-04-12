@@ -29,7 +29,7 @@ const RECOMMENDATION_TTL_MS = 20 * 60 * 1000;
 const RECOMMENDATION_TRANSITION_MS = 40000;
 const SUPPORT_CLOSURE_TRANSITION_MS = 15000;
 const CHAT_PURPOSE_NOTE =
-  "Julija je tu da ti pomogne napraviti prvi korak, bolje razumjeti što prolaziš i usmjeriti te prema podršci.";
+  "Julija je tu za miran prvi razgovor koji ti pomaže bolje razumjeti što prolaziš i lakše doći do podrške kada ti zatreba.";
 const CHAT_PRIVACY_NOTE =
   "Za privatnost, pokušaj ne pisati puno ime, kontakt podatke ili druge podatke po kojima te se može prepoznati.";
 const CHAT_EMERGENCY_NOTE =
@@ -54,6 +54,8 @@ interface PendingRecommendationState {
   caretakers: Caretaker[];
   summaryText: string;
   summaryId: number | null;
+  messages: AssistantMessage[];
+  uiHint: AssistantUiHint;
 }
 
 interface ActiveChatSnapshot {
@@ -146,7 +148,9 @@ export default function ChatPage() {
     nextSession: AssistantSessionData,
     caretakers: Caretaker[],
     summaryText: string,
-    nextSummaryId: number | null
+    nextSummaryId: number | null,
+    nextMessages: AssistantMessage[],
+    nextUiHint: AssistantUiHint
   ) => {
     if (typeof window === "undefined") return;
     window.sessionStorage.setItem(
@@ -156,6 +160,8 @@ export default function ChatPage() {
         recommendedCaretakers: caretakers,
         recommendationSummary: summaryText,
         summaryId: nextSummaryId,
+        messages: nextMessages,
+        uiHint: nextUiHint,
         storedAt: Date.now(),
       })
     );
@@ -198,7 +204,14 @@ export default function ChatPage() {
     setSummaryId(payload.summaryId);
     setIsRecommendationTransitioning(false);
     setPendingRecommendation(null);
-    persistRecommendationState(payload.session, payload.caretakers, payload.summaryText, payload.summaryId);
+    persistRecommendationState(
+      payload.session,
+      payload.caretakers,
+      payload.summaryText,
+      payload.summaryId,
+      payload.messages,
+      payload.uiHint
+    );
   };
 
   useEffect(() => {
@@ -215,6 +228,8 @@ export default function ChatPage() {
           try {
             const parsed = JSON.parse(activeChatRaw) as ActiveChatSnapshot;
             if (parsed.session?.is_active && parsed.messages?.length) {
+              pendingJournalHandoffRef.current = null;
+              journalHandoffConsumedRef.current = true;
               setSession(parsed.session);
               setUiHint(parsed.uiHint || defaultUiHint());
               setMessages(parsed.messages);
@@ -236,6 +251,8 @@ export default function ChatPage() {
               recommendedCaretakers: Caretaker[];
               recommendationSummary: string;
               summaryId: number | null;
+              messages?: AssistantMessage[];
+              uiHint?: AssistantUiHint;
               storedAt?: number;
             };
             if (!parsed.storedAt || Date.now() - parsed.storedAt > RECOMMENDATION_TTL_MS) {
@@ -246,19 +263,27 @@ export default function ChatPage() {
               );
               throw new Error("Recommendation snapshot expired");
             }
+            pendingJournalHandoffRef.current = null;
+            journalHandoffConsumedRef.current = true;
             setSession(parsed.session);
             setRecommendedCaretakers(parsed.recommendedCaretakers || []);
             setRecommendationSummary(parsed.recommendationSummary || "");
             setSummaryId(parsed.summaryId ?? null);
-            setUiHint(defaultUiHint());
+            setUiHint(parsed.uiHint || defaultUiHint());
             setPageError(null);
             setSendError(null);
-            setMessages([buildWelcomeMessage(defaultUiHint())]);
+            setMessages(
+              parsed.messages?.length
+                ? parsed.messages
+                : [buildWelcomeMessage(parsed.uiHint || defaultUiHint())]
+            );
             return;
           } catch {
             window.sessionStorage.removeItem(RECOMMENDATION_STORAGE_KEY);
           }
         }
+
+        pendingJournalHandoffRef.current = window.sessionStorage.getItem(JOURNAL_HANDOFF_STORAGE_KEY);
 
         const expiredNotice = window.sessionStorage.getItem(RECOMMENDATION_EXPIRED_NOTICE_KEY);
         if (expiredNotice) {
@@ -430,11 +455,13 @@ export default function ChatPage() {
           clearTimeout(recommendationTransitionTimerRef.current);
         }
 
-        const nextPendingRecommendation = {
+      const nextPendingRecommendation = {
           session: nextSession,
           caretakers: response.recommended_caretakers || [],
           summaryText: response.recommendation_summary || "",
           summaryId: response.summary_id,
+          messages: [...messages.filter((msg) => msg.id !== tempUserMessage.id), response.user_message, response.bot_message],
+          uiHint: response.ui_hint,
         };
         setPendingRecommendation(nextPendingRecommendation);
 
@@ -516,11 +543,22 @@ export default function ChatPage() {
       }
       setIsLoading(true);
       setPageError(null);
+      pendingJournalHandoffRef.current = null;
+      journalHandoffConsumedRef.current = true;
+      if (typeof window !== "undefined") {
+        window.sessionStorage.removeItem(JOURNAL_HANDOFF_STORAGE_KEY);
+      }
+
+      const continuationMessages = pendingRecommendation?.messages?.length
+        ? pendingRecommendation.messages
+        : messages;
+      const continuationUiHint = pendingRecommendation?.uiHint || uiHint;
+
       clearRecommendationState();
 
       const res = await startSession();
       setSession(res.session);
-      setUiHint(res.ui_hint);
+      setUiHint(continuationUiHint);
       setRecommendedCaretakers([]);
       setRecommendationSummary("");
       setRecommendationPage(0);
@@ -530,11 +568,12 @@ export default function ChatPage() {
       setPendingRecommendation(null);
       clearActiveChatState();
       setMessages([
+        ...continuationMessages,
         {
-          id: 0,
+          id: Date.now(),
           sender: "bot",
           content:
-            "Možemo nastaviti tamo gdje smo stali. Ako želiš, napiši mi što ti je još ostalo na umu ili što bi volio/la dalje razjasniti.",
+            "Možemo nastaviti baš odavde. Ako želiš, reci mi što ti je od svega ovoga sada najvažnije ili što bi još volio/la razjasniti.",
           created_at: new Date().toISOString(),
         },
       ]);
@@ -841,7 +880,7 @@ export default function ChatPage() {
                   )}
                 </div>
                 <CardDescription className="text-sm leading-tight text-slate-600">
-                  Siguran prvi razgovor koji ti pomaže steći više jasnoće i lakše doći do podrške kad ti zatreba.
+                  Topao i siguran prvi razgovor koji ti pomaže steći više jasnoće i lakše pronaći podršku koja ti odgovara.
                 </CardDescription>
               </div>
             </div>
@@ -908,7 +947,7 @@ export default function ChatPage() {
             <div className="flex w-full justify-center px-2 pt-2">
               <div className="w-full max-w-2xl rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-center shadow-sm">
                 <p className="text-sm text-slate-700">
-                  Ako želiš, mogu ti odmah prikazati psihologe koje sam izdvojila za tebe.
+                  Ako želiš, mogu ti odmah pokazati psihologe koje sam izdvojila na temelju vašeg razgovora.
                 </p>
                 <div className="mt-3 flex items-center justify-center gap-3">
                   <Button size="sm" onClick={() => finalizeRecommendationTransition(pendingRecommendation)}>
