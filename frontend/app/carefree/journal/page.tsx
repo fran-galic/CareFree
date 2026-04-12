@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Trash2, BookOpen, Edit2, NotebookPen, PencilOff, LifeBuoy, TriangleAlert } from "lucide-react";
+import { Trash2, BookOpen, Edit2, NotebookPen, PencilOff, LifeBuoy } from "lucide-react";
 import type { JournalEntry as FetcherJournalEntry } from "@/fetchers/journal";
 import { readSessionCache, writeSessionCache } from "@/lib/session-cache";
 
@@ -44,7 +44,7 @@ export default function JournalPage() {
       writeSessionCache(JOURNAL_CACHE_KEY, entries, JOURNAL_CACHE_TTL_MS);
     }
   }, [entries]);
-  
+
   // Stanje za formu novog unosa
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null); // ID zapisa koji se uređuje
@@ -52,6 +52,18 @@ export default function JournalPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{show: boolean, id: number | null}>({ show: false, id: null });
   const [postSaveSafetyEntry, setPostSaveSafetyEntry] = useState<FetcherJournalEntry | null>(null);
+  const [recentSavedEntryId, setRecentSavedEntryId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!recentSavedEntryId || !entries?.length) {
+      return;
+    }
+
+    const matchingEntry = entries.find((entry) => entry.id === recentSavedEntryId);
+    if (matchingEntry?.crisis_detected) {
+      setPostSaveSafetyEntry(matchingEntry);
+    }
+  }, [entries, recentSavedEntryId]);
 
   // Funkcija za slanje novog zapisa
   const handleCreate = async (e: React.FormEvent) => {
@@ -67,10 +79,17 @@ export default function JournalPage() {
         // Kreiranje novog zapisa
         savedEntry = await createJournalEntry(newEntry);
       }
+      setRecentSavedEntryId(savedEntry.id);
       setPostSaveSafetyEntry(savedEntry.crisis_detected ? savedEntry : null);
       setNewEntry({ title: "", content: "", mood: "" }); // Reset forme
       setIsCreating(false); // Zatvori formu
       mutate("/api/journal/"); // Osvježi listu odmah
+      window.setTimeout(() => {
+        mutate("/api/journal/");
+      }, 2200);
+      window.setTimeout(() => {
+        mutate("/api/journal/");
+      }, 5500);
     } catch (err) {
       console.error("Greška pri spremanju:", err);
       alert("Nismo uspjeli spremiti zapis. Provjerite vezu.");
@@ -174,19 +193,16 @@ export default function JournalPage() {
 
       {postSaveSafetyEntry?.crisis_detected && (
         <div className="mb-8">
-          <Card className="border-red-200 bg-red-50 shadow-sm">
+          <Card className="border-amber-200 bg-amber-50 shadow-sm">
             <CardContent className="space-y-4 p-5">
-              <div className="flex items-start gap-3">
-                <TriangleAlert className="mt-0.5 h-5 w-5 text-red-700" />
-                <div className="space-y-2">
-                  <p className="font-semibold text-red-900">Ovaj zapis zvuči kao da si sada pod jakim pritiskom.</p>
-                  <p className="text-sm leading-6 text-red-800">
-                    Ako si u neposrednoj opasnosti ili misliš da bi si mogao/la nauditi, odmah nazovi 112, Centar za krizna stanja i prevenciju suicida na 01 2376 335 ili Plavi telefon na 01 4833 888.
-                  </p>
-                  <p className="text-sm leading-6 text-red-800">
-                    Zapis je spremljen, ali ne moraš ostati sam/a s ovim. Ako želiš, odmah možeš prijeći na razgovor s Julijom.
-                  </p>
-                </div>
+              <div className="space-y-2">
+                <p className="font-semibold text-amber-950">Ako ti je sada posebno teško, nemoj ostati sam/a s tim.</p>
+                <p className="text-sm leading-6 text-amber-900">
+                  Ako si u neposrednoj opasnosti ili misliš da bi si mogao/la nauditi, odmah nazovi 112, Centar za krizna stanja i prevenciju suicida na 01 2376 335 ili Plavi telefon na 01 4833 888.
+                </p>
+                <p className="text-sm leading-6 text-amber-900">
+                  Zapis je spremljen, ali ne moraš ostati sam/a s ovim. Ako želiš, odmah možeš prijeći na razgovor s Julijom.
+                </p>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Button className="gap-2" onClick={handleTalkToJulija}>
@@ -376,11 +392,6 @@ export default function JournalPage() {
                                             );
                                         })()
                                     )}
-                                    {entry.crisis_detected && (
-                                        <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
-                                            Krizna podrška prikazana
-                                        </span>
-                                    )}
                                 </CardDescription>
                             </div>
                             <div className="flex gap-1">
@@ -408,7 +419,7 @@ export default function JournalPage() {
                             {entry.content}
                         </p>
                         {entry.crisis_detected && (
-                          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-800">
+                          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
                             {entry.analysis_summary ||
                               "Ako se ponovno budeš osjećao/la ovako preplavljeno ili nesigurno, odmah potraži hitnu stručnu pomoć ili nazovi krizne brojeve."}
                           </div>

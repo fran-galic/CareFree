@@ -38,13 +38,9 @@ class JournalSafetyTests(APITestCase):
         self.assertEqual(len(list_response.data), 1)
         self.assertTrue(list_response.data[0]["crisis_detected"])
 
-    @patch("journal.views.classify_journal_safety")
-    def test_journal_entry_uses_ai_check_for_non_obvious_risk(self, mock_classify):
-        mock_classify.return_value = type(
-            "Result",
-            (),
-            {"crisis_detected": True, "reason": "Opisuje ozbiljan osjećaj bezizlaznosti."},
-        )()
+    @patch("journal.views.transaction.on_commit", side_effect=lambda fn: fn())
+    @patch("journal.views.analyze_journal_entry_safety.delay")
+    def test_journal_entry_queues_ai_check_for_non_obvious_risk(self, mock_delay, _mock_on_commit):
 
         response = self.client.post(
             "/api/journal/",
@@ -57,6 +53,6 @@ class JournalSafetyTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, 201)
-        self.assertTrue(response.data["crisis_detected"])
-        self.assertIn("hitnu stručnu pomoć", response.data["analysis_summary"])
-        mock_classify.assert_called_once()
+        self.assertFalse(response.data["crisis_detected"])
+        self.assertIsNone(response.data["analysis_summary"])
+        mock_delay.assert_called_once()
