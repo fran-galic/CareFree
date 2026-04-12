@@ -92,7 +92,7 @@ export default function JournalPage() {
       }, 5500);
     } catch (err) {
       console.error("Greška pri spremanju:", err);
-      alert("Nismo uspjeli spremiti zapis. Provjerite vezu.");
+      alert("Zapis se ovaj put nije uspio spremiti. Pokušaj ponovno za trenutak.");
     } finally {
       setIsSubmitting(false);
     }
@@ -196,12 +196,12 @@ export default function JournalPage() {
           <Card className="border-amber-200 bg-amber-50 shadow-sm">
             <CardContent className="space-y-4 p-5">
               <div className="space-y-2">
-                <p className="font-semibold text-amber-950">Ako ti je sada posebno teško, nemoj ostati sam/a s tim.</p>
+                <p className="font-semibold text-amber-950">Ako ti je sada posebno teško, važno je da ne ostaneš sam/a s tim.</p>
                 <p className="text-sm leading-6 text-amber-900">
                   Ako si u neposrednoj opasnosti ili misliš da bi si mogao/la nauditi, odmah nazovi 112, Centar za krizna stanja i prevenciju suicida na 01 2376 335 ili Plavi telefon na 01 4833 888.
                 </p>
                 <p className="text-sm leading-6 text-amber-900">
-                  Zapis je spremljen, ali ne moraš ostati sam/a s ovim. Ako želiš, odmah možeš prijeći na razgovor s Julijom.
+                  Zapis je spremljen. Ako želiš, odmah možeš prijeći na razgovor s Julijom i nastaviti korak po korak.
                 </p>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row">
@@ -210,7 +210,7 @@ export default function JournalPage() {
                   Razgovaraj odmah s Julijom
                 </Button>
                 <Button variant="outline" onClick={() => setPostSaveSafetyEntry(null)}>
-                  U redu, nastavi na dnevnik
+                  U redu, vrati me na dnevnik
                 </Button>
               </div>
             </CardContent>
@@ -224,7 +224,7 @@ export default function JournalPage() {
           <Card className="border-primary/20 shadow-lg">
             <CardHeader>
               <CardTitle>{editingId ? "Uredi zapis" : "Novi unos"}</CardTitle>
-              <CardDescription>{editingId ? "Ažuriraj svoj zapis" : "Kako se osjećaš danas?"}</CardDescription>
+              <CardDescription>{editingId ? "Doradi svoj zapis kad god ti zatreba." : "Zapiši što ti je danas važno."}</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleCreate} className="space-y-4">
@@ -233,7 +233,7 @@ export default function JournalPage() {
                         <Label htmlFor="title">Naslov</Label>
                         <Input 
                             id="title" 
-                            placeholder="Sažetak dana..." 
+                            placeholder="Nekoliko riječi o tome kako ti je danas..." 
                             value={newEntry.title}
                             onChange={(e) => setNewEntry({...newEntry, title: e.target.value})}
                             required

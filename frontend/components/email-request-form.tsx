@@ -40,12 +40,12 @@ export default function EmailRequestForm({ onSuccess }: EmailRequestFormProps) {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to send email");
+        throw new Error(errorData.error || "Nismo uspjeli poslati email za nastavak registracije.");
       }
 
       onSuccess(email);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      setError(err instanceof Error ? err.message : "Dogodila se greška. Pokušaj ponovno za trenutak.");
     } finally {
       setIsLoading(false);
     }
@@ -55,9 +55,9 @@ export default function EmailRequestForm({ onSuccess }: EmailRequestFormProps) {
     <Card>
       <CardHeader>
         <CardTitle>Kreirajte račun</CardTitle>
-        <CardDescription>
-          Unesite svoj email za početak korištenja CareFree
-        </CardDescription>
+          <CardDescription>
+          Unesite email i krenite korak po korak.
+          </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit}>

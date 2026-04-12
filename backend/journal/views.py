@@ -4,7 +4,12 @@ from rest_framework.decorators import action
 from django.db import transaction
 from .models import JournalEntry
 from .serializers import JournalEntrySerializer
-from .safety import CRISIS_SUPPORT_NOTE, journal_analysis_allowed, looks_like_crisis_content
+from .safety import (
+    CRISIS_SUPPORT_NOTE,
+    journal_analysis_allowed,
+    journal_text_for_safety,
+    looks_like_crisis_content,
+)
 from .tasks import analyze_journal_entry_safety
 from django.http import JsonResponse
 from django.utils import timezone
@@ -29,14 +34,15 @@ class JournalEntryViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly]
 
     #kod kreiranja unosa, automatski postavimo studenta na trenutno prijavljenog korisnika
-    def _analysis_fields(self, content: str) -> tuple[dict, bool]:
-        if not content:
+    def _analysis_fields(self, title: str, content: str) -> tuple[dict, bool]:
+        combined_text = journal_text_for_safety(title=title, content=content)
+        if not combined_text:
             return ({
                 "analysis_summary": None,
                 "crisis_detected": False,
             }, False)
 
-        heuristic_crisis = looks_like_crisis_content(content)
+        heuristic_crisis = looks_like_crisis_content(combined_text)
         if heuristic_crisis:
             return ({
                 "analysis_summary": CRISIS_SUPPORT_NOTE,
@@ -64,17 +70,21 @@ class JournalEntryViewSet(viewsets.ModelViewSet):
         transaction.on_commit(enqueue)
 
     def perform_create(self, serializer):
+        title = serializer.validated_data.get("title") or ""
         content = serializer.validated_data.get("content") or ""
-        analysis_fields, should_enqueue = self._analysis_fields(content)
+        analysis_fields, should_enqueue = self._analysis_fields(title, content)
         entry = serializer.save(student=self.request.user, **analysis_fields)
         if should_enqueue:
             self._schedule_analysis(entry.id)
 
     def perform_update(self, serializer):
+        title = serializer.validated_data.get("title")
+        if title is None:
+            title = serializer.instance.title or ""
         content = serializer.validated_data.get("content")
         if content is None:
             content = serializer.instance.content or ""
-        analysis_fields, should_enqueue = self._analysis_fields(content)
+        analysis_fields, should_enqueue = self._analysis_fields(title, content)
         entry = serializer.save(**analysis_fields)
         if should_enqueue:
             self._schedule_analysis(entry.id)

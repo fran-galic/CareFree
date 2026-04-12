@@ -48,7 +48,7 @@ export function LoginForm({
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || errorData.detail || "Prijava nije uspjela.");
+        throw new Error(errorData.error || errorData.detail || "Prijava ovaj put nije uspjela.");
       }
 
       const data = await response.json();
@@ -59,7 +59,7 @@ export function LoginForm({
       // Use window.location for a full page reload to ensure cookies are properly set
       window.location.href = data.user?.needs_onboarding ? "/accounts/signup" : "/carefree/main";
     } catch (error) {
-      setError((error as Error).message || "Prijava nije uspjela.");
+      setError((error as Error).message || "Prijava ovaj put nije uspjela.");
       setLoading(false);
     }
   };
@@ -71,7 +71,7 @@ export function LoginForm({
         <CardHeader>
           <CardTitle>Prijavite se na svoj račun</CardTitle>
           <CardDescription>
-            Unesite svoj email za prijavu
+            Drago nam je da ste opet ovdje.
           </CardDescription>
         </CardHeader>
         <CardContent>
