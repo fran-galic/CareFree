@@ -682,12 +682,6 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
 
                       {hasAssistantContext ? (
                         <div className="space-y-3 rounded-xl border border-primary/10 bg-primary/5 p-4">
-                          <div className="space-y-1">
-                            <p className="text-sm font-medium text-foreground">AI kontekst za psihologa</p>
-                            <p className="text-sm text-muted-foreground">
-                              Psiholog će uz vaš zahtjev vidjeti AI sažetak razgovora s Julijom kako bi imao osnovni kontekst prije prvog susreta.
-                            </p>
-                          </div>
                           <label className="flex items-start gap-3 text-sm text-foreground">
                             <Checkbox
                               checked={shareFullTranscript}
@@ -698,6 +692,12 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
                               Želim podijeliti i cijeli razgovor s Julijom. To psihologu može pomoći da prije susreta bolje razumije moj kontekst.
                             </span>
                           </label>
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium text-foreground">AI kontekst za psihologa</p>
+                            <p className="text-sm text-muted-foreground">
+                              Psiholog će uz vaš zahtjev vidjeti AI sažetak razgovora s Julijom kako bi imao osnovni kontekst prije prvog susreta.
+                            </p>
+                          </div>
                         </div>
                       ) : (
                         <div className="rounded-xl border border-border/70 bg-muted/40 p-4 text-sm text-muted-foreground">
