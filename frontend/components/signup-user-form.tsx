@@ -169,7 +169,7 @@ export default function SignupUserForm({ logInPath, onSignupComplete }: ISignupU
                     <FieldLabel htmlFor="role-caretaker" className="hover:cursor-pointer">
                       <Field orientation="horizontal">
                         <FieldContent>
-                          <FieldTitle>Caretaker</FieldTitle>
+                          <FieldTitle>Psiholog</FieldTitle>
                         </FieldContent>
                         <RadioGroupItem value="caretaker" id="role-caretaker" />
                       </Field>

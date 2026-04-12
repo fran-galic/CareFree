@@ -17,10 +17,10 @@ export default function SearchBar({ initial = "" }: { initial: string }) {
                     <Search className="opacity-70" />
                 </InputGroupAddon>
 
-                <InputGroupInput name="q" defaultValue={initial} placeholder="Search for caretaker…" aria-label="Search"/>
+                <InputGroupInput name="q" defaultValue={initial} placeholder="Pretraži psihologe…" aria-label="Pretraži psihologe"/>
 
                 <InputGroupAddon align="inline-end">
-                    <InputGroupButton type="submit">Search</InputGroupButton>
+                    <InputGroupButton type="submit">Pretraži</InputGroupButton>
                 </InputGroupAddon>
             </InputGroup>
         </form>

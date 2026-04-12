@@ -14,8 +14,17 @@ export interface Caretaker {
   about_me: string;
   working_since?: string;
   grad_year?: number | null;
+  work_approach?: string | null;
+  work_approach_label?: string | null;
+  work_approach_description?: string | null;
   contact_email?: string | null;
   contact_phone?: string | null;
+}
+
+export interface WorkApproachOption {
+  value: string;
+  label: string;
+  description: string;
 }
 
 // Tipovi za kategorije
@@ -82,6 +91,10 @@ export interface CaretakerProfile {
   image_mime_type?: string;
   age?: number | null;
   grad_year: number | null;
+  work_approach?: string | null;
+  work_approach_label?: string | null;
+  work_approach_description?: string | null;
+  work_approach_options?: WorkApproachOption[];
   help_categories: number[];
   show_email_to_students: boolean;
   show_phone_to_students: boolean;

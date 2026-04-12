@@ -38,13 +38,33 @@ class CaretakerShortSerializer(serializers.ModelSerializer):
     last_name = serializers.CharField(source='user.last_name', read_only=True)
     help_categories = serializers.SlugRelatedField(many=True, read_only=True, slug_field='label')
     user_image_url = serializers.SerializerMethodField()
+    work_approach_label = serializers.SerializerMethodField()
+    work_approach_description = serializers.SerializerMethodField()
 
     class Meta:
         model = Caretaker
-        fields = ["user_id", "first_name", "last_name", "help_categories", "user_image_url", "about_me", "grad_year"]
+        fields = [
+            "user_id",
+            "first_name",
+            "last_name",
+            "help_categories",
+            "user_image_url",
+            "about_me",
+            "grad_year",
+            "work_approach",
+            "work_approach_label",
+            "work_approach_description",
+        ]
 
     def get_user_image_url(self, obj):
         return _versioned_image_url(getattr(obj, "image", None), self.context.get("request"))
+
+    def get_work_approach_label(self, obj):
+        return obj.get_work_approach_display() if obj.work_approach else None
+
+    def get_work_approach_description(self, obj):
+        description = obj.get_work_approach_description()
+        return description or None
 
 
 class MeCaretakerSerializer(CaretakerShortSerializer):
@@ -63,6 +83,8 @@ class CaretakerLongSerializer(serializers.ModelSerializer):
     user_image_url = serializers.SerializerMethodField()
     contact_email = serializers.SerializerMethodField()
     contact_phone = serializers.SerializerMethodField()
+    work_approach_label = serializers.SerializerMethodField()
+    work_approach_description = serializers.SerializerMethodField()
 
     class Meta:
         model = Caretaker
@@ -74,6 +96,9 @@ class CaretakerLongSerializer(serializers.ModelSerializer):
             "user_image_url",
             "about_me",
             "grad_year",
+            "work_approach",
+            "work_approach_label",
+            "work_approach_description",
             "contact_email",
             "contact_phone",
         ]
@@ -90,6 +115,13 @@ class CaretakerLongSerializer(serializers.ModelSerializer):
         if getattr(obj, "show_phone_to_students", False):
             return getattr(obj, "tel_num", None)
         return None
+
+    def get_work_approach_label(self, obj):
+        return obj.get_work_approach_display() if obj.work_approach else None
+
+    def get_work_approach_description(self, obj):
+        description = obj.get_work_approach_description()
+        return description or None
 
 
 class StudentSerializer(serializers.ModelSerializer):

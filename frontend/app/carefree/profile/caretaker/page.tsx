@@ -62,6 +62,7 @@ interface CaretakerFormData {
   about_me: string;
   age: string;
   grad_year: string;
+  work_approach: string;
   help_categories: number[];
   show_email_to_students: boolean;
   show_phone_to_students: boolean;
@@ -334,6 +335,7 @@ export default function CaretakerProfilePage() {
     about_me: "",
     age: "",
     grad_year: "",
+    work_approach: "",
     help_categories: [],
     show_email_to_students: false,
     show_phone_to_students: false,
@@ -381,6 +383,7 @@ export default function CaretakerProfilePage() {
       about_me: profileData.about_me || "",
       age: profileData.age ? String(profileData.age) : "",
       grad_year: profileData.grad_year ? String(profileData.grad_year) : "",
+      work_approach: profileData.work_approach || "",
       help_categories: profileData.help_categories || [],
       show_email_to_students: profileData.show_email_to_students || false,
       show_phone_to_students: profileData.show_phone_to_students || false,
@@ -646,6 +649,7 @@ export default function CaretakerProfilePage() {
         about_me: formData.about_me,
         age: normalizePositiveNumber(formData.age),
         grad_year: normalizePositiveNumber(formData.grad_year),
+        work_approach: formData.work_approach || null,
         help_categories: formData.help_categories,
         show_email_to_students: formData.show_email_to_students,
         show_phone_to_students: formData.show_phone_to_students,
@@ -1058,6 +1062,31 @@ export default function CaretakerProfilePage() {
                     placeholder="npr. 2020"
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="work_approach">Pristup u radu</Label>
+                <select
+                  id="work_approach"
+                  value={formData.work_approach}
+                  onChange={(e) => setFormData({ ...formData, work_approach: e.target.value })}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">Ne prikazuj pristup na profilu</option>
+                  {(profile.work_approach_options || []).map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs leading-5 text-muted-foreground">
+                  Ovo je opcionalna oznaka koja studentima pomaže razumjeti vaš stil rada. Nije obavezna i ne mora pokriti sve nijanse vašeg pristupa.
+                </p>
+                {formData.work_approach && (
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    {(profile.work_approach_options || []).find((option) => option.value === formData.work_approach)?.description}
+                  </p>
+                )}
               </div>
 
               <div className="grid gap-6 md:grid-cols-2">

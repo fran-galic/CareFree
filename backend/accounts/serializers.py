@@ -137,6 +137,12 @@ class CertificateSerializer(serializers.ModelSerializer):
 class CaretakerProfileSerializer(serializers.ModelSerializer):
     help_categories = serializers.PrimaryKeyRelatedField(many=True, queryset=Caretaker.help_categories.field.related_model.objects.all(), required=False)
     age = serializers.IntegerField(source='user.age', required=False, allow_null=True, min_value=0, max_value=100)
+    work_approach = serializers.ChoiceField(
+        choices=Caretaker.WORK_APPROACH_CHOICES,
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+    )
     # image = serializers.ImageField(required=False, allow_null=True)
     # image_mime_type = serializers.CharField(read_only=True)
 
@@ -146,6 +152,7 @@ class CaretakerProfileSerializer(serializers.ModelSerializer):
             'about_me',
             'tel_num',
             'grad_year',
+            'work_approach',
             'help_categories',
             'show_email_to_students',
             'show_phone_to_students',
@@ -155,6 +162,11 @@ class CaretakerProfileSerializer(serializers.ModelSerializer):
             'approval_status',
         ]
         read_only_fields = ['is_profile_complete', 'is_approved', 'approval_status', 'image_mime_type']
+
+    def validate_work_approach(self, value):
+        if value in {"", None}:
+            return None
+        return value
 
     def update(self, instance, validated_data):
         user_data = validated_data.pop('user', {})

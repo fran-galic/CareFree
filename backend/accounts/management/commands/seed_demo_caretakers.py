@@ -110,6 +110,18 @@ CERTIFICATE_NAMES = [
     "komunikacijske i relacijske vještine u savjetovanju",
 ]
 
+WORK_APPROACH_SEQUENCE = [
+    Caretaker.WORK_APPROACH_INTEGRATIVE,
+    Caretaker.WORK_APPROACH_CBT,
+    Caretaker.WORK_APPROACH_HUMANISTIC,
+    Caretaker.WORK_APPROACH_SYSTEMIC,
+    Caretaker.WORK_APPROACH_GESTALT,
+    Caretaker.WORK_APPROACH_ACT,
+    Caretaker.WORK_APPROACH_PSYCHODYNAMIC,
+    Caretaker.WORK_APPROACH_REBT,
+    Caretaker.WORK_APPROACH_DBT,
+]
+
 SPECIAL_EXPERIENCE_YEARS = {
     "m_5.jpg": 17,
     "w_2.jpg": 15,
@@ -267,6 +279,7 @@ class Command(BaseCommand):
             caretaker.tel_num = self._build_phone(index)
             caretaker.about_me = about_me
             caretaker.grad_year = grad_year
+            caretaker.work_approach = WORK_APPROACH_SEQUENCE[(index - 1) % len(WORK_APPROACH_SEQUENCE)]
             caretaker.show_email_to_students = index % 3 != 0
             caretaker.show_phone_to_students = index % 4 == 0
             caretaker.approval_status = Caretaker.APPROVAL_APPROVED
