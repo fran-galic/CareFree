@@ -1,17 +1,14 @@
 from rest_framework import viewsets, permissions
 from rest_framework.response import Response
 from rest_framework.decorators import action
+from django.db import transaction
 from .models import JournalEntry
 from .serializers import JournalEntrySerializer
-from .ai import classify_journal_safety
 from .safety import CRISIS_SUPPORT_NOTE, journal_analysis_allowed, looks_like_crisis_content
+from .tasks import analyze_journal_entry_safety
 from django.http import JsonResponse
 from django.utils import timezone
 import json
-import logging
-
-
-logger = logging.getLogger(__name__)
 
 
 class IsOwnerOrReadOnly(permissions.BasePermission):
@@ -32,49 +29,55 @@ class JournalEntryViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly]
 
     #kod kreiranja unosa, automatski postavimo studenta na trenutno prijavljenog korisnika
-    def _analysis_fields(self, content: str) -> dict:
+    def _analysis_fields(self, content: str) -> tuple[dict, bool]:
         if not content:
-            return {
+            return ({
                 "analysis_summary": None,
                 "crisis_detected": False,
-            }
+            }, False)
 
         heuristic_crisis = looks_like_crisis_content(content)
         if heuristic_crisis:
-            return {
+            return ({
                 "analysis_summary": CRISIS_SUPPORT_NOTE,
                 "crisis_detected": True,
-            }
+            }, False)
 
         if not journal_analysis_allowed(self.request.user.id):
-            return {
+            return ({
                 "analysis_summary": None,
                 "crisis_detected": False,
-            }
+            }, False)
 
-        try:
-            result = classify_journal_safety(content)
-            return {
-                "analysis_summary": CRISIS_SUPPORT_NOTE if result.crisis_detected else None,
-                "crisis_detected": bool(result.crisis_detected),
-            }
-        except Exception as exc:
-            logger.warning("journal_ai_safety_fallback error=%s", exc)
-
-        return {
+        return ({
             "analysis_summary": None,
             "crisis_detected": False,
-        }
+        }, True)
+
+    def _schedule_analysis(self, entry_id: int) -> None:
+        def enqueue():
+            try:
+                analyze_journal_entry_safety.delay(entry_id)
+            except Exception:
+                pass
+
+        transaction.on_commit(enqueue)
 
     def perform_create(self, serializer):
         content = serializer.validated_data.get("content") or ""
-        serializer.save(student=self.request.user, **self._analysis_fields(content))
+        analysis_fields, should_enqueue = self._analysis_fields(content)
+        entry = serializer.save(student=self.request.user, **analysis_fields)
+        if should_enqueue:
+            self._schedule_analysis(entry.id)
 
     def perform_update(self, serializer):
         content = serializer.validated_data.get("content")
         if content is None:
             content = serializer.instance.content or ""
-        serializer.save(**self._analysis_fields(content))
+        analysis_fields, should_enqueue = self._analysis_fields(content)
+        entry = serializer.save(**analysis_fields)
+        if should_enqueue:
+            self._schedule_analysis(entry.id)
 
     #ograničavamo prikaz unosa samo na one koje je kreirao prijavljeni korisnik
     def get_queryset(self):
