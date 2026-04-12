@@ -196,7 +196,7 @@ export default function JournalPage() {
           <Card className="border-amber-200 bg-amber-50 shadow-sm">
             <CardContent className="space-y-4 p-5">
               <div className="space-y-2">
-                <p className="font-semibold text-amber-950">Ako ti je sada jako teško, molim te nemoj ostati sam/a s tim.</p>
+                <p className="font-semibold text-amber-950">Žao mi je što ti je sada ovako teško. Nisi sam/a u ovome.</p>
                 <p className="text-sm leading-6 text-amber-900">
                   Ako si u neposrednoj opasnosti ili misliš da bi si mogao/la nauditi, odmah nazovi 112, Centar za krizna stanja i prevenciju suicida na 01 2376 335 ili Plavi telefon na 01 4833 888.
                 </p>
