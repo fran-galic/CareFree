@@ -850,7 +850,7 @@ export default function ChatPage() {
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6 rounded-full border border-amber-200 bg-amber-50 text-amber-500 hover:bg-amber-100 hover:text-amber-600"
+                        className="h-6 w-6 rounded-full border border-[#f1d57a] bg-[#fff5d8] text-[#c79b2b] hover:bg-[#fdf0c8] hover:text-[#b8891f]"
                         onClick={toggleChatInfoPopover}
                         aria-label="Prikaži informacije o Juliji"
                       >
