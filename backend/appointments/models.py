@@ -49,6 +49,8 @@ class AppointmentRequest(models.Model):
     ai_summary = models.TextField(blank=True, null=True)
     ai_category = models.CharField(max_length=100, blank=True, null=True)
     crisis_flag = models.BooleanField(default=False)
+    ai_transcript_shared = models.BooleanField(default=False)
+    ai_transcript_snapshot = models.JSONField(default=list, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

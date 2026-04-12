@@ -33,6 +33,8 @@ export function AppointmentRequestCard({ request, onStatusChange }: AppointmentR
   const [isRejecting, setIsRejecting] = useState(false);
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [showAiContextModal, setShowAiContextModal] = useState(false);
+  const [showFullTranscript, setShowFullTranscript] = useState(false);
 
   const formatDateTime = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -169,6 +171,29 @@ export function AppointmentRequestCard({ request, onStatusChange }: AppointmentR
           </div>
         )}
 
+        {(request.ai_summary || request.ai_transcript_shared) && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="outline" className="border-primary/20 bg-primary/5 text-primary">
+              AI kontekst dostupan
+            </Badge>
+            {request.ai_transcript_shared ? (
+              <Badge variant="secondary">Student je podijelio i cijeli razgovor</Badge>
+            ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8"
+              onClick={() => {
+                setShowAiContextModal(true);
+                setShowFullTranscript(false);
+              }}
+            >
+              Prikaži AI kontekst
+            </Button>
+          </div>
+        )}
+
         {request.status !== "pending" && (
           <div className="space-y-2 rounded-xl border border-border/70 bg-background/80 p-4">
             <p className="text-sm font-medium text-foreground">Status zahtjeva</p>
@@ -299,6 +324,76 @@ export function AppointmentRequestCard({ request, onStatusChange }: AppointmentR
             Otvori Google Meet
           </Button>
         </CardFooter>
+      )}
+
+      {showAiContextModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 py-6">
+          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-border bg-background shadow-2xl">
+            <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">Kontekst prije susreta</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Ove informacije student je podijelio kroz Juliju prije slanja zahtjeva.
+                </p>
+              </div>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setShowAiContextModal(false)}>
+                Zatvori
+              </Button>
+            </div>
+
+            <div className="space-y-4 px-5 py-4">
+              {request.ai_summary ? (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-foreground">AI sažetak</p>
+                  <div className="rounded-xl border border-primary/15 bg-primary/5 p-4 text-sm leading-relaxed text-foreground/85">
+                    {request.ai_summary}
+                  </div>
+                </div>
+              ) : null}
+
+              {request.ai_transcript_shared && request.ai_transcript_snapshot.length > 0 ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Cijeli AI razgovor</p>
+                      <p className="text-xs text-muted-foreground">
+                        Prikazuje se samo zato što je student dao izričitu privolu.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowFullTranscript((prev) => !prev)}
+                    >
+                      {showFullTranscript ? "Sakrij razgovor" : "Prikaži razgovor"}
+                    </Button>
+                  </div>
+
+                  {showFullTranscript ? (
+                    <div className="space-y-3 rounded-xl border border-border/70 bg-muted/35 p-4">
+                      {request.ai_transcript_snapshot.map((message, index) => (
+                        <div
+                          key={`${message.sequence}-${index}`}
+                          className={`rounded-xl px-3 py-2 text-sm ${
+                            message.sender === "student"
+                              ? "bg-background border border-border/60"
+                              : "bg-primary/5 border border-primary/10"
+                          }`}
+                        >
+                          <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            {message.sender === "student" ? "Student" : "Julija"}
+                          </p>
+                          <p className="whitespace-pre-wrap leading-relaxed text-foreground/85">{message.content}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
       )}
     </Card>
   );

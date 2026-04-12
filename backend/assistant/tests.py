@@ -6,6 +6,7 @@ from rest_framework.test import APITestCase
 from accounts.models import Caretaker, HelpCategory, Student
 from assistant.llm import _fallback_result, build_messages_for_llm
 from assistant.models import AssistantSession, AssistantSessionSummary
+from assistant.privacy import redact_sensitive_text
 from assistant.prompts import build_system_prompt
 from assistant.recommendations import find_recommended_caretakers
 from assistant.schemas import AssistantLLMResult
@@ -45,6 +46,8 @@ class AssistantFlowTests(APITestCase):
         self.assertIn("ne koristiš emojije", prompt)
         self.assertIn("ne koristiš bullet-point stil", prompt)
         self.assertIn("ne ponašaš se kao customer support", prompt)
+        self.assertIn("blagu trijažu", prompt)
+        self.assertIn("nije dugo AI savjetovanje", prompt)
 
     def test_llm_messages_include_only_non_name_profile_context(self):
         self.user.sex = "M"
@@ -57,6 +60,15 @@ class AssistantFlowTests(APITestCase):
         self.assertIn("spolu iz profila", joined)
         self.assertIn("Ne spominji da znaš podatke iz profila i ne koristi ime korisnika.", joined)
         self.assertNotIn(self.user.first_name, joined)
+
+    def test_sensitive_patterns_are_redacted_before_llm(self):
+        redacted = redact_sensitive_text(
+            "Moje ime je Ana, mail mi je ana@example.com, broj +385 91 123 4567, a jmbag 0123456789."
+        )
+
+        self.assertIn("[email_adresa]", redacted)
+        self.assertIn("[telefon]", redacted)
+        self.assertIn("[jmbag]", redacted)
 
     @patch("assistant.views.generate_assistant_result")
     def test_support_closure_message_stores_summary_and_closes_session(self, mock_generate):

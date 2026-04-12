@@ -23,9 +23,16 @@ import { Bot, CheckCircle, ChevronLeft, ChevronRight, LifeBuoy, Send, StopCircle
 const RECOMMENDATION_STORAGE_KEY = "carefree:assistant:recommendation-state";
 const RECOMMENDATION_EXPIRED_NOTICE_KEY = "carefree:assistant:recommendation-expired";
 const ACTIVE_CHAT_STORAGE_KEY = "carefree:assistant:active-chat-state";
+const JOURNAL_HANDOFF_STORAGE_KEY = "carefree:journal:crisis-handoff";
 const RECOMMENDATION_TTL_MS = 20 * 60 * 1000;
 const RECOMMENDATION_TRANSITION_MS = 40000;
 const SUPPORT_CLOSURE_TRANSITION_MS = 15000;
+const CHAT_PURPOSE_NOTE =
+  "Julija je tu da ti pomogne napraviti prvi korak, bolje razumjeti što prolaziš i usmjeriti te prema podršci.";
+const CHAT_PRIVACY_NOTE =
+  "Za privatnost, pokušaj ne pisati puno ime, kontakt podatke ili druge podatke po kojima te se može prepoznati.";
+const CHAT_EMERGENCY_NOTE =
+  "CareFree nije zamjena za hitnu medicinsku ili psihološku pomoć. Ako si u neposrednoj opasnosti, odmah nazovi hitne službe ili krizne kontakte.";
 
 interface PendingRecommendationState {
   session: AssistantSessionData;
@@ -52,7 +59,7 @@ const TypingIndicator = () => (
 function defaultUiHint(): AssistantUiHint {
   return {
     welcome_message:
-      "Bok, ja sam Julija, tvoj CareFree AI asistent. Ovdje možeš mirno napisati što ti je trenutno najviše na umu. Možemo samo razgovarati, a ako poželiš, kasnije ti mogu pomoći i pronaći psihologa.",
+      "Bok, ja sam Julija. Tu sam da ti pomognem napraviti prvi korak, bolje razumjeti što prolaziš i usmjeriti te prema podršci koja bi ti mogla odgovarati.",
     can_recommend_psychologists: true,
     crisis_contacts: {
       urgent: "112",
@@ -94,6 +101,8 @@ export default function ChatPage() {
   const sessionInitialized = useRef(false);
   const recommendationTransitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const supportClosureTransitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingJournalHandoffRef = useRef<string | null>(null);
+  const journalHandoffConsumedRef = useRef(false);
 
   const sessionClosed = session ? !session.is_active : false;
   const hasStudentMessages = messages.some((message) => message.sender === "student");
@@ -181,6 +190,7 @@ export default function ChatPage() {
 
     const initSession = async () => {
       if (typeof window !== "undefined") {
+        pendingJournalHandoffRef.current = window.sessionStorage.getItem(JOURNAL_HANDOFF_STORAGE_KEY);
         const activeChatRaw = window.sessionStorage.getItem(ACTIVE_CHAT_STORAGE_KEY);
         if (activeChatRaw) {
           try {
@@ -264,6 +274,66 @@ export default function ChatPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading, showRecommendations, showSupportClosure]);
+
+  useEffect(() => {
+    if (journalHandoffConsumedRef.current) {
+      return;
+    }
+    if (!pendingJournalHandoffRef.current || !session?.is_active || isLoading || hasStudentMessages) {
+      return;
+    }
+
+    journalHandoffConsumedRef.current = true;
+    const handoffMessage = pendingJournalHandoffRef.current;
+    pendingJournalHandoffRef.current = null;
+
+    if (typeof window !== "undefined") {
+      window.sessionStorage.removeItem(JOURNAL_HANDOFF_STORAGE_KEY);
+    }
+
+    const sendJournalHandoff = async () => {
+      const tempUserMessage: AssistantMessage = {
+        id: Date.now(),
+        sender: "student",
+        content: handoffMessage,
+        created_at: new Date().toISOString(),
+      };
+
+      setMessages((prev) => [...prev, tempUserMessage]);
+      setIsLoading(true);
+      setSendError(null);
+
+      try {
+        const response = await sendMessage(handoffMessage);
+        setPageError(null);
+        setMessages((prev) => {
+          const filtered = prev.filter((msg) => msg.id !== tempUserMessage.id);
+          return [...filtered, response.user_message, response.bot_message];
+        });
+        setSession((prev) =>
+          prev
+            ? {
+                ...prev,
+                is_active: !response.session_closed,
+                mode: response.session_mode,
+                status: response.session_status,
+                danger_flag: response.danger_flag,
+              }
+            : prev
+        );
+        setUiHint(response.ui_hint);
+        setSummaryId(response.summary_id);
+      } catch (error) {
+        console.error("Greška pri prijenosu dnevnika u Juliju:", error);
+        setPageError((error as Error).message);
+        setMessages((prev) => prev.filter((msg) => msg.id !== tempUserMessage.id));
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    void sendJournalHandoff();
+  }, [hasStudentMessages, isLoading, session]);
 
   useEffect(() => {
     if (sessionClosed || showRecommendations || showSupportClosure) {
@@ -565,7 +635,14 @@ export default function ChatPage() {
                       </span>
                     ))}
                   </div>
-                  <Link href={`/carefree/caretaker/${caretaker.user_id}`} className="w-full pt-4">
+                  <Link
+                    href={
+                      summaryId
+                        ? `/carefree/caretaker/${caretaker.user_id}?assistant_summary=${summaryId}`
+                        : `/carefree/caretaker/${caretaker.user_id}`
+                    }
+                    className="w-full pt-4"
+                  >
                     <Button className="w-full">Vidi profil</Button>
                   </Link>
               </div>
@@ -666,7 +743,7 @@ export default function ChatPage() {
                   Julija
                 </CardTitle>
                 <CardDescription className="text-sm leading-tight text-slate-600">
-                  Mjesto za miran i privatan razgovor, uz podršku i nježno usmjeravanje kad ti zatreba.
+                  Početni razgovor, prvi korak i nježno usmjeravanje prema podršci kada ti zatreba.
                 </CardDescription>
               </div>
             </div>
@@ -683,6 +760,12 @@ export default function ChatPage() {
         </CardHeader>
 
         <CardContent className="flex-1 overflow-y-auto px-3 pt-2.5 pb-2.5 space-y-3.5 bg-white">
+          <div className="rounded-2xl border border-primary/10 bg-primary/5 px-4 py-3 text-sm leading-6 text-muted-foreground">
+            <p className="font-medium text-foreground">{CHAT_PURPOSE_NOTE}</p>
+            <p className="mt-1">{CHAT_PRIVACY_NOTE}</p>
+            <p className="mt-1">{CHAT_EMERGENCY_NOTE}</p>
+          </div>
+
           {messages.map((msg) => (
             <div
               key={`${msg.id}-${msg.created_at}`}
@@ -781,6 +864,9 @@ export default function ChatPage() {
                 </Button>
               </div>
             )}
+            <p className="mt-2 text-xs leading-5 text-muted-foreground">
+              {CHAT_PRIVACY_NOTE}
+            </p>
           </div>
         </div>
       </Card>

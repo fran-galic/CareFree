@@ -11,6 +11,7 @@ from .permissions import IsStudent
 from .serializers import AppointmentRequestSerializer, AppointmentFeedbackSerializer
 from .models import AppointmentRequest
 from accounts.models import Caretaker
+from assistant.models import AssistantSessionSummary
 from .services import create_appointment_request
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
@@ -95,12 +96,26 @@ class AppointmentRequestCreateView(APIView):
         caretaker_id = data.get('caretaker_id')
         start_time = data.get('start_time')
         slot_time = data.get('slot_time')
-        note = data.get('note') or data.get('message') or ''
+        note = (data.get('note') or data.get('message') or '').strip()
+        assistant_summary_id = data.get('assistant_summary_id')
+        share_full_transcript = str(data.get('share_full_transcript', '')).strip().lower() in {'1', 'true', 'yes', 'on'}
 
         if not caretaker_id or not start_time or not slot_time:
             return Response({'detail': 'caretaker_id, start_time and slot_time are required'}, status=status.HTTP_400_BAD_REQUEST)
 
         caretaker = get_object_or_404(Caretaker.objects.select_related("user"), pk=caretaker_id)
+        summary = None
+        if assistant_summary_id:
+            summary = get_object_or_404(
+                AssistantSessionSummary.objects.filter(student=request.user.student),
+                pk=assistant_summary_id,
+            )
+
+        if not note and summary is None:
+            return Response(
+                {'detail': 'Upišite barem kratki razlog dolaska ili pošaljite AI sažetak razgovora.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         # Interpret the provided date string as a day, then apply the slot_time in Europe/Zagreb
         try:
@@ -122,8 +137,24 @@ class AppointmentRequestCreateView(APIView):
 
         requested_local = datetime(local_dt.year, local_dt.month, local_dt.day, hh, mm, tzinfo=local_tz)
         requested_utc = requested_local.astimezone(dt_timezone.utc)
+
+        ai_summary = (summary.content or "").strip() if summary else ""
+        ai_category = (summary.main_category or "").strip() if summary else ""
+        crisis_flag = bool(summary and summary.summary_type == AssistantSessionSummary.SummaryType.CRISIS)
+        ai_transcript_snapshot = summary.transcript_snapshot if summary and share_full_transcript else []
+
         try:
-            req = create_appointment_request(request.user, caretaker, requested_utc, note)
+            req = create_appointment_request(
+                request.user,
+                caretaker,
+                requested_utc,
+                note,
+                ai_summary=ai_summary,
+                ai_category=ai_category,
+                crisis_flag=crisis_flag,
+                ai_transcript_shared=bool(ai_transcript_snapshot),
+                ai_transcript_snapshot=ai_transcript_snapshot,
+            )
         except Exception as exc:
             # surface validation errors as 400
             return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)

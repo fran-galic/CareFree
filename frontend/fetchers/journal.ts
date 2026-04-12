@@ -9,6 +9,8 @@ export interface JournalEntry {
   title: string;
   content: string; // Backend ovo šalje dekriptirano [6]
   mood: string | null;
+  analysis_summary?: string | null;
+  crisis_detected: boolean;
   created_at: string;
   updated_at: string;
 }

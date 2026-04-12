@@ -59,3 +59,41 @@ class ServiceNonExistentFunctionalityTest(TestCase):
                 message="Test",
                 priority="high"  # This parameter doesn't exist!
             )
+
+    def test_create_appointment_request_persists_ai_context_when_provided(self):
+        caretaker_user = User.objects.create_user(
+            email='test_ai_context@example.com',
+            password='testpass123',
+            first_name='Test',
+            last_name='Caretaker'
+        )
+        caretaker = Caretaker.objects.create(user=caretaker_user)
+
+        student_user = User.objects.create_user(
+            email='student_ai_context@example.com',
+            password='testpass123',
+            first_name='Student',
+            last_name='Context'
+        )
+        Student.objects.create(user=student_user)
+
+        start_time = timezone.now() + timedelta(days=1)
+        req = create_appointment_request(
+            student_user=student_user,
+            caretaker_obj=caretaker,
+            requested_start=start_time,
+            message="Volio/la bih razgovarati o tome kako se nosim sa stresom.",
+            ai_summary="Student opisuje izražen stres i traži prvi razgovor s psihologom.",
+            ai_category="Stres i akademski pritisci",
+            crisis_flag=False,
+            ai_transcript_shared=True,
+            ai_transcript_snapshot=[
+                {"sender": "student", "content": "Ne znam odakle krenuti.", "sequence": 1},
+            ],
+        )
+
+        req.refresh_from_db()
+        self.assertEqual(req.ai_summary, "Student opisuje izražen stres i traži prvi razgovor s psihologom.")
+        self.assertEqual(req.ai_category, "Stres i akademski pritisci")
+        self.assertTrue(req.ai_transcript_shared)
+        self.assertEqual(len(req.ai_transcript_snapshot), 1)
