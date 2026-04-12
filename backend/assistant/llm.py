@@ -9,6 +9,7 @@ from openai import APITimeoutError, OpenAI, RateLimitError
 from accounts.models import HelpCategory
 
 from .category_codes import resolve_category_selection
+from .privacy import redact_message_payload, redact_sensitive_text
 from .prompts import build_system_prompt
 from .schemas import AssistantLLMResult
 
@@ -193,6 +194,10 @@ def _recent_student_text(session, limit: int = 4) -> str:
     return " ".join(msg.content for msg in ordered if msg.content)
 
 
+def _student_message_count(session) -> int:
+    return session.messages.filter(sender=session.messages.model.SENDER_STUDENT).count()
+
+
 def _crisis_fallback_result(session, lower: str) -> AssistantLLMResult:
     recent_student_text = _normalize_text(_recent_student_text(session))
     combined = " ".join(part for part in [recent_student_text, lower] if part).strip()
@@ -372,6 +377,19 @@ def _fallback_result(session, user_text: str) -> AssistantLLMResult:
             ),
         )
 
+    if _student_message_count(session) >= 4 and (effective_main_category.strip() or effective_subcategories):
+        return AssistantLLMResult(
+            mode="recommendation_offer",
+            main_category_code=effective_main_category_code,
+            main_category=effective_main_category,
+            subcategory_codes=effective_subcategory_codes,
+            subcategories=effective_subcategories,
+            message=(
+                "Mislim da sada već imam dovoljno dobru sliku o tome što prolaziš. "
+                "Ako želiš, mogu ti izdvojiti nekoliko psihologa koji rade s ovakvim temama."
+            ),
+        )
+
     if _contains_any(lower, ("faks", "fakultet", "ispit", "ispiti", "rok", "rokovi", "učenje", "obaveze")):
         return AssistantLLMResult(
             mode="support",
@@ -480,7 +498,7 @@ def build_messages_for_llm(session, recent_summaries: list[str]) -> list[dict[st
         )
 
     if recent_summaries:
-        context = "\n".join(f"- {item}" for item in recent_summaries if item.strip())
+        context = "\n".join(f"- {redact_sensitive_text(item)}" for item in recent_summaries if item.strip())
         messages.append(
             {
                 "role": "system",
@@ -514,7 +532,7 @@ def build_messages_for_llm(session, recent_summaries: list[str]) -> list[dict[st
         role = "user" if msg.sender == msg.SENDER_STUDENT else "assistant"
         messages.append({"role": role, "content": msg.content})
 
-    return messages
+    return redact_message_payload(messages)
 
 
 def generate_assistant_result(session, recent_summaries: list[str]) -> AssistantLLMResult:

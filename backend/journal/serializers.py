@@ -9,9 +9,9 @@ class JournalEntrySerializer(serializers.ModelSerializer):
     class Meta:
         model = JournalEntry
         fields = [
-            'id', 'student', 'title', 'content', 'mood', 'analysis_summary', 'created_at', 'updated_at'
+            'id', 'student', 'title', 'content', 'mood', 'analysis_summary', 'crisis_detected', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'student', 'analysis_summary', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'student', 'analysis_summary', 'crisis_detected', 'created_at', 'updated_at']
 
     #kod kreiranja unosa serializer šalje sadržaj modelu koji ga kriptira
     def create(self, validated_data):

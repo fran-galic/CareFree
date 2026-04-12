@@ -22,6 +22,13 @@ export interface AppointmentRequest {
   ai_summary?: string;
   ai_category?: string;
   crisis_flag: boolean;
+  ai_transcript_shared: boolean;
+  ai_transcript_snapshot: Array<{
+    sender: "student" | "bot";
+    content: string;
+    created_at: string;
+    sequence: number;
+  }>;
   status: "pending" | "accepted" | "rejected" | "cancelled";
   appointment_id?: number | null;
   appointment_status?: "confirmed_pending_sync" | "confirmed" | "confirmed_sync_failed" | "cancelled" | "completed" | null;
@@ -184,6 +191,8 @@ export async function createAppointmentRequest(data: {
   start_time: string;
   slot_time: string;
   note?: string;
+  assistant_summary_id?: number;
+  share_full_transcript?: boolean;
 }): Promise<AppointmentRequest> {
   const response = await fetch(`${BACKEND_API}/api/appointments/request/`, {
     method: "POST",

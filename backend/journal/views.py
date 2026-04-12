@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from .models import JournalEntry
 from .serializers import JournalEntrySerializer
+from .safety import CRISIS_SUPPORT_NOTE, journal_analysis_allowed, looks_like_crisis_content
 from django.http import JsonResponse
 from django.utils import timezone
 import json
@@ -26,8 +27,33 @@ class JournalEntryViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly]
 
     #kod kreiranja unosa, automatski postavimo studenta na trenutno prijavljenog korisnika
+    def _analysis_fields(self, content: str) -> dict:
+        if not content:
+            return {
+                "analysis_summary": None,
+                "crisis_detected": False,
+            }
+
+        crisis_detected = looks_like_crisis_content(content)
+        if not crisis_detected and not journal_analysis_allowed(self.request.user.id):
+            return {
+                "analysis_summary": None,
+                "crisis_detected": False,
+            }
+        return {
+            "analysis_summary": CRISIS_SUPPORT_NOTE if crisis_detected else None,
+            "crisis_detected": crisis_detected,
+        }
+
     def perform_create(self, serializer):
-        serializer.save(student=self.request.user)
+        content = serializer.validated_data.get("content") or ""
+        serializer.save(student=self.request.user, **self._analysis_fields(content))
+
+    def perform_update(self, serializer):
+        content = serializer.validated_data.get("content")
+        if content is None:
+            content = serializer.instance.content or ""
+        serializer.save(**self._analysis_fields(content))
 
     #ograničavamo prikaz unosa samo na one koje je kreirao prijavljeni korisnik
     def get_queryset(self):

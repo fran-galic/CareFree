@@ -17,6 +17,8 @@ def summarize_appointment_request(self, request_id):
         from assistant.services import summarize_text
         from .models import AppointmentRequest
         req = AppointmentRequest.objects.get(pk=request_id)
+        if req.ai_summary:
+            return
         summary = summarize_text(req.message or "")
         req.ai_summary = summary.get('summary') if isinstance(summary, dict) else str(summary)
         req.save(update_fields=['ai_summary'])

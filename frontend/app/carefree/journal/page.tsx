@@ -3,18 +3,20 @@
 import { useEffect, useState } from "react";
 import useSWR, { mutate } from "swr";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { getJournalEntries, createJournalEntry, deleteJournalEntry, updateJournalEntry } from "@/fetchers/journal";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Trash2, BookOpen, Edit2, NotebookPen, PencilOff } from "lucide-react";
+import { Trash2, BookOpen, Edit2, NotebookPen, PencilOff, LifeBuoy, TriangleAlert } from "lucide-react";
 import type { JournalEntry as FetcherJournalEntry } from "@/fetchers/journal";
 import { readSessionCache, writeSessionCache } from "@/lib/session-cache";
 
 const JOURNAL_CACHE_KEY = "carefree:journal:entries";
 const JOURNAL_CACHE_TTL_MS = 5 * 60 * 1000;
+const JOURNAL_HANDOFF_STORAGE_KEY = "carefree:journal:crisis-handoff";
 
 interface JournalEntry {
   id: number;
@@ -25,6 +27,7 @@ interface JournalEntry {
 }
 
 export default function JournalPage() {
+  const router = useRouter();
   // Dohvaćanje podataka pomoću SWR-a (automatski cache i revalidacija)
   const [cachedEntries] = useState<FetcherJournalEntry[]>(
     () => readSessionCache<FetcherJournalEntry[]>(JOURNAL_CACHE_KEY) ?? []
@@ -48,20 +51,23 @@ export default function JournalPage() {
   const [newEntry, setNewEntry] = useState({ title: "", content: "", mood: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{show: boolean, id: number | null}>({ show: false, id: null });
+  const [postSaveSafetyEntry, setPostSaveSafetyEntry] = useState<FetcherJournalEntry | null>(null);
 
   // Funkcija za slanje novog zapisa
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
+      let savedEntry: FetcherJournalEntry;
       if (editingId) {
         // Ažuriranje postojećeg zapisa
-        await updateJournalEntry(editingId, newEntry);
+        savedEntry = await updateJournalEntry(editingId, newEntry);
         setEditingId(null);
       } else {
         // Kreiranje novog zapisa
-        await createJournalEntry(newEntry);
+        savedEntry = await createJournalEntry(newEntry);
       }
+      setPostSaveSafetyEntry(savedEntry.crisis_detected ? savedEntry : null);
       setNewEntry({ title: "", content: "", mood: "" }); // Reset forme
       setIsCreating(false); // Zatvori formu
       mutate("/api/journal/"); // Osvježi listu odmah
@@ -110,6 +116,16 @@ export default function JournalPage() {
     setNewEntry({ title: "", content: "", mood: "" });
   };
 
+  const handleTalkToJulija = () => {
+    if (!postSaveSafetyEntry?.content) {
+      return;
+    }
+
+    const handoffMessage = `Upravo sam ovo zapisao/la u dnevnik i treba mi da ostaneš sa mnom u razgovoru:\n\n${postSaveSafetyEntry.content}`;
+    window.sessionStorage.setItem(JOURNAL_HANDOFF_STORAGE_KEY, handoffMessage);
+    router.push("/carefree/messages");
+  };
+
   // Formatiranje datuma
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("hr-HR", {
@@ -155,6 +171,36 @@ export default function JournalPage() {
           </Button>
         </div>
       </div>
+
+      {postSaveSafetyEntry?.crisis_detected && (
+        <div className="mb-8">
+          <Card className="border-red-200 bg-red-50 shadow-sm">
+            <CardContent className="space-y-4 p-5">
+              <div className="flex items-start gap-3">
+                <TriangleAlert className="mt-0.5 h-5 w-5 text-red-700" />
+                <div className="space-y-2">
+                  <p className="font-semibold text-red-900">Ovaj zapis zvuči kao da si sada pod jakim pritiskom.</p>
+                  <p className="text-sm leading-6 text-red-800">
+                    Ako si u neposrednoj opasnosti ili misliš da bi si mogao/la nauditi, odmah nazovi 112, Centar za krizna stanja i prevenciju suicida na 01 2376 335 ili Plavi telefon na 01 4833 888.
+                  </p>
+                  <p className="text-sm leading-6 text-red-800">
+                    Zapis je spremljen, ali ne moraš ostati sam/a s ovim. Ako želiš, odmah možeš prijeći na razgovor s Julijom.
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button className="gap-2" onClick={handleTalkToJulija}>
+                  <LifeBuoy className="h-4 w-4" />
+                  Razgovaraj odmah s Julijom
+                </Button>
+                <Button variant="outline" onClick={() => setPostSaveSafetyEntry(null)}>
+                  U redu, nastavi na dnevnik
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* FORMA ZA NOVI ZAPIS (Prikazuje se samo kad kliknemo gumb) */}
       {isCreating && (
@@ -330,6 +376,11 @@ export default function JournalPage() {
                                             );
                                         })()
                                     )}
+                                    {entry.crisis_detected && (
+                                        <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                                            Krizna podrška prikazana
+                                        </span>
+                                    )}
                                 </CardDescription>
                             </div>
                             <div className="flex gap-1">
@@ -356,6 +407,12 @@ export default function JournalPage() {
                         <p className="whitespace-pre-wrap leading-relaxed text-foreground/90">
                             {entry.content}
                         </p>
+                        {entry.crisis_detected && (
+                          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-800">
+                            {entry.analysis_summary ||
+                              "Ako se ponovno budeš osjećao/la ovako preplavljeno ili nesigurno, odmah potraži hitnu stručnu pomoć ili nazovi krizne brojeve."}
+                          </div>
+                        )}
                     </CardContent>
                 </Card>
             ))}

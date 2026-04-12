@@ -74,7 +74,18 @@ def _send_appointment_confirmation_email(appt):
         pass
 
 
-def create_appointment_request(student_user, caretaker_obj, requested_start, message):
+def create_appointment_request(
+    student_user,
+    caretaker_obj,
+    requested_start,
+    message,
+    *,
+    ai_summary="",
+    ai_category="",
+    crisis_flag=False,
+    ai_transcript_shared=False,
+    ai_transcript_snapshot=None,
+):
     # student_user may be None (anonymous) per model
     # Validate slot: not explicitly marked unavailable and not already occupied
     from django.core.exceptions import ValidationError
@@ -122,6 +133,11 @@ def create_appointment_request(student_user, caretaker_obj, requested_start, mes
             requested_start=requested_start,
             requested_end=requested_end,
             message=message,
+            ai_summary=ai_summary or None,
+            ai_category=ai_category or None,
+            crisis_flag=bool(crisis_flag),
+            ai_transcript_shared=bool(ai_transcript_shared),
+            ai_transcript_snapshot=ai_transcript_snapshot or [],
         )
 
     # Send notification email to caretaker about new appointment request
@@ -161,11 +177,11 @@ def create_appointment_request(student_user, caretaker_obj, requested_start, mes
     except Exception:
         pass
 
-    # enqueue summarization task (best-effort) outside the transaction
-    try:
-        summarize_appointment_request.delay(req.id)
-    except Exception:
-        pass
+    if not req.ai_summary:
+        try:
+            summarize_appointment_request.delay(req.id)
+        except Exception:
+            pass
 
     return req
 

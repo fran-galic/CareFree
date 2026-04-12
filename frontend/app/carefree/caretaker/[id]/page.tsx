@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useState } from 'react';
+import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import { getAssistantSummaries, type AssistantSummaryListItem } from "@/fetchers/assistant";
 import { searchCaretakerById, type Caretaker } from "@/fetchers/users";
@@ -18,6 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PersistentAvatar } from "@/components/persistent-avatar-image";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { 
   Briefcase, 
@@ -71,13 +73,15 @@ function buildSuggestedBookingNote(summary: AssistantSummaryListItem | null | un
   if (!summaryText) {
     return "";
   }
-
-  return `Sažetak mog razgovora s Julijom: ${summaryText}\n\nVolio/la bih na prvom susretu krenuti od ovoga.`;
+  return summaryText;
 }
 
 export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: string }> }) {
   // Otpakiravanje parametara (Next.js 15 pattern)
   const { id } = React.use(params);
+  const searchParams = useSearchParams();
+  const assistantSummaryParam = searchParams.get("assistant_summary");
+  const assistantSummaryId = assistantSummaryParam ? Number(assistantSummaryParam) : null;
   const detailCacheKey = React.useMemo(() => caretakerDetailCacheKey(id), [id]);
   const slotsCacheKey = React.useMemo(() => caretakerSlotsCacheKey(id, 14), [id]);
   const [cachedCaretaker] = useState<Caretaker | null>(() => readSessionCache<Caretaker>(detailCacheKey));
@@ -124,6 +128,7 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
   const [bookingNote, setBookingNote] = useState("");
   const [hasEditedBookingNote, setHasEditedBookingNote] = useState(false);
+  const [shareFullTranscript, setShareFullTranscript] = useState(false);
   const [visibleWeekIndex, setVisibleWeekIndex] = useState(0);
   
   // State za loading i uspjeh
@@ -158,11 +163,17 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
     return () => window.cancelAnimationFrame(frame);
   }, []);
 
-  const latestAssistantSummary = assistantSummaries?.[0] ?? null;
+  const selectedAssistantSummary = React.useMemo(() => {
+    if (!assistantSummaryId || !assistantSummaries?.length) {
+      return null;
+    }
+    return assistantSummaries.find((summary) => summary.id === assistantSummaryId) ?? null;
+  }, [assistantSummaries, assistantSummaryId]);
   const suggestedBookingNote = React.useMemo(
-    () => buildSuggestedBookingNote(latestAssistantSummary),
-    [latestAssistantSummary]
+    () => buildSuggestedBookingNote(selectedAssistantSummary),
+    [selectedAssistantSummary]
   );
+  const hasAssistantContext = Boolean(selectedAssistantSummary?.summary_text?.trim());
 
   React.useEffect(() => {
     if (hasEditedBookingNote) {
@@ -244,6 +255,8 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
         start_time: slotDate.toISOString().split('T')[0], // YYYY-MM-DD
         slot_time: selectedSlot.time,
         note: bookingNote,
+        assistant_summary_id: selectedAssistantSummary?.id,
+        share_full_transcript: hasAssistantContext && shareFullTranscript,
       };
 
       await createAppointmentRequest(requestBody);
@@ -257,6 +270,7 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
         setSelectedSlot(null);
         setHasEditedBookingNote(false);
         setBookingNote(suggestedBookingNote);
+        setShareFullTranscript(false);
       }, 5000);
 
     } catch (err) {
@@ -644,9 +658,9 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
                           Razlog dolaska
                           <span className="text-xs font-normal text-muted-foreground">(kratko)</span>
                         </label>
-                        {suggestedBookingNote && (
+                        {hasAssistantContext && (
                           <p className="text-xs text-muted-foreground">
-                            Polje je unaprijed ispunjeno kratkim sažetkom razgovora s Julijom. Tekst možete slobodno urediti ili obrisati.
+                            Polje je unaprijed ispunjeno sažetkom razgovora s Julijom. Možete ga slobodno urediti, skratiti ili ostaviti kako jest.
                           </p>
                         )}
                         <Textarea 
@@ -656,7 +670,7 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
                             setHasEditedBookingNote(true);
                             setBookingNote(e.target.value);
                           }}
-                          required
+                          required={!hasAssistantContext}
                           rows={5}
                           className="resize-none"
                         />
@@ -665,6 +679,31 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
                           Ovaj opis vidljiv je samo psihologu.
                         </p>
                       </div>
+
+                      {hasAssistantContext ? (
+                        <div className="space-y-3 rounded-xl border border-primary/10 bg-primary/5 p-4">
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium text-foreground">AI kontekst za psihologa</p>
+                            <p className="text-sm text-muted-foreground">
+                              Psiholog će uz vaš zahtjev vidjeti AI sažetak razgovora s Julijom kako bi imao osnovni kontekst prije prvog susreta.
+                            </p>
+                          </div>
+                          <label className="flex items-start gap-3 text-sm text-foreground">
+                            <Checkbox
+                              checked={shareFullTranscript}
+                              onCheckedChange={(checked) => setShareFullTranscript(Boolean(checked))}
+                              className="mt-0.5"
+                            />
+                            <span>
+                              Želim podijeliti i cijeli razgovor s Julijom. To psihologu može pomoći da prije susreta bolje razumije moj kontekst.
+                            </span>
+                          </label>
+                        </div>
+                      ) : (
+                        <div className="rounded-xl border border-border/70 bg-muted/40 p-4 text-sm text-muted-foreground">
+                          U nekoliko rečenica napišite što vas dovodi na razgovor. Nije potrebno pisati puno, ali psihologu će značiti nekoliko rečenica konteksta prije potvrde termina.
+                        </div>
+                      )}
 
                       <div className="flex flex-col gap-3 pt-2 sm:flex-row">
                         <Button type="button" variant="outline" className="flex-1" onClick={() => {

@@ -43,10 +43,11 @@ class AppointmentRequestSerializer(serializers.ModelSerializer):
         model = AppointmentRequest
         fields = [
             'id', 'student', 'student_id', 'caretaker', 'caretaker_id', 
-            'requested_start', 'requested_end', 'message', 'ai_summary', 
-            'status', 'created_at', 'appointment_id', 'appointment_status', 'appointment_conference_link', 'appointment_feedback'
+            'requested_start', 'requested_end', 'message', 'ai_summary', 'ai_category', 'crisis_flag',
+            'ai_transcript_shared', 'ai_transcript_snapshot',
+            'status', 'created_at', 'updated_at', 'appointment_id', 'appointment_status', 'appointment_conference_link', 'appointment_feedback'
         ]
-        read_only_fields = ['ai_summary', 'status', 'created_at']
+        read_only_fields = ['ai_summary', 'ai_category', 'crisis_flag', 'ai_transcript_shared', 'ai_transcript_snapshot', 'status', 'created_at', 'updated_at']
 
     def _get_appointment(self, obj):
         try:
