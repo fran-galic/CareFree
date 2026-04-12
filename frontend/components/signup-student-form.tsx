@@ -130,7 +130,7 @@ export default function SignupStudentForm({ userId }: ISignupStudentFormProps) {
                                     Stay Anonymous  
                                 </p>
                                 <p className="text-muted-foreground text-sm">
-                                    If enabled, only your sex and age will be visible to the caretaker. You can change this anytime.
+                                    If enabled, only your sex and age will be visible to the psychologist. You can change this anytime.
                                 </p>
                             </div>
                         </Label>

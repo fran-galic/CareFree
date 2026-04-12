@@ -289,6 +289,11 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
               <Briefcase className="w-3 h-3 mr-1" />
               Psiholog
             </Badge>
+            {caretaker.work_approach_label && (
+              <Badge variant="secondary" className="text-xs">
+                {caretaker.work_approach_label}
+              </Badge>
+            )}
             {caretaker.grad_year && (
               <Badge variant="secondary" className="text-xs">
                 Diploma {caretaker.grad_year}.
@@ -335,6 +340,22 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
               </CardContent>
             </Card>
 
+            {caretaker.work_approach_label && (
+              <Card className="xl:col-span-1">
+                <CardHeader className="pb-1">
+                  <CardTitle className="text-base font-medium">Pristup u radu</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 py-0">
+                  <p className="text-sm font-medium text-foreground">{caretaker.work_approach_label}</p>
+                  {caretaker.work_approach_description && (
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      {caretaker.work_approach_description}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             {/* O meni */}
             <Card className="xl:col-span-2">
               <CardHeader className="pb-1">
@@ -358,6 +379,10 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Godina diplome</p>
                   <p className="mt-1 text-sm text-foreground">{caretaker.grad_year || "Nije navedeno"}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Pristup u radu</p>
+                  <p className="mt-1 text-sm text-foreground">{caretaker.work_approach_label || "Nije navedeno"}</p>
                 </div>
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Status profila</p>

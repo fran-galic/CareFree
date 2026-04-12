@@ -536,6 +536,9 @@ export default function ChatPage() {
                       <h4 className="font-semibold leading-snug text-slate-900">
                         {caretaker.first_name} {caretaker.last_name}
                       </h4>
+                      {caretaker.work_approach_label && (
+                        <p className="mt-1 text-xs text-slate-500">{caretaker.work_approach_label}</p>
+                      )}
                     </div>
                   </div>
                   <p className="mt-4 text-sm text-muted-foreground line-clamp-3">
@@ -543,6 +546,11 @@ export default function ChatPage() {
                       ? `Radi s temama kao što su ${caretaker.help_categories[0].toLowerCase()}.`
                       : "Psiholog za razgovor i podršku."}
                   </p>
+                  {caretaker.work_approach_description && (
+                    <p className="mt-2 text-xs leading-relaxed text-muted-foreground line-clamp-3">
+                      {caretaker.work_approach_description}
+                    </p>
+                  )}
                   <div className="mt-auto pt-3 flex flex-wrap gap-1 overflow-hidden">
                     {(caretaker.assistant_relevant_categories?.length
                       ? caretaker.assistant_relevant_categories
@@ -725,11 +733,11 @@ export default function ChatPage() {
             <div className="flex w-full justify-center px-2 pt-2">
               <div className="w-full max-w-2xl rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-center shadow-sm">
                 <p className="text-sm text-slate-700">
-                  Ako želiš, mogu ti odmah prikazati CareTakere koje sam izdvojila za tebe.
+                  Ako želiš, mogu ti odmah prikazati psihologe koje sam izdvojila za tebe.
                 </p>
                 <div className="mt-3 flex items-center justify-center gap-3">
                   <Button size="sm" onClick={() => finalizeRecommendationTransition(pendingRecommendation)}>
-                    Prikaži mi CareTakere
+                    Prikaži mi psihologe
                   </Button>
                   <p className="text-xs text-slate-500">
                     Ako ništa ne odabereš, preporuke će se prikazati automatski za 40 sekundi.

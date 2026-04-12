@@ -97,6 +97,40 @@ class Student(models.Model):
 
 
 class Caretaker(models.Model):
+    WORK_APPROACH_CBT = "cbt"
+    WORK_APPROACH_INTEGRATIVE = "integrative"
+    WORK_APPROACH_PSYCHODYNAMIC = "psychodynamic"
+    WORK_APPROACH_HUMANISTIC = "humanistic"
+    WORK_APPROACH_SYSTEMIC = "systemic"
+    WORK_APPROACH_GESTALT = "gestalt"
+    WORK_APPROACH_ACT = "act"
+    WORK_APPROACH_REBT = "rebt"
+    WORK_APPROACH_DBT = "dbt"
+
+    WORK_APPROACH_CHOICES = (
+        (WORK_APPROACH_CBT, "Kognitivno-bihevioralni pristup (KBT)"),
+        (WORK_APPROACH_INTEGRATIVE, "Integrativni pristup"),
+        (WORK_APPROACH_PSYCHODYNAMIC, "Psihodinamski pristup"),
+        (WORK_APPROACH_HUMANISTIC, "Humanistički pristup"),
+        (WORK_APPROACH_SYSTEMIC, "Sistemski / obiteljski pristup"),
+        (WORK_APPROACH_GESTALT, "Gestalt pristup"),
+        (WORK_APPROACH_ACT, "ACT"),
+        (WORK_APPROACH_REBT, "REBT"),
+        (WORK_APPROACH_DBT, "DBT"),
+    )
+
+    WORK_APPROACH_DESCRIPTIONS = {
+        WORK_APPROACH_CBT: "Usmjeren je na povezanost misli, emocija i ponašanja te na razvoj konkretnih strategija nošenja sa svakodnevnim izazovima.",
+        WORK_APPROACH_INTEGRATIVE: "Kombinira više pristupa i prilagođava način rada osobi, temi i fazi kroz koju prolazi.",
+        WORK_APPROACH_PSYCHODYNAMIC: "Stavlja naglasak na dublje obrasce doživljavanja, odnose i unutarnje konflikte koji mogu utjecati na sadašnje teškoće.",
+        WORK_APPROACH_HUMANISTIC: "Naglašava autentičan odnos, razumijevanje iskustva osobe i razvoj osobnih kapaciteta kroz siguran razgovor.",
+        WORK_APPROACH_SYSTEMIC: "Promatra teškoće u širem kontekstu odnosa, obitelji i okoline, a ne samo kroz pojedinca.",
+        WORK_APPROACH_GESTALT: "Usmjeren je na svjesnost, doživljaj u sadašnjem trenutku i bolje razumijevanje vlastitih reakcija i potreba.",
+        WORK_APPROACH_ACT: "Pomaže osobi razviti psihološku fleksibilnost, prihvatiti teške misli i emocije te djelovati u skladu s vlastitim vrijednostima.",
+        WORK_APPROACH_REBT: "Usmjeren je na prepoznavanje i mijenjanje krutih ili neproduktivnih uvjerenja koja pojačavaju emocionalne teškoće.",
+        WORK_APPROACH_DBT: "Naglašava regulaciju emocija, toleranciju na stres, odnose s drugima i razvoj praktičnih vještina.",
+    }
+
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         primary_key=True,
@@ -111,6 +145,7 @@ class Caretaker(models.Model):
     image_mime_type = models.CharField(max_length=100, blank=True, null=True)
     about_me = models.TextField(blank=True, max_length=800)
     grad_year = models.PositiveIntegerField(blank=True, null=True, help_text="The year in which the person graduated as a psychologist.")
+    work_approach = models.CharField(max_length=32, choices=WORK_APPROACH_CHOICES, blank=True, null=True)
 
     help_categories = models.ManyToManyField(
         'HelpCategory', related_name='caretakers', blank=True
@@ -181,6 +216,22 @@ class Caretaker(models.Model):
 
     def __str__(self):
         return f"{self.user.first_name} {self.user.last_name}"
+
+    @classmethod
+    def get_work_approach_options(cls):
+        return [
+            {
+                "value": value,
+                "label": label,
+                "description": cls.WORK_APPROACH_DESCRIPTIONS.get(value, ""),
+            }
+            for value, label in cls.WORK_APPROACH_CHOICES
+        ]
+
+    def get_work_approach_description(self):
+        if not self.work_approach:
+            return ""
+        return self.WORK_APPROACH_DESCRIPTIONS.get(self.work_approach, "")
 
 
 class CaretakerCV(models.Model):

@@ -186,7 +186,7 @@ export default function SearchPageClient() {
       {/* HEADER SEKCIJA */}
       <div className="mb-16 space-y-8 text-center">
         <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight text-primary">
-            Pronađi svog CareTakera
+            Pronađi svog psihologa
         </h1>
         <p className="text-muted-foreground text-lg max-w-3xl mx-auto">
             Pretražite našu bazu licenciranih psihologa i pronađite osobu uz koju se osjećate sigurno, viđeno i podržano.
@@ -286,7 +286,7 @@ export default function SearchPageClient() {
             {isSearchPending ? (
                 <div className="flex flex-col items-center justify-center py-20 space-y-4">
                     <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-muted-foreground">Tražimo CareTakera koji najbolje odgovara vašim potrebama...</p>
+                    <p className="text-muted-foreground">Tražimo psihologa koji najbolje odgovara vašim potrebama...</p>
                 </div>
             ) : searchError ? (
                 <div className="text-center py-20 border-2 border-dashed rounded-xl bg-muted/30">
@@ -339,6 +339,11 @@ export default function SearchPageClient() {
                                                     <Briefcase className="w-4 h-4 text-primary/70" />
                                                     <span className="font-medium">Odobren psiholog</span>
                                                 </div>
+                                                {caretaker.work_approach_label && (
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="font-medium">{caretaker.work_approach_label}</span>
+                                                    </div>
+                                                )}
                                                 {caretaker.grad_year && (
                                                     <div className="flex items-center gap-1.5">
                                                         <Clock className="w-4 h-4 text-primary/70" />
@@ -351,6 +356,13 @@ export default function SearchPageClient() {
                                         <p className="text-sm text-foreground/70 leading-relaxed line-clamp-2">
                                             {caretaker.about_me || "Nema opisa."}
                                         </p>
+
+                                        {caretaker.work_approach_description && (
+                                            <p className="text-xs leading-relaxed text-muted-foreground line-clamp-2">
+                                                <span className="font-medium text-foreground/80">Pristup u radu:</span>{" "}
+                                                {caretaker.work_approach_description}
+                                            </p>
+                                        )}
 
                                         <Separator className="my-2 opacity-50" />
 
@@ -380,7 +392,7 @@ export default function SearchPageClient() {
                     {!isSearchPending && !searchError && caretakerList.length > 0 && (
                         <div className="mt-8 pt-6 border-t">
                             <div className="text-sm text-center text-muted-foreground">
-                                Ukupno pronađeno: <span className="font-semibold text-foreground">{totalCount}</span> {totalCount === 1 ? 'CareTaker' : 'CareTakera'}
+                                Ukupno pronađeno: <span className="font-semibold text-foreground">{totalCount}</span> {totalCount === 1 ? 'psiholog' : 'psihologa'}
                             </div>
                         </div>
                     )}

@@ -494,6 +494,9 @@ class CaretakerCompleteRegistrationView(APIView):
         data['certificate_filenames'] = certificate_names
         data['certificate_files'] = certificate_files
         data['age'] = getattr(user, 'age', None)
+        data['work_approach_label'] = caretaker.get_work_approach_display() if caretaker.work_approach else None
+        data['work_approach_description'] = caretaker.get_work_approach_description() or None
+        data['work_approach_options'] = Caretaker.get_work_approach_options()
 
         return data
 

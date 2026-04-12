@@ -80,9 +80,9 @@ export default function SignupCaretakerForm({ userId } : ISignupCaretakerFormPro
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Caretaker</CardTitle>
+                <CardTitle>Psiholog</CardTitle>
                 <CardDescription>
-                    Complete your caretaker account.
+                    Dovršite svoj profil psihologa.
                 </CardDescription>
             </CardHeader>
             <CardContent>
