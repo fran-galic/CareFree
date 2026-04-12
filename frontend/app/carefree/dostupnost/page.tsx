@@ -9,6 +9,7 @@ import { format, setHours, isSameDay, parseISO } from "date-fns";
 import { hr } from "date-fns/locale";
 import { getTwoWeekWindowDays, isPastDay, WORKDAY_END_HOUR, WORKDAY_START_HOUR } from "@/lib/calendar";
 import { BACKEND_URL } from "@/lib/config";
+import { authFetch } from "@/lib/auth";
 import { readSessionCache, writeSessionCache } from "@/lib/session-cache";
 
 interface AvailabilitySlot {
@@ -107,9 +108,10 @@ export default function DostupnostPage() {
   const fetchAvailability = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(
+      const response = await authFetch(
         `${BACKEND_URL}/api/appointments/caretaker/availability/my/?days=${DAYS_TO_SHOW}`,
-        { credentials: "include" }
+        { credentials: "include" },
+        false
       );
 
       if (response.ok) {
@@ -164,14 +166,15 @@ export default function DostupnostPage() {
         return;
       }
 
-      const response = await fetch(
+      const response = await authFetch(
         `${BACKEND_URL}/api/appointments/caretaker/availability/save/`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify({ slots: changedSlots }),
-        }
+        },
+        false
       );
 
       if (response.ok) {

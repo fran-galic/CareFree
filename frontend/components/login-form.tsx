@@ -20,6 +20,7 @@ import Link from "next/link";
 import GoogleAuthButton from "@/components/google-auth-button";
 import { Eye, EyeOff } from "lucide-react";
 import { BACKEND_URL } from "@/lib/config";
+import { storeAuthTokens } from "@/lib/auth";
 
 export function LoginForm({
   className,
@@ -52,6 +53,7 @@ export function LoginForm({
       }
 
       const data = await response.json();
+      storeAuthTokens(data.access, data.refresh);
 
       // Successfully logged in - wait a moment for cookies to be set
       await new Promise(resolve => setTimeout(resolve, 100));
