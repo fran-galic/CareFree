@@ -3,10 +3,15 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from .models import JournalEntry
 from .serializers import JournalEntrySerializer
+from .ai import classify_journal_safety
 from .safety import CRISIS_SUPPORT_NOTE, journal_analysis_allowed, looks_like_crisis_content
 from django.http import JsonResponse
 from django.utils import timezone
 import json
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class IsOwnerOrReadOnly(permissions.BasePermission):
@@ -34,15 +39,31 @@ class JournalEntryViewSet(viewsets.ModelViewSet):
                 "crisis_detected": False,
             }
 
-        crisis_detected = looks_like_crisis_content(content)
-        if not crisis_detected and not journal_analysis_allowed(self.request.user.id):
+        heuristic_crisis = looks_like_crisis_content(content)
+        if heuristic_crisis:
+            return {
+                "analysis_summary": CRISIS_SUPPORT_NOTE,
+                "crisis_detected": True,
+            }
+
+        if not journal_analysis_allowed(self.request.user.id):
             return {
                 "analysis_summary": None,
                 "crisis_detected": False,
             }
+
+        try:
+            result = classify_journal_safety(content)
+            return {
+                "analysis_summary": CRISIS_SUPPORT_NOTE if result.crisis_detected else None,
+                "crisis_detected": bool(result.crisis_detected),
+            }
+        except Exception as exc:
+            logger.warning("journal_ai_safety_fallback error=%s", exc)
+
         return {
-            "analysis_summary": CRISIS_SUPPORT_NOTE if crisis_detected else None,
-            "crisis_detected": crisis_detected,
+            "analysis_summary": None,
+            "crisis_detected": False,
         }
 
     def perform_create(self, serializer):
