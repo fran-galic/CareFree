@@ -31,7 +31,7 @@ def redact_message_payload(messages: list[dict[str, str]]) -> list[dict[str, str
     redacted: list[dict[str, str]] = []
     for message in messages:
         next_message = dict(message)
-        if "content" in next_message:
+        if next_message.get("role") == "user" and "content" in next_message:
             next_message["content"] = redact_sensitive_text(next_message["content"])
         redacted.append(next_message)
     return redacted

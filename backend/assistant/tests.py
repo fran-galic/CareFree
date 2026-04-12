@@ -6,7 +6,7 @@ from rest_framework.test import APITestCase
 from accounts.models import Caretaker, HelpCategory, Student
 from assistant.llm import _fallback_result, build_messages_for_llm
 from assistant.models import AssistantSession, AssistantSessionSummary
-from assistant.privacy import redact_sensitive_text
+from assistant.privacy import redact_message_payload, redact_sensitive_text
 from assistant.prompts import build_system_prompt
 from assistant.recommendations import find_recommended_caretakers
 from assistant.schemas import AssistantLLMResult
@@ -69,6 +69,17 @@ class AssistantFlowTests(APITestCase):
         self.assertIn("[email_adresa]", redacted)
         self.assertIn("[telefon]", redacted)
         self.assertIn("[jmbag]", redacted)
+
+    def test_redaction_does_not_mask_assistant_crisis_numbers(self):
+        redacted = redact_message_payload(
+            [
+                {"role": "assistant", "content": "Nazovi 112 ili 01 2376 335 odmah."},
+                {"role": "user", "content": "Moj broj je +385 91 123 4567."},
+            ]
+        )
+
+        self.assertEqual(redacted[0]["content"], "Nazovi 112 ili 01 2376 335 odmah.")
+        self.assertIn("[telefon]", redacted[1]["content"])
 
     @patch("assistant.views.generate_assistant_result")
     def test_support_closure_message_stores_summary_and_closes_session(self, mock_generate):
