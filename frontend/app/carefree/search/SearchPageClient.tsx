@@ -62,6 +62,7 @@ export default function SearchPageClient() {
 
   const q = searchParams.get("q") ?? "";
   const categoriesParam = searchParams.getAll("categories");
+  const assistantSummaryParam = searchParams.get("assistant_summary") ?? "";
   const rawPage = Number.parseInt(searchParams.get("page") ?? "1", 10);
   const currentPage = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
   const seedParam = searchParams.get("seed") ?? "";
@@ -214,7 +215,10 @@ export default function SearchPageClient() {
             </button>
         </p>
         <div className="mx-auto max-w-2xl pt-6">
-             <SearchBar initial={q} />
+             <SearchBar
+               initial={q}
+               hiddenParams={assistantSummaryParam ? { assistant_summary: assistantSummaryParam } : {}}
+             />
         </div>
       </div>
 
@@ -317,7 +321,14 @@ export default function SearchPageClient() {
             ) : (
                 <div className="grid gap-5">
                     {caretakerList.map((caretaker) => (
-                        <Link key={caretaker.user_id} href={`/carefree/caretaker/${caretaker.user_id}`}>
+                        <Link
+                          key={caretaker.user_id}
+                          href={
+                            assistantSummaryParam
+                              ? `/carefree/caretaker/${caretaker.user_id}?assistant_summary=${assistantSummaryParam}`
+                              : `/carefree/caretaker/${caretaker.user_id}`
+                          }
+                        >
                             <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-primary/50 border-muted">
                                 <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <ChevronRight className="text-primary w-6 h-6" />

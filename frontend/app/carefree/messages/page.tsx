@@ -985,7 +985,7 @@ export default function ChatPage() {
                 </Button>
               )}
               <Button variant="outline" size="sm" onClick={() => {
-                router.push("/carefree/search");
+                router.push(summaryId ? `/carefree/search?assistant_summary=${summaryId}` : "/carefree/search");
               }}>
                 Pretraži sve psihologe
               </Button>
