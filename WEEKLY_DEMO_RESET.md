@@ -43,6 +43,44 @@ Redoslijed naredbi radi sljedeće:
 - provjerava shared Google Calendar credential
 - provjerava B2 storage
 
+## Razlika između `flush`, brisanja tablica i migracija
+
+`flush`:
+
+- briše podatke iz postojećih tablica
+- ne briše same tablice
+- ne briše migracije
+- ne mijenja strukturu baze
+
+To znači da nakon `flush`:
+
+- shema baze i dalje postoji
+- Django i dalje zna koje migracije postoje
+- baza je samo ostala prazna
+
+Brisanje tablica:
+
+- uklanja stvarne tablice iz baze
+- nakon toga aplikacija više nema gdje čitati i zapisivati podatke
+- tada moraš ponovno stvoriti tablice kroz `migrate`
+
+Brisanje migracija:
+
+- briše Django migration datoteke iz koda
+- to nije isto što i brisanje podataka
+- to se ne radi za tjedni demo reset
+
+Za tvoj slučaj gotovo uvijek želiš:
+
+- `flush`
+- pa `migrate`
+- pa seed
+
+Ne želiš:
+
+- ručno brisati tablice
+- ručno brisati migration datoteke
+
 ## Preduvjet
 
 Prije ovog postupka backend treba biti redeployan na zadnji commit.
@@ -163,6 +201,84 @@ Demo studenti:
 ```text
 DemoStudent123!
 ```
+
+Važno:
+
+- svi seedani demo psiholozi koriste istu lozinku `DemoPsiholog123!`
+- svi seedani demo studenti koriste istu lozinku `DemoStudent123!`
+- popis seedanih e-mail adresa zapisuje se i u:
+
+```text
+generated/LOCAL_DEMO_CREDENTIALS.md
+```
+
+## Što seed točno ugradi u demo profile
+
+### Svi demo psiholozi
+
+Svaki seedani demo psiholog dobiva:
+
+- profil
+- profilnu sliku
+- `about me`
+- broj telefona
+- kategorije pomoći
+- opcionalni `pristup u radu`
+- CV
+- barem jednu diplomu
+- po potrebi i certifikate
+- availability za naredna 2 tjedna
+- `1` upcoming accepted zahtjev s terminom
+- `1` completed termin iz prošlosti
+
+### Dodatna raspodjela po psiholozima
+
+Seed dodatno raspoređuje aktivnosti ovako:
+
+- prva `3` psihologa dobivaju po `3` pending zahtjeva
+- ostalih `12` psihologa dobiva po `1` pending zahtjev
+- prvih `6` psihologa dobiva i po `1` rejected zahtjev
+- `12` od `15` psihologa dobiva feedback na prošli completed termin
+- `3` od `15` psihologa ostaje bez feedbacka na prošli termin da se vidi i taj scenarij
+
+### AI kontekst u zahtjevima
+
+Nisu svi zahtjevi isti. Seed miješa više scenarija:
+
+- dio zahtjeva ima samo ručno napisani razlog dolaska
+- dio zahtjeva ima `AI sažetak`
+- dio zahtjeva ima `AI sažetak + transcript`
+
+To je namjerno kako bi UI pokazivao različite kombinacije stvarnog korištenja.
+
+### Seedani upcoming termini
+
+Za upcoming termine seed radi sljedeće:
+
+- svi psiholozi dobivaju po `1` upcoming appointment
+- većina upcoming termina ima fake Meet link
+- manji dio upcoming termina namjerno ostaje u stanju bez linka / `sync_failed` da se vidi i taj fallback scenarij
+
+### Completed termini
+
+Za completed termine seed radi sljedeće:
+
+- svi psiholozi dobivaju po `1` completed termin
+- dio completed termina ima feedback
+- dio completed termina ima i fake Meet link
+
+### Demo studenti
+
+Seed stvara `4` demo studenta.
+
+Oni nemaju potpuno simetrične profile aktivnosti, nego dijele zahtjeve i termine kroz više psihologa kako bi:
+
+- student dashboard izgledao živo
+- kalendar imao upcoming i prošle termine
+- booking/request history imao više statusa
+- psiholozi vidjeli različite kombinacije podataka
+
+U praksi to znači da će 2-3 demo studenta izgledati bogatije popunjeno od ostalih, što je namjerno i dobro za evaluaciju.
 
 ## Što nakon toga još ručno provjeriti
 
