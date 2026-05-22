@@ -9,11 +9,12 @@ from django.core.files.base import ContentFile
 from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.text import slugify
 
 from accounts.models import Caretaker, CaretakerCV, Certificate, Diploma, HelpCategory, Student
-from appointments.models import AvailabilitySlot, AppointmentRequest, Appointment, AppointmentFeedback
+from appointments.models import AvailabilitySlot, AppointmentRequest, Appointment, AppointmentFeedback, CalendarEventLog
 
 
 FEMALE_FIRST_NAMES = [
@@ -108,6 +109,27 @@ CERTIFICATE_NAMES = [
     "osnove kriznih intervencija",
     "emocionalna regulacija i rad sa stresom",
     "komunikacijske i relacijske vještine u savjetovanju",
+]
+
+REQUEST_MESSAGE_TEMPLATES = [
+    "Već neko vrijeme osjećam pritisak oko fakulteta i teško se smirim nakon obaveza. Volio/la bih razgovarati o tome kako da se lakše nosim s tim.",
+    "U zadnje vrijeme osjećam dosta tjeskobe i teško mi je sabrati misli kada se obaveze nagomilaju. Treba mi razgovor i malo više jasnoće oko onoga što mi se događa.",
+    "Primjećujem da sam stalno napet/a i da mi je teško odvojiti odmor od fakultetskih obaveza. Volio/la bih popričati s psihologom o tome.",
+    "Muči me kombinacija stresa, umora i osjećaja da stalno kasnim za svime. Htio/la bih dobiti sigurniji prostor za razgovor i vidjeti što mi može pomoći.",
+]
+
+AI_SUMMARY_TEMPLATES = [
+    "Student opisuje izražen akademski stres, osjećaj preopterećenosti i potrebu za prvim razgovorom s psihologom.",
+    "Student navodi pojačanu tjeskobu, unutarnji pritisak i poteškoće s nošenjem s obavezama te traži stručnu podršku.",
+    "Studentu se u zadnje vrijeme pojačavaju napetost i umor, želi bolje razumjeti što prolazi i pronaći prikladnu podršku.",
+    "Student opisuje emocionalno opterećenje, pad koncentracije i potrebu za strukturiranim razgovorom sa stručnom osobom.",
+]
+
+FEEDBACK_COMMENTS = [
+    "Nakon razgovora osjećam se mirnije i imam jasniju sliku što me najviše opterećuje. Pomoglo mi je što je razgovor bio smiren i strukturiran.",
+    "Susret mi je pomogao da usporim i malo jasnije sagledam što mi stvara najveći pritisak. Osjećam da imam više prostora za disanje.",
+    "Dobio/la sam više jasnoće i osjećaj da ipak mogu korak po korak riješiti ono što me preplavljuje. Razgovor mi je bio koristan i ugodan.",
+    "Još uvijek procesuiram dojam nakon razgovora, ali osjećam da sam otvorio/la važne teme i da mi je koristilo što sam ih izgovorio/la naglas.",
 ]
 
 WORK_APPROACH_SEQUENCE = [
@@ -321,9 +343,8 @@ class Command(BaseCommand):
             stale_demo_users.delete()
             self.stdout.write(self.style.WARNING(f"Removed {stale_count} stale demo user(s) without a matching current seed profile."))
 
-        if seeded_caretakers:
-            demo_student = demo_students[0] if demo_students else None
-            self._seed_demo_feedback_examples(demo_student, seeded_caretakers, tz)
+        if seeded_caretakers and demo_students:
+            self._seed_demo_activity(demo_students, seeded_caretakers, tz)
 
         self._write_local_credentials_snapshot(
             seeded_caretakers=seeded_caretakers,
@@ -419,75 +440,276 @@ class Command(BaseCommand):
             students.append(student)
         return students
 
-    def _seed_demo_feedback_examples(self, student: Student, caretakers: list[Caretaker], tz: ZoneInfo):
-        if student is None:
-            return
-        if len(caretakers) < 2:
+    def _seed_demo_activity(self, demo_students: list[Student], caretakers: list[Caretaker], tz: ZoneInfo):
+        if not demo_students or not caretakers:
             return
 
-        AppointmentFeedback.objects.filter(student=student).delete()
-        Appointment.objects.filter(student=student).delete()
-        AppointmentRequest.objects.filter(student=student).delete()
+        student_ids = [student.pk for student in demo_students]
+        caretaker_ids = [caretaker.pk for caretaker in caretakers]
+
+        AppointmentFeedback.objects.filter(
+            Q(student_id__in=student_ids) | Q(caretaker_id__in=caretaker_ids)
+        ).delete()
+        Appointment.objects.filter(
+            Q(student_id__in=student_ids) | Q(caretaker_id__in=caretaker_ids)
+        ).delete()
+        AppointmentRequest.objects.filter(
+            Q(student_id__in=student_ids) | Q(caretaker_id__in=caretaker_ids)
+        ).delete()
 
         now_local = timezone.now().astimezone(tz)
-        scenarios = [
-            {
-                "caretaker": caretakers[0],
-                "days_ago": 2,
-                "hour": 14,
-                "message": "Željela bih razgovarati o pritisku oko fakulteta i osjećaju preopterećenosti.",
-                "feedback": None,
-            },
-            {
-                "caretaker": caretakers[1],
-                "days_ago": 6,
-                "hour": 11,
-                "message": "U zadnje vrijeme osjećam dosta napetosti i teško se smirim nakon obaveza.",
-                "feedback": {
-                    "selected_response": AppointmentFeedback.RESPONSE_CALMER,
-                    "comment": "Nakon razgovora osjećam se mirnije i imam jasniji dojam što mi najviše stvara pritisak. Pomoglo mi je što je razgovor bio smiren i što sam dobila nekoliko konkretnih smjernica kako se lakše zaustaviti kad osjetim da me sve preplavljuje.",
-                },
-            },
-        ]
+        future_slot_pool = self._build_future_slot_pool(caretakers)
 
-        for scenario in scenarios:
-            start_local = (now_local - timedelta(days=scenario["days_ago"])).replace(
-                hour=scenario["hour"],
+        for index, caretaker in enumerate(caretakers, start=1):
+            primary_student = demo_students[(index - 1) % len(demo_students)]
+            secondary_student = demo_students[index % len(demo_students)]
+            tertiary_student = demo_students[(index + 1) % len(demo_students)]
+            fallback_student = demo_students[(index + 2) % len(demo_students)]
+
+            main_label = (
+                caretaker.help_categories.filter(parent__isnull=True).values_list("label", flat=True).first()
+                or caretaker.help_categories.values_list("label", flat=True).first()
+                or "Stres i akademski pritisci"
+            )
+
+            pending_count = 3 if index <= 3 else 1
+            for pending_idx in range(pending_count):
+                slot = self._consume_future_slot(future_slot_pool, caretaker.pk, fallback_days=1 + pending_idx + index)
+                self._create_request_only(
+                    student=demo_students[(index + pending_idx) % len(demo_students)],
+                    caretaker=caretaker,
+                    start_utc=slot,
+                    message=self._build_request_message(main_label, index + pending_idx),
+                    status=AppointmentRequest.STATUS_PENDING,
+                    ai_context=self._build_ai_context(main_label, index + pending_idx) if (index + pending_idx) % 2 == 0 else None,
+                )
+
+            slot = self._consume_future_slot(future_slot_pool, caretaker.pk, fallback_days=4 + (index % 4))
+            appointment_status = (
+                Appointment.STATUS_SYNC_FAILED
+                if index % 5 == 0
+                else Appointment.STATUS_CONFIRMED
+            )
+            self._create_request_and_appointment(
+                student=secondary_student,
+                caretaker=caretaker,
+                start_utc=slot,
+                message=self._build_request_message(main_label, index + 20),
+                appointment_status=appointment_status,
+                ai_context=self._build_ai_context(main_label, index + 20) if index % 2 == 1 else None,
+                include_fake_meet=appointment_status == Appointment.STATUS_CONFIRMED,
+                seed_offset=index + 20,
+            )
+
+            past_days = 2 + (index % 8)
+            past_hour = 9 + (index % 7)
+            completed_start_local = (now_local - timedelta(days=past_days)).replace(
+                hour=past_hour,
                 minute=0,
                 second=0,
                 microsecond=0,
             )
-            end_local = start_local + timedelta(hours=1)
-            start_utc = start_local.astimezone(ZoneInfo("UTC"))
-            end_utc = end_local.astimezone(ZoneInfo("UTC"))
-
-            request = AppointmentRequest.objects.create(
-                student=student,
-                caretaker=scenario["caretaker"],
-                requested_start=start_utc,
-                requested_end=end_utc,
-                message=scenario["message"],
-                status=AppointmentRequest.STATUS_ACCEPTED,
-            )
-            appointment = Appointment.objects.create(
-                appointment_request=request,
-                caretaker=scenario["caretaker"],
-                student=student,
-                start=start_utc,
-                end=end_utc,
-                duration_minutes=60,
-                status=Appointment.STATUS_COMPLETED,
+            completed_start_utc = completed_start_local.astimezone(ZoneInfo("UTC"))
+            completed_request, completed_appointment = self._create_request_and_appointment(
+                student=tertiary_student,
+                caretaker=caretaker,
+                start_utc=completed_start_utc,
+                message=self._build_request_message(main_label, index + 40),
+                appointment_status=Appointment.STATUS_COMPLETED,
+                ai_context=self._build_ai_context(main_label, index + 40) if index % 3 != 0 else None,
+                include_fake_meet=index % 2 == 0,
+                seed_offset=index + 40,
             )
 
-            if scenario["feedback"]:
-                AppointmentFeedback.objects.create(
-                    appointment=appointment,
-                    student=student,
-                    caretaker=scenario["caretaker"],
-                    status=AppointmentFeedback.STATUS_SUBMITTED,
-                    selected_response=scenario["feedback"]["selected_response"],
-                    comment=scenario["feedback"]["comment"],
+            should_create_feedback = index % 4 != 0
+            if should_create_feedback:
+                self._create_feedback(
+                    appointment=completed_appointment,
+                    student=tertiary_student,
+                    caretaker=caretaker,
+                    seed_offset=index,
                 )
+
+            if index <= 6:
+                rejected_slot = self._consume_future_slot(future_slot_pool, caretaker.pk, fallback_days=7 + index)
+                self._create_request_only(
+                    student=fallback_student,
+                    caretaker=caretaker,
+                    start_utc=rejected_slot,
+                    message=self._build_request_message(main_label, index + 60),
+                    status=AppointmentRequest.STATUS_REJECTED,
+                    ai_context=self._build_ai_context(main_label, index + 60) if index % 2 == 0 else None,
+                )
+
+        self.stdout.write(self.style.SUCCESS("Demo activity seeded: pending requests, confirmed/completed appointments, feedback and AI context."))
+
+    def _build_future_slot_pool(self, caretakers: list[Caretaker]) -> dict[int, list[datetime]]:
+        now = timezone.now()
+        pool: dict[int, list[datetime]] = {}
+        for caretaker in caretakers:
+            pool[caretaker.pk] = list(
+                AvailabilitySlot.objects.filter(
+                    caretaker=caretaker,
+                    start__gt=now,
+                    is_available=True,
+                )
+                .order_by("start")
+                .values_list("start", flat=True)
+            )
+        return pool
+
+    def _consume_future_slot(self, pool: dict[int, list[datetime]], caretaker_id: int, *, fallback_days: int) -> datetime:
+        slots = pool.get(caretaker_id) or []
+        if slots:
+            return slots.pop(0)
+        return timezone.now() + timedelta(days=fallback_days, hours=10)
+
+    def _build_request_message(self, main_label: str, seed_offset: int) -> str:
+        base = REQUEST_MESSAGE_TEMPLATES[seed_offset % len(REQUEST_MESSAGE_TEMPLATES)]
+        if main_label:
+            return f"{base} Najviše me trenutno opterećuju teme povezane s područjem: {main_label.lower()}."
+        return base
+
+    def _build_ai_context(self, main_label: str, seed_offset: int) -> dict:
+        summary = AI_SUMMARY_TEMPLATES[seed_offset % len(AI_SUMMARY_TEMPLATES)]
+        transcript = [
+            {
+                "sender": "student",
+                "content": self._build_request_message(main_label, seed_offset),
+                "created_at": (timezone.now() - timedelta(minutes=12)).isoformat(),
+                "sequence": 1,
+            },
+            {
+                "sender": "bot",
+                "content": "Hvala ti što si to podijelio/la. Možemo polako proći kroz ono što ti trenutno stvara najviše pritiska i vidjeti kakva bi ti podrška mogla najviše odgovarati.",
+                "created_at": (timezone.now() - timedelta(minutes=11)).isoformat(),
+                "sequence": 2,
+            },
+            {
+                "sender": "student",
+                "content": "Najviše mi se skupljaju napetost, umor i osjećaj da ne uspijevam držati korak sa svime.",
+                "created_at": (timezone.now() - timedelta(minutes=9)).isoformat(),
+                "sequence": 3,
+            },
+            {
+                "sender": "bot",
+                "content": "Izdvojit ću nekoliko psihologa koji rade s ovakvim temama kako bi ti sljedeći korak bio što lakši.",
+                "created_at": (timezone.now() - timedelta(minutes=8)).isoformat(),
+                "sequence": 4,
+            },
+        ]
+        return {
+            "summary": summary,
+            "category": main_label,
+            "crisis_flag": "kriz" in main_label.casefold(),
+            "transcript_shared": seed_offset % 3 == 0,
+            "transcript_snapshot": transcript,
+        }
+
+    def _create_request_only(
+        self,
+        *,
+        student: Student,
+        caretaker: Caretaker,
+        start_utc: datetime,
+        message: str,
+        status: str,
+        ai_context: dict | None = None,
+    ) -> AppointmentRequest:
+        end_utc = start_utc + timedelta(hours=1)
+        return AppointmentRequest.objects.create(
+            student=student,
+            caretaker=caretaker,
+            requested_start=start_utc,
+            requested_end=end_utc,
+            message="" if ai_context else message,
+            ai_summary=(ai_context or {}).get("summary") or None,
+            ai_category=(ai_context or {}).get("category") or None,
+            crisis_flag=bool((ai_context or {}).get("crisis_flag")),
+            ai_transcript_shared=bool((ai_context or {}).get("transcript_shared")),
+            ai_transcript_snapshot=(ai_context or {}).get("transcript_snapshot") if (ai_context or {}).get("transcript_shared") else [],
+            status=status,
+        )
+
+    def _create_request_and_appointment(
+        self,
+        *,
+        student: Student,
+        caretaker: Caretaker,
+        start_utc: datetime,
+        message: str,
+        appointment_status: str,
+        ai_context: dict | None,
+        include_fake_meet: bool,
+        seed_offset: int,
+    ) -> tuple[AppointmentRequest, Appointment]:
+        request = self._create_request_only(
+            student=student,
+            caretaker=caretaker,
+            start_utc=start_utc,
+            message=message,
+            status=AppointmentRequest.STATUS_ACCEPTED,
+            ai_context=ai_context,
+        )
+        appointment = Appointment.objects.create(
+            appointment_request=request,
+            caretaker=caretaker,
+            student=student,
+            start=start_utc,
+            end=start_utc + timedelta(hours=1),
+            duration_minutes=60,
+            status=appointment_status,
+            external_event_id=f"demo-event-{caretaker.pk}-{student.pk}-{seed_offset}",
+            calendar_id="carefree-demo-calendar@local",
+            conference_link=self._fake_meet_link(seed_offset) if include_fake_meet else None,
+            metadata={
+                "seeded_demo": True,
+                "seed_offset": seed_offset,
+            },
+        )
+        CalendarEventLog.objects.create(
+            appointment=appointment,
+            operation=CalendarEventLog.OP_CREATE,
+            external_id=appointment.external_event_id,
+            request_payload={
+                "summary": "Sastanak - CareFree",
+                "description": request.ai_summary or request.message or "",
+            },
+            response_payload={
+                "conference_link": appointment.conference_link,
+                "calendar_id": appointment.calendar_id,
+                "seeded_demo": True,
+            },
+            status="success" if appointment.conference_link else "demo_seeded_without_link",
+            attempts=1,
+            last_attempted_at=timezone.now(),
+        )
+        return request, appointment
+
+    def _create_feedback(self, *, appointment: Appointment, student: Student, caretaker: Caretaker, seed_offset: int):
+        responses = [
+            AppointmentFeedback.RESPONSE_CALMER,
+            AppointmentFeedback.RESPONSE_HELPED,
+            AppointmentFeedback.RESPONSE_CLEARER,
+            AppointmentFeedback.RESPONSE_PROCESSING,
+        ]
+        response = responses[seed_offset % len(responses)]
+        comment = FEEDBACK_COMMENTS[seed_offset % len(FEEDBACK_COMMENTS)]
+        AppointmentFeedback.objects.create(
+            appointment=appointment,
+            student=student,
+            caretaker=caretaker,
+            status=AppointmentFeedback.STATUS_SUBMITTED,
+            selected_response=response,
+            comment=comment,
+        )
+
+    def _fake_meet_link(self, seed_offset: int) -> str:
+        alphabet = "abcdefghijklmnopqrstuvwxyz"
+        first = "".join(alphabet[(seed_offset + i) % len(alphabet)] for i in range(3))
+        second = "".join(alphabet[(seed_offset * 2 + i) % len(alphabet)] for i in range(4))
+        third = "".join(alphabet[(seed_offset * 3 + i) % len(alphabet)] for i in range(3))
+        return f"https://meet.google.com/{first}-{second}-{third}"
 
     def _choose_categories(self, categories, index: int):
         count = 2 + (index % 3)
