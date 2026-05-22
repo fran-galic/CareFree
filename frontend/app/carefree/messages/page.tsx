@@ -113,6 +113,7 @@ export default function ChatPage() {
   const [pageNotice, setPageNotice] = useState<string | null>(null);
   const [showChatInfoNotice, setShowChatInfoNotice] = useState(false);
   const [showChatInfoPopover, setShowChatInfoPopover] = useState(false);
+  const [showEndSessionModal, setShowEndSessionModal] = useState(false);
   const [isRecommendationTransitioning, setIsRecommendationTransitioning] = useState(false);
   const [isSupportClosureTransitioning, setIsSupportClosureTransitioning] = useState(false);
   const [pendingRecommendation, setPendingRecommendation] = useState<PendingRecommendationState | null>(null);
@@ -137,6 +138,20 @@ export default function ChatPage() {
   const isClosureScreen = showRecommendations || showSupportClosure;
   const showChatCard =
     isRecommendationTransitioning || isSupportClosureTransitioning || (!showRecommendations && !showSupportClosure);
+  const recommendActionAvailable = Boolean(
+    session &&
+      session.is_active &&
+      hasStudentMessages &&
+      (
+        session.main_category.trim() ||
+        session.subcategories.length > 0 ||
+        session.status === "recommendation_offered" ||
+        session.status === "recommendation_ready"
+      )
+  );
+  const recommendActionDisabledReason = hasStudentMessages
+    ? "Julija još nema dovoljno informacija da bi smisleno preporučila psihologe."
+    : "Prvo je potrebno poslati barem jednu poruku kako bi Julija imala kontekst razgovora.";
 
   const caretakersPerPage = 3;
   const totalRecommendationPages = Math.max(1, Math.ceil(recommendedCaretakers.length / caretakersPerPage));
@@ -512,30 +527,154 @@ export default function ChatPage() {
   };
 
   const handleEndSession = async () => {
-    if (!confirm("Želiš li završiti razgovor za sada?")) return;
     try {
       const response = await endSession();
       setPageError(null);
       setSummaryId(response.summary_id);
-      setSession((prev) =>
-        prev
-          ? {
-              ...prev,
-              is_active: false,
-              status: response.session_status,
-              closure_reason: "manual",
-            }
-          : prev
-      );
+      setSession(null);
       setIsRecommendationTransitioning(false);
       setIsSupportClosureTransitioning(false);
       setPendingRecommendation(null);
+      setRecommendedCaretakers([]);
+      setRecommendationSummary("");
+      setRecommendationMatchScope(null);
+      setRecommendationPage(0);
+      setMessages([buildWelcomeMessage(uiHint)]);
+      setShowEndSessionModal(false);
       clearActiveChatState();
       clearRecommendationState();
       router.push("/carefree/main");
     } catch (error) {
       console.error("Greška pri završetku:", error);
       setPageError((error as Error).message);
+    }
+  };
+
+  const handleRequestRecommendations = async () => {
+    if (!recommendActionAvailable || isLoading || !session?.is_active) return;
+
+    setShowEndSessionModal(false);
+    setInputValue("");
+    setIsLoading(true);
+    setSendError(null);
+    setPageError(null);
+
+    const recommendationPrompt = "Molim te, preporuči mi psihologe na temelju ovog razgovora.";
+    const tempUserMessage: AssistantMessage = {
+      id: Date.now(),
+      sender: "student",
+      content: recommendationPrompt,
+      created_at: new Date().toISOString(),
+    };
+
+    setMessages((prev) => [...prev, tempUserMessage]);
+
+    try {
+      const response = await sendMessage(recommendationPrompt);
+
+      setMessages((prev) => {
+        const filtered = prev.filter((msg) => msg.id !== tempUserMessage.id);
+        return [...filtered, response.user_message, response.bot_message];
+      });
+
+      const nextSession = session
+        ? {
+            ...session,
+            is_active: !response.session_closed,
+            mode: response.session_mode,
+            status: response.session_status,
+            danger_flag: response.danger_flag,
+            closure_reason: response.session_closed && response.show_recommendations ? "recommendation" : session.closure_reason,
+            main_category: session.main_category,
+            subcategories: session.subcategories,
+          }
+        : null;
+
+      setSession(nextSession);
+      setUiHint(response.ui_hint);
+      setRecommendationMatchScope(response.recommendation_match_scope || null);
+      setRecommendationPage(0);
+      setSummaryId(response.summary_id);
+
+      if (response.session_closed && response.show_recommendations && nextSession) {
+        setIsRecommendationTransitioning(true);
+        setIsSupportClosureTransitioning(false);
+        setRecommendedCaretakers([]);
+        setRecommendationSummary("");
+
+        if (recommendationTransitionTimerRef.current) {
+          clearTimeout(recommendationTransitionTimerRef.current);
+        }
+
+        const nextPendingRecommendation = {
+          session: nextSession,
+          caretakers: response.recommended_caretakers || [],
+          summaryText: response.recommendation_summary || "",
+          summaryId: response.summary_id,
+          messages: [...messages.filter((msg) => msg.id !== tempUserMessage.id), response.user_message, response.bot_message],
+          uiHint: response.ui_hint,
+        };
+        setPendingRecommendation(nextPendingRecommendation);
+        recommendationTransitionTimerRef.current = setTimeout(() => {
+          finalizeRecommendationTransition(nextPendingRecommendation);
+        }, RECOMMENDATION_TRANSITION_MS);
+      } else {
+        setRecommendedCaretakers(response.recommended_caretakers || []);
+        setRecommendationSummary(response.recommendation_summary || "");
+        setIsRecommendationTransitioning(false);
+        setIsSupportClosureTransitioning(false);
+        setPendingRecommendation(null);
+      }
+    } catch (error) {
+      console.error("Greška pri traženju preporuke:", error);
+      setPageError((error as Error).message);
+      setMessages((prev) => prev.filter((msg) => msg.id !== tempUserMessage.id));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleStartNewConversation = async () => {
+    try {
+      if (recommendationTransitionTimerRef.current) {
+        clearTimeout(recommendationTransitionTimerRef.current);
+      }
+      if (supportClosureTransitionTimerRef.current) {
+        clearTimeout(supportClosureTransitionTimerRef.current);
+      }
+
+      setIsLoading(true);
+      setPageError(null);
+      setSendError(null);
+      setShowEndSessionModal(false);
+      pendingJournalHandoffRef.current = null;
+      journalHandoffConsumedRef.current = false;
+
+      if (typeof window !== "undefined") {
+        window.sessionStorage.removeItem(JOURNAL_HANDOFF_STORAGE_KEY);
+        window.sessionStorage.removeItem(JOURNAL_HANDOFF_PRIORITY_KEY);
+      }
+
+      clearActiveChatState();
+      clearRecommendationState();
+
+      const res = await startSession();
+      setSession(res.session);
+      setUiHint(res.ui_hint);
+      setRecommendedCaretakers([]);
+      setRecommendationSummary("");
+      setRecommendationMatchScope(null);
+      setRecommendationPage(0);
+      setSummaryId(null);
+      setIsRecommendationTransitioning(false);
+      setIsSupportClosureTransitioning(false);
+      setPendingRecommendation(null);
+      setMessages(res.messages.length > 0 ? res.messages : [buildWelcomeMessage(res.ui_hint)]);
+    } catch (error) {
+      console.error("Greška pri pokretanju novog razgovora:", error);
+      setPageError((error as Error).message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -633,6 +772,56 @@ export default function ChatPage() {
         <Alert className="mb-4 w-full border-slate-300 bg-slate-50 text-slate-800">
           <AlertDescription>{pageNotice}</AlertDescription>
         </Alert>
+      )}
+
+      {showEndSessionModal && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/40 px-4">
+          <Card className="w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-xl">
+            <CardHeader className="space-y-2">
+              <CardTitle>Završi razgovor</CardTitle>
+              <CardDescription>
+                Odaberi želiš li završiti ovaj razgovor bez spremanja ili iskoristiti dosadašnji kontekst kako bi Julija pokušala izdvojiti psihologe koji bi ti mogli odgovarati.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <Button
+                  type="button"
+                  variant="destructive"
+                  className="w-full"
+                  title="Razgovor se neće spremiti i kasnije ga više neće biti moguće nastaviti."
+                  onClick={handleEndSession}
+                  disabled={isLoading}
+                >
+                  Završi i izbriši razgovor
+                </Button>
+                <p className="text-sm leading-6 text-slate-600">
+                  Ova opcija briše trenutni razgovor. Kasnije ga više neće biti moguće otvoriti ni nastaviti.
+                </p>
+              </div>
+              <div className="space-y-2 rounded-xl border border-slate-200 bg-white p-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleRequestRecommendations}
+                  disabled={!recommendActionAvailable || isLoading}
+                  title={!recommendActionAvailable ? recommendActionDisabledReason : "Julija će na temelju razgovora pokušati izdvojiti psihologe koji bi ti mogli odgovarati."}
+                >
+                  Zatraži preporuku psihologa
+                </Button>
+                <p className="text-sm leading-6 text-slate-600">
+                  Ako Julija već ima dovoljno konteksta, pokušat će na temelju ovog razgovora izdvojiti psihologe koji bi ti mogli odgovarati.
+                </p>
+              </div>
+              <div className="flex justify-end pt-1">
+                <Button type="button" variant="ghost" onClick={() => setShowEndSessionModal(false)}>
+                  Nastavi razgovor
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {showChatInfoNotice && (
@@ -781,9 +970,14 @@ export default function ChatPage() {
             )}
           </CardContent>
           <div className="flex items-center justify-between gap-3 rounded-b-2xl bg-slate-50 px-4 py-4">
-            <Button variant="outline" size="sm" onClick={handleContinueConversation}>
-              Nastavi razgovor s Julijom
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={handleContinueConversation}>
+                Nastavi razgovor s Julijom
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleStartNewConversation}>
+                Započni novi razgovor
+              </Button>
+            </div>
             <div className="flex items-center gap-2">
               {summaryId && (
                 <Button variant="outline" size="sm" onClick={() => router.push(`/carefree/assistant/summary/${summaryId}`)}>
@@ -819,6 +1013,9 @@ export default function ChatPage() {
             </div>
           </CardHeader>
           <div className="flex items-center justify-center gap-2 rounded-b-2xl bg-slate-50 px-4 py-4">
+            <Button variant="outline" size="sm" onClick={handleStartNewConversation}>
+              Započni novi razgovor
+            </Button>
             {summaryId && (
               <Button variant="outline" size="sm" onClick={() => router.push(`/carefree/assistant/summary/${summaryId}`)}>
                 Vidi sažetak razgovora
@@ -889,7 +1086,7 @@ export default function ChatPage() {
             <Button
               variant="destructive"
               size="sm"
-              onClick={handleEndSession}
+              onClick={() => setShowEndSessionModal(true)}
               disabled={!session || sessionClosed || !hasStudentMessages}
             >
               <StopCircle className="w-4 h-4 mr-2" />

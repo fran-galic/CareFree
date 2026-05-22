@@ -10,20 +10,15 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import type { AssistantSummaryDetail } from "@/fetchers/assistant";
-import { BACKEND_URL } from "@/lib/config";
+import { getAssistantSummaryDetail } from "@/fetchers/assistant";
 
-const fetcher = async (url: string) => {
-  const res = await fetch(url, { credentials: "include" });
-  if (!res.ok) throw new Error("Failed to fetch");
-  return res.json();
-};
 
 export default function AssistantSummaryDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = React.use(params);
   const router = useRouter();
   const { data: summary, error, isLoading } = useSWR<AssistantSummaryDetail>(
-    `${BACKEND_URL}/assistant/summaries/${id}`,
-    fetcher,
+    Number.isNaN(Number(id)) ? null : ["assistant-summary-detail", Number(id)],
+    ([, summaryId]) => getAssistantSummaryDetail(summaryId as number),
     {
       revalidateOnFocus: false,
       dedupingInterval: 60000,

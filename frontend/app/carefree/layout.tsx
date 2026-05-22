@@ -144,7 +144,7 @@ export default function CarefreeLayout({
     await authFetch(`${BACKEND_API}/auth/logout/`, { method: "POST", credentials: "include" }, false);
     clearAuthTokens();
     if (typeof window !== "undefined") {
-      window.sessionStorage.removeItem(USER_CACHE_KEY);
+      window.sessionStorage.clear();
     }
     router.push("/accounts/login");
   };

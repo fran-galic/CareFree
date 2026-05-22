@@ -40,6 +40,18 @@ class AssistantFlowTests(APITestCase):
 
         self.assertEqual(response.status_code, 400)
 
+    def test_manual_end_discards_active_session_without_creating_summary(self):
+        self.client.post("/assistant/session/start")
+        self.client.post("/assistant/session/message", {"content": "Danas sam baš pod stresom."}, format="json")
+
+        response = self.client.post("/assistant/session/end")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["session_closed"])
+        self.assertEqual(response.data["summary_id"], None)
+        self.assertFalse(AssistantSession.objects.filter(student=self.student, is_active=True).exists())
+        self.assertEqual(AssistantSessionSummary.objects.filter(student=self.student).count(), 0)
+
     def test_system_prompt_contains_behavior_rules_for_natural_tone(self):
         prompt = build_system_prompt()
 

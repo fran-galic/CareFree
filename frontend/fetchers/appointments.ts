@@ -1,5 +1,6 @@
 import { fetcher } from "./fetcher";
 import { BACKEND_URL } from "@/lib/config";
+import { authFetch } from "@/lib/auth";
 
 const BACKEND_API = BACKEND_URL;
 
@@ -103,7 +104,7 @@ export async function submitAppointmentFeedback(
     | { status: "dismissed" }
     | { status: "submitted"; selected_response: "calmer" | "helped" | "clearer" | "processing"; comment?: string }
 ): Promise<AppointmentFeedback> {
-  const response = await fetch(`${BACKEND_API}/api/appointments/${appointmentId}/feedback/`, {
+  const response = await authFetch(`${BACKEND_API}/api/appointments/${appointmentId}/feedback/`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -124,7 +125,7 @@ export async function submitAppointmentFeedback(
  * Prihvaća zahtjev za termin
  */
 export async function approveRequest(requestId: number): Promise<Appointment> {
-  const response = await fetch(
+  const response = await authFetch(
     `${BACKEND_API}/api/appointments/caretaker/requests/${requestId}/approve/`,
     {
       method: "POST",
@@ -147,7 +148,7 @@ export async function approveRequest(requestId: number): Promise<Appointment> {
  * Odbija zahtjev za termin
  */
 export async function rejectRequest(requestId: number, reason?: string): Promise<void> {
-  const response = await fetch(
+  const response = await authFetch(
     `${BACKEND_API}/api/appointments/caretaker/requests/${requestId}/reject/`,
     {
       method: "POST",
@@ -194,7 +195,7 @@ export async function createAppointmentRequest(data: {
   assistant_summary_id?: number;
   share_full_transcript?: boolean;
 }): Promise<AppointmentRequest> {
-  const response = await fetch(`${BACKEND_API}/api/appointments/request/`, {
+  const response = await authFetch(`${BACKEND_API}/api/appointments/request/`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -226,7 +227,7 @@ export async function createHold(data: {
   slot_start: string;
   hold_minutes?: number;
 }): Promise<{ id: number; start: string; expires_at: string; status: string }> {
-  const response = await fetch(`${BACKEND_API}/api/appointments/holds/`, {
+  const response = await authFetch(`${BACKEND_API}/api/appointments/holds/`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -247,7 +248,7 @@ export async function createHold(data: {
  * Oslobađa hold (cancel privremene rezervacije)
  */
 export async function releaseHold(holdId: number): Promise<void> {
-  const response = await fetch(`${BACKEND_API}/api/appointments/holds/${holdId}/release/`, {
+  const response = await authFetch(`${BACKEND_API}/api/appointments/holds/${holdId}/release/`, {
     method: "POST",
     credentials: "include",
   });

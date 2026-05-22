@@ -119,20 +119,17 @@ class EndSesssionView(APIView):
             )
 
         summary = getattr(session, "summary", None)
-        if summary is None:
-            summary = ensure_summary(
-                session,
-                content=default_manual_summary(session),
-                summary_type=AssistantSessionSummary.SummaryType.SUPPORT,
-            )
-        close_session(session, AssistantSession.ClosureReason.MANUAL)
+        if summary is not None:
+            summary.delete()
+
+        session.delete()
 
         return Response(
             {
                 "message": "Razgovor je uspješno završen.",
                 "session_closed": True,
-                "session_status": session.status,
-                "summary_id": summary.id,
+                "session_status": AssistantSession.SessionStatus.ENDED_MANUAL,
+                "summary_id": None,
             },
             status=status.HTTP_200_OK,
         )

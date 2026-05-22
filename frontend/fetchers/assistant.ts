@@ -1,6 +1,7 @@
 import { BACKEND_URL } from "@/lib/config";
 import { fetcher } from "./fetcher";
 import type { Caretaker } from "./users";
+import { authFetch } from "@/lib/auth";
 
 const BACKEND_API = BACKEND_URL;
 
@@ -133,4 +134,16 @@ export function getAssistantSummaries() {
   return fetcher<AssistantSummaryListItem[]>(`${BACKEND_API}/assistant/summaries`, {
     credentials: "include",
   });
+}
+
+export async function getAssistantSummaryDetail(summaryId: number) {
+  const response = await authFetch(`${BACKEND_API}/assistant/summaries/${summaryId}`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error("Greška pri dohvaćanju detalja sesije.");
+  }
+
+  return (await response.json()) as AssistantSummaryDetail;
 }
