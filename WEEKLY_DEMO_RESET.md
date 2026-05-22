@@ -212,6 +212,106 @@ Važno:
 generated/LOCAL_DEMO_CREDENTIALS.md
 ```
 
+## Konkretni demo računi
+
+### Demo psiholozi
+
+Svi koriste lozinku:
+
+```text
+DemoPsiholog123!
+```
+
+- `filip.horvat.01@demo.carefree.local`
+  - 3 pending zahtjeva, 2 accepted zahtjeva, 1 rejected zahtjev
+  - 1 completed termin, 1 feedback
+  - 3 AI sažetka, 1 transcript, 1 fake Meet link
+- `ivan.kovacevic.02@demo.carefree.local`
+  - 3 pending zahtjeva, 2 accepted zahtjeva, 1 rejected zahtjev
+  - 1 completed termin, 1 feedback
+  - 4 AI sažetka, 1 transcript, 2 fake Meet linka
+- `luka.babic.03@demo.carefree.local`
+  - 3 pending zahtjeva, 2 accepted zahtjeva, 1 rejected zahtjev
+  - 1 completed termin, 1 feedback
+  - 2 AI sažetka, 0 transcripta, 1 fake Meet link
+- `ana.maric.04@demo.carefree.local`
+  - 1 pending zahtjev, 2 accepted zahtjeva, 1 rejected zahtjev
+  - 1 completed termin, bez feedbacka
+  - 3 AI sažetka, 0 transcripta, 2 fake Meet linka
+- `petra.peric.05@demo.carefree.local`
+  - 1 pending zahtjev, 2 accepted zahtjeva, 1 rejected zahtjev
+  - 1 completed termin, 1 feedback
+  - 2 AI sažetka, 1 transcript, bez fake Meet linka
+- `iva.novak.06@demo.carefree.local`
+  - 1 pending zahtjev, 2 accepted zahtjeva, 1 rejected zahtjev
+  - 1 completed termin, 1 feedback
+  - 2 AI sažetka, 2 transcripta, 2 fake Meet linka
+- `marija.bozic.07@demo.carefree.local`
+  - 1 pending zahtjev, 2 accepted zahtjeva
+  - 1 completed termin, 1 feedback
+  - 2 AI sažetka, 1 transcript, 1 fake Meet link
+- `katarina.juric.08@demo.carefree.local`
+  - 1 pending zahtjev, 2 accepted zahtjeva
+  - 1 completed termin, bez feedbacka
+  - 2 AI sažetka, 1 transcript, 2 fake Meet linka
+- `lucija.knezevic.09@demo.carefree.local`
+  - 1 pending zahtjev, 2 accepted zahtjeva
+  - 1 completed termin, 1 feedback
+  - 1 AI sažetak, 0 transcripta, 1 fake Meet link
+- `ivana.tomic.10@demo.carefree.local`
+  - 1 pending zahtjev, 2 accepted zahtjeva
+  - 1 completed termin, 1 feedback
+  - 2 AI sažetka, 0 transcripta, 1 fake Meet link
+- `matea.pavlovic.11@demo.carefree.local`
+  - 1 pending zahtjev, 2 accepted zahtjeva
+  - 1 completed termin, 1 feedback
+  - 2 AI sažetka, 1 transcript, 1 fake Meet link
+- `tea.milic.12@demo.carefree.local`
+  - 1 pending zahtjev, 2 accepted zahtjeva
+  - 1 completed termin, bez feedbacka
+  - 1 AI sažetak, 1 transcript, 2 fake Meet linka
+- `nika.grgic.13@demo.carefree.local`
+  - 1 pending zahtjev, 2 accepted zahtjeva
+  - 1 completed termin, 1 feedback
+  - 2 AI sažetka, 1 transcript, 1 fake Meet link
+- `tena.lovric.14@demo.carefree.local`
+  - 1 pending zahtjev, 2 accepted zahtjeva
+  - 1 completed termin, 1 feedback
+  - 2 AI sažetka, 1 transcript, 2 fake Meet linka
+- `dora.blazevic.15@demo.carefree.local`
+  - 1 pending zahtjev, 2 accepted zahtjeva
+  - 1 completed termin, 1 feedback
+  - 1 AI sažetak, 0 transcripta, bez fake Meet linka
+
+### Demo studenti
+
+Svi koriste lozinku:
+
+```text
+DemoStudent123!
+```
+
+- `demo.student@carefree.local`
+  - 14 requestova ukupno
+  - 5 pending, 7 accepted, 2 rejected
+  - 4 completed termina, 4 feedback zapisa
+  - 9 AI sažetaka, 3 transcripta, 3 fake Meet linka
+- `ivan.student@carefree.local`
+  - 14 requestova ukupno
+  - 5 pending, 8 accepted, 1 rejected
+  - 4 completed termina, 4 feedback zapisa
+  - 9 AI sažetaka, 2 transcripta, 3 fake Meet linka
+- `lea.student@carefree.local`
+  - 13 requestova ukupno
+  - 5 pending, 7 accepted, 1 rejected
+  - 3 completed termina, bez feedbacka
+  - 6 AI sažetaka, 3 transcripta, 6 fake Meet linkova
+- `petra.student@carefree.local`
+  - 16 requestova ukupno
+  - 6 pending, 8 accepted, 2 rejected
+  - 4 completed termina, 4 feedback zapisa
+  - 7 AI sažetaka, 3 transcripta, 7 fake Meet linkova
+
 ## Što seed točno ugradi u demo profile
 
 ### Svi demo psiholozi
