@@ -214,6 +214,12 @@ generated/LOCAL_DEMO_CREDENTIALS.md
 
 ## Konkretni demo računi
 
+Napomena:
+
+- brojke ispod vrijede za čisti weekly reset odmah nakon `flush + migrate + seed_help_categories + seed_demo_caretakers`
+- ako nakon toga ručno zakazuješ dodatne stvarne termine ili radiš dodatne testove, ove brojke se mogu promijeniti
+- ovaj popis služi kao referenca za očekivano početno stanje demo okruženja
+
 ### Demo psiholozi
 
 Svi koriste lozinku:
