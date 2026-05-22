@@ -680,7 +680,7 @@ class Command(BaseCommand):
                 "calendar_id": appointment.calendar_id,
                 "seeded_demo": True,
             },
-            status="success" if appointment.conference_link else "demo_seeded_without_link",
+            status="success" if appointment.conference_link else "seeded_no_link",
             attempts=1,
             last_attempted_at=timezone.now(),
         )
