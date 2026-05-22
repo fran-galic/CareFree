@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useState } from 'react';
 import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
-import { getAssistantSummaries, type AssistantSummaryListItem } from "@/fetchers/assistant";
+import { getAssistantSummaries, getAssistantSummaryDetail, type AssistantSummaryListItem } from "@/fetchers/assistant";
 import { searchCaretakerById, type Caretaker } from "@/fetchers/users";
 import { getCaretakerSlots, createAppointmentRequest, Slot } from "@/fetchers/appointments";
 import { readSessionCache, writeSessionCache } from "@/lib/session-cache";
@@ -76,6 +76,33 @@ function buildSuggestedBookingNote(summary: AssistantSummaryListItem | null | un
   return summaryText;
 }
 
+function normalizeDetailAsListItem(
+  detail:
+    | {
+        id: number;
+        summary_text: string;
+        summary_type: "support" | "recommendation" | "crisis";
+        main_category_code?: string;
+        main_category: string;
+        subcategory_codes?: string[];
+        subcategories: string[];
+      }
+    | null
+    | undefined
+): AssistantSummaryListItem | null {
+  if (!detail) return null;
+  return {
+    id: detail.id,
+    created_at: "",
+    summary_text: detail.summary_text,
+    summary_type: detail.summary_type,
+    main_category_code: detail.main_category_code || "",
+    main_category: detail.main_category,
+    subcategory_codes: detail.subcategory_codes || [],
+    subcategories: detail.subcategories || [],
+  };
+}
+
 export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: string }> }) {
   // Otpakiravanje parametara (Next.js 15 pattern)
   const { id } = React.use(params);
@@ -123,6 +150,15 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
       dedupingInterval: 10 * 60 * 1000,
     }
   );
+
+  const { data: assistantSummaryDetail } = useSWR(
+    assistantSummaryId ? ["assistant-summary-detail", assistantSummaryId] : null,
+    ([, summaryId]) => getAssistantSummaryDetail(summaryId),
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 10 * 60 * 1000,
+    }
+  );
   
   // State za formu
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
@@ -164,11 +200,15 @@ export default function ShowCaretakerInfo({ params }: { params: Promise<{ id: st
   }, []);
 
   const selectedAssistantSummary = React.useMemo(() => {
-    if (!assistantSummaryId || !assistantSummaries?.length) {
+    if (!assistantSummaryId) {
       return null;
     }
-    return assistantSummaries.find((summary) => summary.id === assistantSummaryId) ?? null;
-  }, [assistantSummaries, assistantSummaryId]);
+    const fromList = assistantSummaries?.find((summary) => summary.id === assistantSummaryId) ?? null;
+    if (fromList) {
+      return fromList;
+    }
+    return normalizeDetailAsListItem(assistantSummaryDetail);
+  }, [assistantSummaries, assistantSummaryDetail, assistantSummaryId]);
   const suggestedBookingNote = React.useMemo(
     () => buildSuggestedBookingNote(selectedAssistantSummary),
     [selectedAssistantSummary]

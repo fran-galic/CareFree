@@ -1,5 +1,6 @@
 import { fetcher } from "./fetcher";
 import { BACKEND_URL } from "@/lib/config";
+import { authFetch } from "@/lib/auth";
 
 const BACKEND_API = BACKEND_URL;
 
@@ -120,7 +121,7 @@ export async function uploadCV(file: File): Promise<{ message: string }> {
   const formData = new FormData();
   formData.append('file', file);
 
-  const response = await fetch(`${BACKEND_API}/auth/caretaker/cv/`, {
+  const response = await authFetch(`${BACKEND_API}/auth/caretaker/cv/`, {
     method: 'POST',
     credentials: 'include',
     body: formData,
@@ -135,7 +136,7 @@ export async function uploadCV(file: File): Promise<{ message: string }> {
 }
 
 export async function deleteCV(): Promise<{ message: string }> {
-  const response = await fetch(`${BACKEND_API}/auth/caretaker/cv/`, {
+  const response = await authFetch(`${BACKEND_API}/auth/caretaker/cv/`, {
     method: 'DELETE',
     credentials: 'include',
   });
@@ -153,7 +154,7 @@ export async function uploadDiploma(file: File): Promise<{ message: string }> {
   const formData = new FormData();
   formData.append('file', file);
 
-  const response = await fetch(`${BACKEND_API}/auth/caretaker/diploma/`, {
+  const response = await authFetch(`${BACKEND_API}/auth/caretaker/diploma/`, {
     method: 'POST',
     credentials: 'include',
     body: formData,
@@ -168,7 +169,7 @@ export async function uploadDiploma(file: File): Promise<{ message: string }> {
 }
 
 export async function deleteDiploma(id: number): Promise<{ message: string }> {
-  const response = await fetch(`${BACKEND_API}/auth/caretaker/diploma/${id}/`, {
+  const response = await authFetch(`${BACKEND_API}/auth/caretaker/diploma/${id}/`, {
     method: 'DELETE',
     credentials: 'include',
   });
@@ -186,7 +187,7 @@ export async function uploadCertificate(file: File): Promise<{ message: string }
   const formData = new FormData();
   formData.append('file', file);
 
-  const response = await fetch(`${BACKEND_API}/auth/caretaker/certificate/`, {
+  const response = await authFetch(`${BACKEND_API}/auth/caretaker/certificate/`, {
     method: 'POST',
     credentials: 'include',
     body: formData,
@@ -201,7 +202,7 @@ export async function uploadCertificate(file: File): Promise<{ message: string }
 }
 
 export async function deleteCertificate(id: number): Promise<{ message: string }> {
-  const response = await fetch(`${BACKEND_API}/auth/caretaker/certificate/${id}/`, {
+  const response = await authFetch(`${BACKEND_API}/auth/caretaker/certificate/${id}/`, {
     method: 'DELETE',
     credentials: 'include',
   });
@@ -219,7 +220,7 @@ export async function uploadCaretakerImage(file: File): Promise<{ message: strin
   const formData = new FormData();
   formData.append('image', file);
 
-  const response = await fetch(`${BACKEND_API}/auth/caretaker/image/`, {
+  const response = await authFetch(`${BACKEND_API}/auth/caretaker/image/`, {
     method: 'POST',
     credentials: 'include',
     body: formData,
@@ -234,7 +235,7 @@ export async function uploadCaretakerImage(file: File): Promise<{ message: strin
 }
 
 export async function deleteCaretakerImage(): Promise<{ message: string }> {
-  const response = await fetch(`${BACKEND_API}/auth/caretaker/image/`, {
+  const response = await authFetch(`${BACKEND_API}/auth/caretaker/image/`, {
     method: 'DELETE',
     credentials: 'include',
   });
@@ -249,7 +250,7 @@ export async function deleteCaretakerImage(): Promise<{ message: string }> {
 
 // Ažuriranje caretaker profila
 export async function updateCaretakerProfile(data: Partial<CaretakerProfile>): Promise<CaretakerProfile> {
-  const response = await fetch(`${BACKEND_API}/auth/caretaker/register/`, {
+  const response = await authFetch(`${BACKEND_API}/auth/caretaker/register/`, {
     method: 'POST',
     credentials: 'include',
     headers: {

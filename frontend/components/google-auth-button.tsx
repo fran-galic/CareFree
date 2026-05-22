@@ -3,7 +3,7 @@
 import { useGoogleLogin } from '@react-oauth/google'
 import { useState } from 'react'
 import { API_URL, GOOGLE_CLIENT_ID } from '@/lib/config'
-import { storeAuthTokens } from '@/lib/auth'
+import { clearAuthTokens, storeAuthTokens } from '@/lib/auth'
 
 interface GoogleAuthButtonProps {
   text?: string
@@ -37,6 +37,10 @@ export default function GoogleAuthButton({
         const data = await response.json()
 
         if (response.ok) {
+          clearAuthTokens()
+          if (typeof window !== "undefined") {
+            window.sessionStorage.clear()
+          }
           storeAuthTokens(data.access, data.refresh)
           const isOnboarding = data.auth_flow === "complete_registration"
           const baseTarget = isOnboarding
