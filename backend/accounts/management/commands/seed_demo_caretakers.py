@@ -541,6 +541,8 @@ class Command(BaseCommand):
                     ai_context=self._build_ai_context(main_label, index + 60) if index % 2 == 0 else None,
                 )
 
+            self._ensure_transcript_for_caretaker(caretaker)
+
         self.stdout.write(self.style.SUCCESS("Demo activity seeded: pending requests, confirmed/completed appointments, feedback and AI context."))
 
     def _build_future_slot_pool(self, caretakers: list[Caretaker]) -> dict[int, list[datetime]]:
@@ -703,6 +705,50 @@ class Command(BaseCommand):
             selected_response=response,
             comment=comment,
         )
+
+    def _ensure_transcript_for_caretaker(self, caretaker: Caretaker):
+        if AppointmentRequest.objects.filter(caretaker=caretaker, ai_transcript_shared=True).exists():
+            return
+
+        request = (
+            AppointmentRequest.objects.filter(caretaker=caretaker)
+            .exclude(ai_summary__isnull=True)
+            .exclude(ai_summary="")
+            .order_by("requested_start", "created_at")
+            .first()
+        )
+        if request is None:
+            return
+
+        transcript = [
+            {
+                "sender": "student",
+                "content": request.message or "Student opisuje što ga trenutno najviše opterećuje i traži razgovor s psihologom.",
+                "created_at": (timezone.now() - timedelta(minutes=12)).isoformat(),
+                "sequence": 1,
+            },
+            {
+                "sender": "bot",
+                "content": "Hvala ti što si to podijelio/la. Mogu ti pomoći da iz ovoga izdvojimo prvi sljedeći korak i pronađemo prikladnu podršku.",
+                "created_at": (timezone.now() - timedelta(minutes=11)).isoformat(),
+                "sequence": 2,
+            },
+            {
+                "sender": "student",
+                "content": "Volio/la bih pronaći psihologa s kojim mogu mirno proći kroz ovo i malo jasnije razumjeti što mi se događa.",
+                "created_at": (timezone.now() - timedelta(minutes=9)).isoformat(),
+                "sequence": 3,
+            },
+            {
+                "sender": "bot",
+                "content": "U redu, izdvojit ću nekoliko psihologa koji bi ti po temama razgovora mogli odgovarati.",
+                "created_at": (timezone.now() - timedelta(minutes=8)).isoformat(),
+                "sequence": 4,
+            },
+        ]
+        request.ai_transcript_shared = True
+        request.ai_transcript_snapshot = transcript
+        request.save(update_fields=["ai_transcript_shared", "ai_transcript_snapshot"])
 
     def _fake_meet_link(self, seed_offset: int) -> str:
         alphabet = "abcdefghijklmnopqrstuvwxyz"
