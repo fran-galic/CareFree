@@ -285,14 +285,14 @@ export function StudentDashboard({ firstName }: StudentDashboardProps) {
   };
 
   return (
-    <div className="container mx-auto max-w-6xl space-y-8 p-6 pb-16 animate-in fade-in duration-500">
+    <div className="container mx-auto max-w-6xl space-y-6 px-4 py-4 pb-16 sm:space-y-8 sm:px-6 sm:py-6 animate-in fade-in duration-500">
       
       {/* 1. POZDRAVNA SEKCIJA */}
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl md:text-4xl font-bold text-primary tracking-tight">
+        <h1 className="text-2xl font-bold tracking-tight text-primary sm:text-3xl md:text-4xl">
           Bok, {firstName}! 👋
         </h1>
-        <p className="text-muted-foreground text-lg">
+        <p className="text-base text-muted-foreground sm:text-lg">
           Dobrodošao/la u svoj sigurni kutak. Kako ti možemo pomoći danas?
         </p>
       </div>
@@ -411,16 +411,16 @@ export function StudentDashboard({ firstName }: StudentDashboardProps) {
         <Card className="md:col-span-2 bg-gradient-to-br from-primary/10 via-primary/5 to-background border-primary/20 shadow-md hover:shadow-lg transition-all cursor-pointer group"
               onClick={() => router.push("/carefree/messages")}>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-2xl text-primary">
+            <CardTitle className="flex items-center gap-2 text-xl text-primary sm:text-2xl">
               <MessageCircle className="w-8 h-8" />
               Julija - CareFree AI asistent
             </CardTitle>
-            <CardDescription className="text-base">
+            <CardDescription className="text-sm sm:text-base">
               Topao prvi razgovor, više jasnoće i nježno usmjeravanje prema podršci.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-lg font-medium text-foreground/80 leading-relaxed">
+            <p className="text-base font-medium leading-relaxed text-foreground/80 sm:text-lg">
               "Ako ti je svega previše ili ne znaš odakle krenuti, mogu ti pomoći da mirnije sagledaš što prolaziš i da lakše dođeš do podrške koja ti najviše odgovara."
             </p>
           </CardContent>
@@ -467,10 +467,10 @@ export function StudentDashboard({ firstName }: StudentDashboardProps) {
               )}
             </CardHeader>
             {isAppointmentExpanded && (
-              <div className="px-6 pt-2 pb-2 flex gap-2 border-b bg-background animate-in fade-in slide-in-from-top-2 duration-500">
+              <div className="flex gap-2 overflow-x-auto border-b bg-background px-4 pt-2 pb-2 sm:px-6 animate-in fade-in slide-in-from-top-2 duration-500">
                 <button
                   onClick={() => setSelectedTab('appointments')}
-                  className={`text-sm font-medium pb-2 px-2 transition-colors ${
+                  className={`shrink-0 px-2 pb-2 text-sm font-medium transition-colors ${
                     selectedTab === 'appointments'
                       ? 'text-primary border-b-2 border-primary'
                       : 'text-muted-foreground hover:text-foreground'
@@ -480,7 +480,7 @@ export function StudentDashboard({ firstName }: StudentDashboardProps) {
                 </button>
                 <button
                   onClick={() => setSelectedTab('requests')}
-                  className={`text-sm font-medium pb-2 px-2 transition-colors ${
+                  className={`shrink-0 px-2 pb-2 text-sm font-medium transition-colors ${
                     selectedTab === 'requests'
                       ? 'text-primary border-b-2 border-primary'
                       : 'text-muted-foreground hover:text-foreground'

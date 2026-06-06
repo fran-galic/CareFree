@@ -101,9 +101,23 @@ export default function CalendarPage() {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [hoveredEvent, setHoveredEvent] = useState<CalendarEvent | null>(null);
   const [hoverPosition, setHoverPosition] = useState<{ top: number; left: number } | null>(null);
+  const [isCompactViewport, setIsCompactViewport] = useState(false);
   const hoveredAnchorRef = useRef<HTMLElement | null>(null);
   const hoverCardRef = useRef<HTMLDivElement | null>(null);
   const hoverTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia("(max-width: 767px)");
+    const syncViewport = () => setIsCompactViewport(mediaQuery.matches);
+    syncViewport();
+    mediaQuery.addEventListener("change", syncViewport);
+
+    return () => mediaQuery.removeEventListener("change", syncViewport);
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined" || appointments.length === 0) {
@@ -377,19 +391,19 @@ export default function CalendarPage() {
     );
 
     return (
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="flex gap-2">
+      <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap gap-2">
           <ViewBtn v="month" text="Mjesec" />
           <ViewBtn v="week" text="Tjedan" />
           <ViewBtn v="day" text="Dan" />
           <ViewBtn v="agenda" text="Agenda" />
         </div>
 
-        <div className="flex-1 text-center font-semibold">
+        <div className="text-left font-semibold sm:flex-1 sm:text-center">
           {label}
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 sm:justify-end">
           <button type="button" disabled={!canGoPrev} className="px-3 py-1 rounded border hover:bg-muted transition disabled:cursor-not-allowed disabled:opacity-40" onClick={() => onNavigate("PREV")}>
             <ChevronLeft />
           </button>
@@ -431,6 +445,9 @@ export default function CalendarPage() {
   }, []);
 
   const handleEventMouseEnter = useCallback((event: CalendarEvent, target: HTMLElement) => {
+    if (typeof window !== "undefined" && window.matchMedia("(hover: none)").matches) {
+      return;
+    }
     clearHoverTimeout();
     hoveredAnchorRef.current = target;
     setHoveredEvent(event);
@@ -552,11 +569,11 @@ export default function CalendarPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto space-y-6 px-4 py-4 sm:px-6 sm:py-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl text-primary font-bold">Moj Kalendar</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl text-primary font-bold sm:text-3xl">Moj Kalendar</h1>
+          <p className="text-sm text-muted-foreground sm:text-base">
             Pregled svih zakazanih termina
           </p>
         </div>
@@ -573,8 +590,8 @@ export default function CalendarPage() {
             </CardHeader>
             <CardContent>
               <div
-                className="relative rounded-lg bg-white p-4"
-                style={{ height: "600px" }}
+                className="relative rounded-lg bg-white p-2 sm:p-4"
+                style={{ height: isCompactViewport ? "540px" : "600px" }}
               >
                 {view === "agenda" ? (
                   <div className="flex h-full flex-col">
@@ -594,7 +611,7 @@ export default function CalendarPage() {
                           </p>
                         </div>
                       ) : (
-                        <div className="grid grid-cols-[1.05fr_0.8fr_1.4fr] border-b border-border/80 bg-muted/30 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        <div className="hidden grid-cols-[1.05fr_0.8fr_1.4fr] border-b border-border/80 bg-muted/30 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:grid">
                           <div>Datum</div>
                           <div>Vrijeme</div>
                           <div>Psiholog</div>
@@ -605,7 +622,7 @@ export default function CalendarPage() {
                           key={event.id}
                           type="button"
                           onClick={() => handleSelectEvent(event)}
-                          className="grid w-full grid-cols-[1.05fr_0.8fr_1.4fr] items-center gap-3 border-b border-border/70 px-4 py-4 text-left transition hover:bg-primary/5"
+                          className="grid w-full grid-cols-1 gap-2 border-b border-border/70 px-4 py-4 text-left transition hover:bg-primary/5 sm:grid-cols-[1.05fr_0.8fr_1.4fr] sm:items-center sm:gap-3"
                         >
                           <div className="text-sm font-medium text-foreground">
                             {format(event.start, "dd.MM.yyyy", { locale: hr })}
@@ -621,52 +638,56 @@ export default function CalendarPage() {
                     </div>
                   </div>
                 ) : (
-                  <Calendar
-                    localizer={localizer}
-                    events={events}
-                    titleAccessor={(event) => getEventDisplayTitle(event as CalendarEvent)}
-                    startAccessor="start"
-                    endAccessor="end"
-                    style={{ height: "100%" }}
-                    view={view}
-                    onView={handleViewChange}
-                    date={date}
-                    onNavigate={handleNavigate}
-                    onSelectEvent={handleSelectEvent}
-                    popup
-                    eventPropGetter={eventStyleGetter}
-                    dayPropGetter={dayPropGetter}
-                    slotPropGetter={slotPropGetter}
-                    min={new Date(0, 0, 0, WORKDAY_START_HOUR, 0, 0)}
-                    max={new Date(0, 0, 0, WORKDAY_END_HOUR, 0, 0)}
-                    messages={{
-                      next: "Sljedeći",
-                      previous: "Prethodni",
-                      today: "Danas",
-                      month: "Mjesec",
-                      week: "Tjedan",
-                      day: "Dan",
-                      agenda: "Agenda",
-                      date: "Datum",
-                      time: "Vrijeme",
-                      event: "Događaj",
-                      noEventsInRange: "Nema događaja u ovom periodu.",
-                      showMore: (total) => `+ još ${total}`,
-                    }}
-                    components={{
-                      event: CalendarEventContent,
-                      header: CalendarHeaderCell,
-                      toolbar: (props: ToolbarProps<CalendarEvent, object>) => (
-                        <CalendarToolbar
-                          view={props.view}
-                          date={props.date}
-                          onNavigate={props.onNavigate}
-                          onView={props.onView}
-                        />
-                      ),
-                    }}
-                    culture="hr"
-                  />
+                  <div className="h-full overflow-x-auto">
+                    <div className="h-full min-w-[720px] md:min-w-0">
+                      <Calendar
+                        localizer={localizer}
+                        events={events}
+                        titleAccessor={(event) => getEventDisplayTitle(event as CalendarEvent)}
+                        startAccessor="start"
+                        endAccessor="end"
+                        style={{ height: "100%" }}
+                        view={view}
+                        onView={handleViewChange}
+                        date={date}
+                        onNavigate={handleNavigate}
+                        onSelectEvent={handleSelectEvent}
+                        popup
+                        eventPropGetter={eventStyleGetter}
+                        dayPropGetter={dayPropGetter}
+                        slotPropGetter={slotPropGetter}
+                        min={new Date(0, 0, 0, WORKDAY_START_HOUR, 0, 0)}
+                        max={new Date(0, 0, 0, WORKDAY_END_HOUR, 0, 0)}
+                        messages={{
+                          next: "Sljedeći",
+                          previous: "Prethodni",
+                          today: "Danas",
+                          month: "Mjesec",
+                          week: "Tjedan",
+                          day: "Dan",
+                          agenda: "Agenda",
+                          date: "Datum",
+                          time: "Vrijeme",
+                          event: "Događaj",
+                          noEventsInRange: "Nema događaja u ovom periodu.",
+                          showMore: (total) => `+ još ${total}`,
+                        }}
+                        components={{
+                          event: CalendarEventContent,
+                          header: CalendarHeaderCell,
+                          toolbar: (props: ToolbarProps<CalendarEvent, object>) => (
+                            <CalendarToolbar
+                              view={props.view}
+                              date={props.date}
+                              onNavigate={props.onNavigate}
+                              onView={props.onView}
+                            />
+                          ),
+                        }}
+                        culture="hr"
+                      />
+                    </div>
+                  </div>
                 )}
 
               </div>

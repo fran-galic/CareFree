@@ -196,14 +196,14 @@ export default function SearchPageClient() {
   };
 
   return (
-    <div className="container mx-auto min-h-screen max-w-7xl py-14 pr-4">
+    <div className="container mx-auto min-h-screen max-w-7xl px-4 py-10 sm:py-14">
       
       {/* HEADER SEKCIJA */}
-      <div className="mb-16 space-y-8 text-center">
-        <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight text-primary">
+      <div className="mb-12 space-y-6 text-center sm:mb-16 sm:space-y-8">
+        <h1 className="text-4xl font-extrabold tracking-tight text-primary sm:text-5xl md:text-6xl">
             Pronađi svog psihologa
         </h1>
-        <p className="text-muted-foreground text-lg max-w-3xl mx-auto">
+        <p className="mx-auto max-w-3xl text-base text-muted-foreground sm:text-lg">
             Pretražite našu bazu licenciranih psihologa i pronađite osobu uz koju se osjećate sigurno, viđeno i podržano.
             <button
               type="button"
@@ -222,8 +222,8 @@ export default function SearchPageClient() {
         </div>
       </div>
 
-      <Card className="mb-20 overflow-hidden border-primary/15 bg-gradient-to-r from-primary/8 via-background to-amber-50/70 shadow-sm">
-        <div className="grid gap-6 px-6 py-6 md:grid-cols-[1.4fr_0.9fr] md:px-8">
+      <Card className="mb-14 overflow-hidden border-primary/15 bg-gradient-to-r from-primary/8 via-background to-amber-50/70 shadow-sm sm:mb-20">
+        <div className="grid gap-6 px-4 py-5 sm:px-6 sm:py-6 md:grid-cols-[1.4fr_0.9fr] md:px-8">
           <div className="space-y-3">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
               Julija može pomoći

@@ -162,9 +162,9 @@ export default function JournalPage() {
     <div className="container mx-auto max-w-5xl px-4 py-8 pb-10">
       
       {/* HEADER */}
-      <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-primary flex items-center gap-2">
+          <h1 className="flex items-center gap-2 text-2xl font-bold text-primary sm:text-3xl">
             <BookOpen className="h-8 w-8" />
             Moj Dnevnik
           </h1>
@@ -172,7 +172,7 @@ export default function JournalPage() {
             Privatno mjesto za tvoje misli i osjećaje. Enkriptirano i sigurno.
           </p>
         </div>
-        <div className="flex justify-between gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:justify-between">
           <Button onClick={() => setIsCreating(false)} 
           className={`gap-2 ${
                 !isCreating
@@ -234,7 +234,7 @@ export default function JournalPage() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleCreate} className="space-y-4">
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
                         <Label htmlFor="title">Naslov</Label>
                         <Input 

@@ -804,6 +804,27 @@ body::-webkit-scrollbar {
   font-family: inherit;
 }
 
+@media (max-width: 767px) {
+  .rbc-calendar {
+    min-width: 720px;
+  }
+
+  .rbc-header {
+    padding: 10px 4px;
+    font-size: 0.8rem;
+  }
+
+  .calendar-header-cell {
+    margin: -8px -4px;
+    padding: 8px 4px;
+  }
+
+  .rbc-date-cell {
+    padding-right: 4px;
+    font-size: 0.8rem;
+  }
+}
+
 .rbc-header {
   padding: 12px 6px;
   font-weight: 600;
