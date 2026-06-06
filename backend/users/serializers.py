@@ -142,10 +142,11 @@ class MeSerializer(BaseUserSerializer):
     student = serializers.SerializerMethodField()
     auth_provider = serializers.SerializerMethodField()
     needs_onboarding = serializers.SerializerMethodField()
+    onboarding_token = serializers.SerializerMethodField()
 
     class Meta(BaseUserSerializer.Meta):
         model = User
-        fields = BaseUserSerializer.Meta.fields + ["caretaker", "student", "auth_provider", "needs_onboarding"]
+        fields = BaseUserSerializer.Meta.fields + ["caretaker", "student", "auth_provider", "needs_onboarding", "onboarding_token"]
         read_only_fields = BaseUserSerializer.Meta.read_only_fields
 
     def get_student(self, obj):
@@ -161,6 +162,18 @@ class MeSerializer(BaseUserSerializer):
 
     def get_needs_onboarding(self, obj):
         return not bool(getattr(obj, "role", None))
+
+    def get_onboarding_token(self, obj):
+        if getattr(obj, "role", None):
+            return None
+        if not getattr(obj, "google_sub", None):
+            return None
+        if not getattr(obj, "email", None):
+            return None
+
+        from accounts.views import _build_registration_token
+
+        return _build_registration_token(obj.email)
 
 
 class UpdateUserSerializer(serializers.ModelSerializer):

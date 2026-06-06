@@ -33,7 +33,7 @@ class RegistrationConfirmSerializer(serializers.Serializer):
     first_name = serializers.CharField(max_length=150)
     last_name = serializers.CharField(max_length=150)
     role = serializers.ChoiceField(choices=(('student', 'student'), ('caretaker', 'caretaker')))
-    password = serializers.CharField(write_only=True, min_length=6)
+    password = serializers.CharField(write_only=True, min_length=6, required=False, allow_blank=True)
 
 
 

@@ -37,6 +37,7 @@ export function ConfirmRegistrationForm({
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const requiresPassword = !isGoogleOnboarding;
 
   const completeStudentProfile = async (userId: number | undefined, studentData: Record<string, unknown>) => {
     if (!userId || Object.keys(studentData).length === 0) {
@@ -93,7 +94,12 @@ export function ConfirmRegistrationForm({
     setError("");
 
     
-    if (!formData.first_name || !formData.last_name || !formData.password || !formData.role) {
+    if (!formData.first_name || !formData.last_name || !formData.role) {
+      setError("Molimo ispunite sva obavezna polja.");
+      return;
+    }
+
+    if (requiresPassword && !formData.password) {
       setError("Molimo ispunite sva obavezna polja.");
       return;
     }
@@ -104,13 +110,20 @@ export function ConfirmRegistrationForm({
       return;
     }
 
-    if (formData.password !== formData.confirmPassword) {
-      setError("Lozinke se ne podudaraju. Pokušajte još jednom.");
+    if (formData.password || formData.confirmPassword) {
+      if (formData.password !== formData.confirmPassword) {
+        setError("Lozinke se ne podudaraju. Pokušajte još jednom.");
+        return;
+      }
+    }
+
+    if (requiresPassword && formData.password.length < 8) {
+      setError("Lozinka treba imati barem 8 znakova.");
       return;
     }
 
-    if (formData.password.length < 8) {
-      setError("Lozinka treba imati barem 8 znakova.");
+    if (!requiresPassword && formData.password && formData.password.length < 8) {
+      setError("Ako želite postaviti lozinku, ona treba imati barem 8 znakova.");
       return;
     }
 
@@ -341,15 +354,18 @@ export function ConfirmRegistrationForm({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Lozinka</Label>
+              <Label htmlFor="password">
+                {isGoogleOnboarding ? "Lozinka (opcionalno)" : "Lozinka"}
+              </Label>
               <div className="relative">
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  required
+                  required={requiresPassword}
                   disabled={loading}
+                  placeholder={isGoogleOnboarding ? "Možete je postaviti sada ili kasnije" : ""}
                   className="pr-10"
                 />
                 <button
@@ -368,14 +384,16 @@ export function ConfirmRegistrationForm({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Potvrdite lozinku</Label>
+              <Label htmlFor="confirmPassword">
+                {isGoogleOnboarding ? "Potvrdite lozinku (ako je postavljate)" : "Potvrdite lozinku"}
+              </Label>
               <div className="relative">
                 <Input
                   id="confirmPassword"
                   type={showConfirmPassword ? "text" : "password"}
                   value={formData.confirmPassword}
                   onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                  required
+                  required={requiresPassword}
                   disabled={loading}
                   className="pr-10"
                 />

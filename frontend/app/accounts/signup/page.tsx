@@ -21,7 +21,7 @@ function SignupContent() {
   const googleOnboarding = searchParams.get("google") === "1"
   const googleEmail = searchParams.get("email")
   const [email, setEmail] = useState<string | null>(null)
-  const [googleUser, setGoogleUser] = useState<{ email: string } | null>(null)
+  const [googleUser, setGoogleUser] = useState<{ email: string; token?: string | null } | null>(null)
   const [resendCooldown, setResendCooldown] = useState<number>(0)
   const [isResending, setIsResending] = useState<boolean>(false)
   const [isChecking, setIsChecking] = useState(true)
@@ -29,6 +29,11 @@ function SignupContent() {
   // Check if user is already logged in
   useEffect(() => {
     const checkAuth = async () => {
+      if (token) {
+        setIsChecking(false)
+        return
+      }
+
       const attempts = googleOnboarding ? 8 : 1
 
       for (let attempt = 0; attempt < attempts; attempt += 1) {
@@ -44,7 +49,7 @@ function SignupContent() {
           if (response.ok) {
             const user = await response.json()
             if (user.needs_onboarding) {
-              setGoogleUser({ email: user.email })
+              setGoogleUser({ email: user.email, token: user.onboarding_token ?? null })
               setIsChecking(false)
               return
             }
@@ -61,13 +66,13 @@ function SignupContent() {
       }
 
       if (googleOnboarding && googleEmail) {
-        setGoogleUser({ email: googleEmail })
+        setGoogleUser({ email: googleEmail, token })
       }
       setIsChecking(false)
     }
 
     checkAuth()
-  }, [googleEmail, googleOnboarding, router])
+  }, [googleEmail, googleOnboarding, router, token])
 
   useEffect(() => {
     if (resendCooldown > 0) {
@@ -118,11 +123,11 @@ function SignupContent() {
 
   // If token is present, show confirmation form
   if (token) {
-    return <ConfirmRegistrationForm token={token} />
+    return <ConfirmRegistrationForm token={token} isGoogleOnboarding={googleOnboarding} email={googleEmail ?? undefined} />
   }
 
   if (googleUser) {
-    return <ConfirmRegistrationForm email={googleUser.email} isGoogleOnboarding />
+    return <ConfirmRegistrationForm token={googleUser.token ?? undefined} email={googleUser.email} isGoogleOnboarding />
   }
 
   if (email) {

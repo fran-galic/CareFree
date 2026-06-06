@@ -4,6 +4,9 @@ from django.contrib.auth import get_user_model
 from accounts.models import User, Student
 from accounts.validators import validate_file_type_and_size
 from django.core.files.uploadedfile import SimpleUploadedFile
+from rest_framework.test import APIClient
+
+from accounts.views import _build_registration_token
 
 User = get_user_model()
 
@@ -215,3 +218,56 @@ class NonExistentFunctionalityTest(TestCase):
         student = Student.objects.create(user=user)
         with self.assertRaises(AttributeError):
             _ = student.gpa
+
+
+class GoogleOnboardingTest(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+
+    def test_google_user_can_complete_registration_with_token_without_password(self):
+        user = User.objects.create_user(
+            email='google.user@example.com',
+            password=None,
+            first_name='Google',
+            last_name='User',
+            google_sub='google-sub-123',
+        )
+        user.set_unusable_password()
+        user.save(update_fields=['password'])
+
+        token = _build_registration_token(user.email)
+        response = self.client.post(
+            "/auth/register/confirm/",
+            {
+                "token": token,
+                "first_name": "Google",
+                "last_name": "User",
+                "role": "student",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        user.refresh_from_db()
+        self.assertEqual(user.role, "student")
+        self.assertFalse(user.has_usable_password())
+        self.assertTrue(Student.objects.filter(user=user).exists())
+
+    def test_google_user_needing_onboarding_gets_onboarding_token_from_me_endpoint(self):
+        user = User.objects.create_user(
+            email='google.pending@example.com',
+            password=None,
+            first_name='Pending',
+            last_name='Google',
+            google_sub='google-sub-456',
+        )
+        user.set_unusable_password()
+        user.save(update_fields=['password'])
+
+        self.client.force_authenticate(user=user)
+        response = self.client.get("/users/me/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["auth_provider"], "google")
+        self.assertTrue(response.data["needs_onboarding"])
+        self.assertTrue(response.data.get("onboarding_token"))

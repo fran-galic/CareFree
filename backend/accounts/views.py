@@ -133,13 +133,27 @@ def build_auth_response(user, *, status_code=200, extra_data=None):
 COMPLETE_REGISTER_PATH = "/accounts/signup"
 
 
+def _build_registration_token(email: str) -> str:
+    now = timezone.now()
+    expiry_seconds = getattr(settings, 'REGISTRATION_TOKEN_EXP_SECONDS', 900)
+    payload = {
+        'email': email,
+        'iat': int(now.timestamp()),
+        'exp': int((now + timedelta(seconds=expiry_seconds)).timestamp())
+    }
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
+
+
 def _google_onboarding_payload(user):
     needs_onboarding = not bool(getattr(user, "role", None))
-    return {
+    payload = {
         "auth_flow": "complete_registration" if needs_onboarding else "login",
         "needs_onboarding": needs_onboarding,
         "onboarding_path": COMPLETE_REGISTER_PATH if needs_onboarding else "/carefree/main",
     }
+    if needs_onboarding and getattr(user, "email", None):
+        payload["onboarding_token"] = _build_registration_token(user.email)
+    return payload
 
 
 def _split_google_name(userinfo):
@@ -182,15 +196,9 @@ class RequestRegistrationTokenView(APIView):
                 )
             return Response({"error": "Mail je već registriran."}, status=status.HTTP_400_BAD_REQUEST)
 
-        now = timezone.now()
         expiry_seconds = getattr(settings, 'REGISTRATION_TOKEN_EXP_SECONDS', 900)
         expiry_hours = int(expiry_seconds) // 3600 
-        payload = {
-            'email': email,
-            'iat': int(now.timestamp()),
-            'exp': int((now + timedelta(seconds=expiry_seconds)).timestamp())
-        }
-        token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
+        token = _build_registration_token(email)
 
         registration_link = f"{settings.FRONTEND_URL.rstrip('/')}{COMPLETE_REGISTER_PATH}?token={token}"
         #print u konzoli

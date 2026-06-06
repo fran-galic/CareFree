@@ -46,10 +46,13 @@ export default function GoogleAuthButton({
           const baseTarget = isOnboarding
             ? data.onboarding_path || "/accounts/signup"
             : "/carefree/main"
-          const target =
-            isOnboarding && data.user?.email
-              ? `${baseTarget}?google=1&email=${encodeURIComponent(data.user.email)}`
-              : baseTarget
+          const target = isOnboarding
+            ? `${baseTarget}?google=1${
+                data.user?.email ? `&email=${encodeURIComponent(data.user.email)}` : ""
+              }${
+                data.onboarding_token ? `&token=${encodeURIComponent(data.onboarding_token)}` : ""
+              }`
+            : baseTarget
 
           // Full reload ensures auth cookies are available before the next page checks /users/me/.
           window.location.href = target

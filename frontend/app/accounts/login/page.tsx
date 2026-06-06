@@ -10,6 +10,23 @@ function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isChecking, setIsChecking] = useState(true);
+
+  const buildOnboardingPath = (user: { email?: string; auth_provider?: string; onboarding_token?: string | null }) => {
+    if (user.auth_provider !== "google") {
+      return "/accounts/signup";
+    }
+
+    const params = new URLSearchParams();
+    params.set("google", "1");
+    if (user.email) {
+      params.set("email", user.email);
+    }
+    if (user.onboarding_token) {
+      params.set("token", user.onboarding_token);
+    }
+    return `/accounts/signup?${params.toString()}`;
+  };
+
   const registrationMessage = useMemo(() => {
     if (searchParams.get("registered") !== "1") {
       return null;
@@ -28,7 +45,7 @@ function LoginPageContent() {
         
         if (response.ok) {
           const user = await response.json();
-          router.replace(user.needs_onboarding ? "/accounts/signup" : "/carefree/main");
+          router.replace(user.needs_onboarding ? buildOnboardingPath(user) : "/carefree/main");
         } else {
           setIsChecking(false);
         }
