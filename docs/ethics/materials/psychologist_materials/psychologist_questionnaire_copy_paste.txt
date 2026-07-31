@@ -1,0 +1,67 @@
+PSIHOLOSKI UPITNIK ZA CAREFREE EVALUACIJU
+
+Naslov sekcije:
+Strucna evaluacija sustava CareFree
+
+Pitanje 1:
+Radite li trenutno sa studentskom populacijom?
+Tip:
+Multiple choice
+Opcije:
+- Da
+- Ne
+
+Pitanje 2:
+Imate li prethodnog iskustva s digitalnim alatima ili AI sustavima u psiholoskom radu?
+Tip:
+Multiple choice
+Opcije:
+- Da
+- Djelomicno
+- Ne
+
+Uputa prije Likert dijela:
+Molimo oznacite koliko se slazete sa sljedecim tvrdnjama.
+
+Preporucena skala za sva pitanja od 3 do 14:
+1 - Uopce se ne slazem
+2 - Uglavnom se ne slazem
+3 - Niti se slazem niti se ne slazem
+4 - Uglavnom se slazem
+5 - U potpunosti se slazem
+
+Pitanje 3:
+Sustav CareFree djeluje pregledno i logicno strukturirano iz perspektive krajnjeg korisnika.
+
+Pitanje 4:
+Tok od pocetnog kontakta do usmjeravanja prema psihologu djeluje jasno osmisljen.
+
+Pitanje 5:
+Dizajn i nacin prezentacije sustava ostavljaju dojam sigurnosti i ozbiljnosti.
+
+Pitanje 6:
+Sustav na prikladan nacin komunicira osjetljivost podrucja mentalnog zdravlja.
+
+Pitanje 7:
+CareFree djeluje kao potencijalno koristan alat za prvi kontakt studenata sa sustavom psiholoske podrske.
+
+Pitanje 8:
+Nacin prijelaza iz AI razgovora prema stvarnom psihologu djeluje smisleno i koristan je.
+
+Pitanje 9:
+Ton komunikacije AI agenta prikladan je za studentsku populaciju u kontekstu emocionalne podrske.
+
+Pitanje 10:
+Uloga AI agenta kao pocetne podrske i usmjeravanja djeluje profesionalno prihvatljivo.
+
+Pitanje 11:
+Granice izmedu uloge AI agenta i uloge psihologa dovoljno su jasno postavljene.
+
+Pitanje 12:
+Ovakav sustav mogao bi studentima smanjiti nelagodu pri prvom trazenju psiholoske pomoci.
+
+Pitanje 13:
+CareFree ima potencijal olaksati studentima javljanje strucnjaku koji inace ne bi lako potrazili pomoc.
+
+Pitanje 14:
+U ovakvom obliku sustav ima smisla kao dopunski alat unutar sire podrske mentalnom zdravlju studenata.

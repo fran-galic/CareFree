@@ -1,0 +1,190 @@
+\begin{tikzpicture}[
+  x=1cm,
+  y=0.52cm,
+  font=\small,
+  participant/.style={
+    draw=CareFreeDarkBlue,
+    rounded corners=4pt,
+    fill=CareFreeLightBlue,
+    align=center,
+    text width=3.02cm,
+    minimum width=3.20cm,
+    minimum height=1.12cm,
+    inner xsep=7pt,
+    inner ysep=6pt
+  },
+  lifeline/.style={
+    thin,
+    densely dashed,
+    draw=CareFreeMidGray
+  },
+  call/.style={
+    -{Latex[length=2.2mm,width=1.35mm]},
+    thin,
+    draw=CareFreeDarkBlue
+  },
+  returnCall/.style={
+    call,
+    dashed,
+    draw=CareFreeMidGray
+  },
+  auxiliaryCall/.style={
+    -{Latex[length=2.0mm,width=1.25mm]},
+    thin,
+    dashed,
+    draw=CareFreeMidGray
+  },
+  phaseBand/.style={
+    draw=CareFreeMidGray,
+    rounded corners=6pt,
+    fill=CareFreeLightGray,
+    fill opacity=0.36
+  },
+  phaseTitle/.style={
+    draw=CareFreeLightGray,
+    rounded corners=3pt,
+    fill=white,
+    align=left,
+    font=\small\bfseries,
+    text=CareFreeDarkBlue,
+    inner xsep=6pt,
+    inner ysep=3pt
+  },
+  labelText/.style={
+    font=\footnotesize,
+    fill=white,
+    inner xsep=3pt,
+    inner ysep=1.5pt,
+    text=black,
+    align=center
+  },
+  noteBox/.style={
+    draw=CareFreeMidGray,
+    rounded corners=5pt,
+    fill=white,
+    align=left,
+    font=\footnotesize,
+    text width=3.45cm,
+    inner xsep=5pt,
+    inner ysep=6pt
+  },
+  safetyBox/.style={
+    noteBox,
+    draw=CareFreeDarkBlue,
+    text width=3.68cm,
+    inner xsep=3pt,
+    inner ysep=3pt,
+    font=\footnotesize\linespread{0.90}\selectfont
+  }
+]
+
+  \def\xStudent{-12.75}
+  \def\xClient{-8.50}
+  \def\xServer{-4.25}
+  \def\xDatabase{0.00}
+  \def\xContext{4.25}
+  \def\xOpenAI{8.50}
+  \def\xReco{12.75}
+
+  \begin{scope}
+    \draw[phaseBand] (-14.15,0.00) rectangle (14.15,-3.55);
+    \draw[phaseBand] (-14.15,-3.95) rectangle (14.15,-7.25);
+    \draw[phaseBand] (-14.15,-7.65) rectangle (14.15,-12.95);
+    \draw[phaseBand] (-14.15,-13.35) rectangle (14.15,-16.05);
+    \draw[phaseBand] (-14.15,-16.45) rectangle (14.15,-21.35);
+    \draw[phaseBand] (-14.15,-21.75) rectangle (14.15,-26.55);
+    \draw[phaseBand] (-14.15,-26.95) rectangle (14.15,-32.25);
+    \draw[phaseBand] (-14.15,-32.65) rectangle (14.15,-36.45);
+  \end{scope}
+
+  \node[participant] at (\xStudent,1.20) {Student};
+  \node[participant] at (\xClient,1.20) {Klijentska\\aplikacija};
+  \node[participant] at (\xServer,1.20) {Poslužiteljski\\dio};
+  \node[participant] at (\xDatabase,1.20) {Baza\\podataka};
+  \node[participant] at (\xContext,1.20) {Sastavljanje\\konteksta\\i redakcija};
+  \node[participant] at (\xOpenAI,1.20) {Vanjski jezični\\model OpenAI};
+  \node[participant] at (\xReco,1.20) {Modul za preporuku\\i odobreni profili\\u PostgreSQL-u};
+
+  \foreach \x in {\xStudent,\xClient,\xServer,\xDatabase,\xContext,\xOpenAI,\xReco} {
+    \draw[lifeline] (\x,0.28) -- (\x,-36.15);
+  }
+
+  \node[phaseTitle, anchor=west] at (-13.90,-0.48) {1. Pokretanje ili dohvat razgovorne sesije};
+  \node[phaseTitle, anchor=west] at (-13.90,-4.43) {2. Obrada korisničke poruke};
+  \node[phaseTitle, anchor=west] at (-13.90,-8.13) {3. Sastavljanje konteksta i redakcija sadržaja};
+  \node[phaseTitle, anchor=west] at (-13.90,-13.83) {4. Slanje strukturiranog zahtjeva vanjskom jezičnom modelu};
+  \node[phaseTitle, anchor=west] at (-13.90,-16.93) {5. Povrat i provjera strukturiranog rezultata};
+  \node[phaseTitle, anchor=west] at (-13.90,-22.23) {6. Normalizacija kategorija i dohvat odobrenih stručnih profila};
+  \node[phaseTitle, anchor=west] at (-13.90,-27.43) {7. Sigurnosno usmjeravanje ili zamjensko ponašanje};
+  \node[phaseTitle, anchor=west] at (-13.90,-33.13) {8. Spremanje rezultata i prikaz odgovora korisniku};
+
+  \draw[call] (\xStudent,-1.75) -- (\xClient,-1.75)
+    node[midway, above=3pt, labelText] {otvara razgovor};
+  \draw[call] (\xClient,-2.30) -- (\xServer,-2.30)
+    node[midway, above=3pt, labelText] {pokreni ili dohvati sesiju};
+  \draw[call] (\xServer,-2.85) -- (\xDatabase,-2.85)
+    node[midway, above=3pt, labelText] {dohvat ili stvaranje};
+  \draw[returnCall] (\xDatabase,-3.35) -- (\xServer,-3.35)
+    node[midway, below=3pt, labelText] {aktivna sesija};
+
+  \draw[call] (\xStudent,-5.55) -- (\xClient,-5.55)
+    node[midway, above=3pt, labelText] {unosi poruku};
+  \draw[call] (\xClient,-6.10) -- (\xServer,-6.10)
+    node[midway, above=3pt, labelText] {šalje poruku};
+  \draw[call] (\xServer,-6.65) -- (\xDatabase,-6.65)
+    node[midway, above=3pt, labelText] {sprema izvornu poruku};
+  \draw[returnCall] (\xDatabase,-7.05) -- (\xServer,-7.05)
+    node[midway, below=3pt, labelText] {zapis poruke};
+
+  \draw[call] (\xServer,-9.35) -- (\xContext,-9.35)
+    node[pos=0.70, above=3pt, labelText] {sastavi kontekst};
+  \node[noteBox, anchor=north west] (limitedContext) at (0.32,-9.72) {
+    \textbf{Ograničeni kontekst}\\
+    trenutačna poruka; ograničen broj nedavnih poruka; raniji sažeci; dopušteni profilni kontekst; područja pomoći; upute sustava.
+  };
+  \draw[call] (\xContext,-11.65) -- (5.40,-11.65) -- (5.40,-12.35) -- (\xContext,-12.35)
+    node[pos=0.45, right=4pt, labelText] {ograničena redakcija};
+
+  \draw[call] (\xContext,-15.10) -- (\xOpenAI,-15.10)
+    node[midway, above=3pt, labelText] {strukturirani zahtjev};
+
+  \draw[returnCall] (\xOpenAI,-18.10) -- (\xServer,-18.10)
+    node[pos=0.33, below=3pt, labelText] {strukturirani rezultat};
+  \draw[call] (\xServer,-19.15) -- (-3.18,-19.15) -- (-3.18,-19.85) -- (\xServer,-19.85)
+    node[pos=0.50, right=4pt, labelText] {provjera rezultata};
+  \node[noteBox, anchor=north west] (invalidResult) at (9.00,-18.55) {
+    \textbf{Neuspješan ili\\nevaljan odgovor}\\
+    ponovni pokušaj\\
+    primarnim modelom;\\
+    zatim zamjenski model;\\
+    zatim lokalno zamjensko ponašanje.
+  };
+  \draw[auxiliaryCall] (-3.18,-20.65) -- (invalidResult.west |- 0,-20.65)
+    node[pos=0.38, above=3pt, labelText] {nevaljan rezultat};
+
+  \draw[call] (\xServer,-23.35) -- (\xReco,-23.35)
+    node[pos=0.62, above=3pt, labelText] {normalizirane kategorije};
+  \draw[returnCall] (\xReco,-24.30) -- (\xServer,-24.30)
+    node[pos=0.78, below=3pt, labelText] {odobreni stručni profili};
+  \node[noteBox, anchor=north west] (deterministicPart) at (9.00,-24.70) {
+    \textbf{Deterministički dio}\\
+    filtrira samo odobrenu bazu profila\\
+    u PostgreSQL-u; model ne dohvaća niti\\
+    rangira profile izvan odobrene baze.
+  };
+
+  \node[safetyBox, anchor=north west] (safetyRouting) at (-3.92,-27.78) {
+    \textbf{Sigurnosno\\usmjeravanje}\\
+    sigurnosna poruka i relevantni kontakti;\\
+    neposredna ljudska pomoć;\\
+    bez automatskog kontaktiranja institucija/službi.
+  };
+  \draw[auxiliaryCall] (\xServer,-29.05) -- (safetyRouting.west |- 0,-29.05);
+
+  \draw[call] (\xServer,-34.15) -- (\xDatabase,-34.15)
+    node[midway, above=3pt, labelText] {stanje, odgovor i sažetak};
+  \draw[returnCall] (\xServer,-35.05) -- (\xClient,-35.05)
+    node[midway, above=3pt, labelText] {odgovor, prijedlozi i sigurnosna oznaka};
+  \draw[returnCall] (\xClient,-35.85) -- (\xStudent,-35.85)
+    node[midway, above=3pt, labelText] {prikaz rezultata};
+\end{tikzpicture}

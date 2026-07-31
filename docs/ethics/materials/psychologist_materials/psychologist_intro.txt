@@ -1,0 +1,18 @@
+STRUCNA EVALUACIJA SUSTAVA CAREFREE
+
+Pozivamo Vas na sudjelovanje u istrazivanju u kojem se provodi strucna evaluacija sustava CareFree, web aplikacije namijenjene studentima kao pocetnom obliku digitalne podrske u podrucju mentalnog zdravlja.
+
+Sustav ukljucuje:
+- razgovor s AI agentom Julijom
+- pregled psihologa
+- tok prema dogovoru za razgovor
+- dodatne funkcionalnosti povezane s podrskom korisniku
+
+Svrha istrazivanja je ispitati:
+- strucnu procjenu prikladnosti sustava
+- percepciju sigurnosti, ozbiljnosti i povjerljivosti sustava
+- procjenu uloge AI agenta u inicijalnoj podrsci i usmjeravanju
+- procjenu potencijala sustava za smanjenje barijere pri prvom trazenju pomoci
+- preporuke za doradu sustava prije sire primjene
+
+Ocekivano trajanje sudjelovanja je priblizno 20 do 30 minuta.

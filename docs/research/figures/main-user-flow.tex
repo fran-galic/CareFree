@@ -1,0 +1,94 @@
+\begin{tikzpicture}[
+  font=\small,
+  node distance=0.38cm and 0.82cm,
+  process/.style={
+    draw=CareFreeMidGray,
+    rounded corners=4pt,
+    fill=white,
+    align=center,
+    text width=3.0cm,
+    minimum height=0.72cm,
+    inner sep=4pt
+  },
+  emphasized/.style={
+    process,
+    draw=CareFreeDarkBlue,
+    fill=CareFreeLightBlue
+  },
+  note/.style={
+    draw=CareFreeMidGray,
+    rounded corners=3pt,
+    fill=CareFreeLightGray,
+    align=center,
+    text width=2.65cm,
+    minimum height=0.6cm,
+    inner sep=4pt
+  },
+  decision/.style={
+    diamond,
+    draw=CareFreeDarkBlue,
+    fill=CareFreeLightGray,
+    align=center,
+    aspect=2.05,
+    text width=2.55cm,
+    inner sep=1.5pt
+  },
+  flow/.style={
+    -{Latex[length=2.0mm,width=1.35mm]},
+    thin,
+    draw=CareFreeDarkBlue
+  },
+  returnFlow/.style={
+    flow,
+    dashed,
+    draw=CareFreeMidGray
+  },
+  branchLabel/.style={
+    fill=white,
+    inner sep=1pt,
+    font=\small\bfseries,
+    text=CareFreeDarkBlue
+  }
+]
+
+  \node[emphasized] (start) {Student razmatra\\ traženje pomoći};
+
+  \node[process, below left=0.68cm and 0.78cm of start] (direct) {Izravna pretraga\\ stručnjaka};
+  \node[process, below right=0.68cm and 0.78cm of start] (julija) {Razgovor\\ s Julijom};
+
+  \node[note, right=0.28cm of julija] (optionalNote) {Julija nije obvezna.};
+  \node[process, below=of julija] (structure) {Strukturiranje\\ potrebe};
+  \node[process, below=of structure] (recommendation) {Neklinička preporuka\\ stručnjaka};
+  \node[note, right=0.28cm of recommendation] (clinicalNote) {Julija ne postavlja dijagnozu niti provodi kliničku trijažu.};
+
+  \node[process, below=1.05cm of recommendation, xshift=-4.9cm] (profile) {Pregled profila\\ stručnjaka};
+  \node[process, below=of profile] (slot) {Odabir dostupnog\\ termina};
+  \node[process, below=of slot] (reason) {Kratak razlog\\ dolaska};
+  \node[process, below=of reason] (send) {Slanje zahtjeva\\ stručnjaku};
+  \node[decision, below=0.52cm of send] (accepted) {Stručnjak prihvaća zahtjev?};
+
+  \node[process, below=0.62cm of accepted] (confirmed) {Potvrđeni\\ termin};
+  \node[process, below=of confirmed] (calendar) {Kalendar i poveznica\\ za mrežni razgovor};
+
+  \node[process, right=2.1cm of accepted, text width=6.0cm, minimum width=6.3cm, minimum height=1.25cm, align=center] (retry) {Odabir drugog termina\\ ili stručnjaka};
+
+  \draw[flow] (start.south) -- ++(0,-0.28) -| (direct.north);
+  \draw[flow] (start.south) -- ++(0,-0.28) -| (julija.north);
+
+  \draw[flow] (julija) -- (structure);
+  \draw[flow] (structure) -- (recommendation);
+
+  \draw[flow] (direct.south) |- ([yshift=0.28cm]profile.north) -- (profile.north);
+  \draw[flow] (recommendation) -- (profile);
+
+  \draw[flow] (profile) -- (slot);
+  \draw[flow] (slot) -- (reason);
+  \draw[flow] (reason) -- (send);
+  \draw[flow] (send) -- (accepted);
+
+  \draw[flow] (accepted.south) -- node[branchLabel, right=3pt, pos=0.5] {DA} (confirmed.north);
+  \draw[flow] (confirmed) -- (calendar);
+
+  \draw[flow] (accepted.east) -- node[midway, above=3pt, branchLabel] {NE} (retry.west);
+  \draw[returnFlow] (retry.east) -- ++(0.9cm,0) |- (profile.east);
+\end{tikzpicture}

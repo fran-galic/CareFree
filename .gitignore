@@ -44,8 +44,13 @@ caretakers/
 .vscode/
 .DS_Store
 
+# Local agent notes and scratch files
+.codex
+za_popraviti*.txt
+
 # Project-local disposable assets
 images/
 demo_profiles/copies/
 260128_ProInz_Finalna.pptx
 generated/
+*.zip

@@ -1,0 +1,33 @@
+INTERNI OPERATIVNI TOK ZA STUDENTSKO TESTIRANJE
+
+Preporuceni redoslijed provedbe:
+
+1. Poslati studentima poveznicu na Google Form.
+
+2. Na pocetku obrasca prikazati:
+- uvodni opis istrazivanja
+- disclaimer i informirani pristanak
+- checkbox potvrde
+
+3. Nakon uvodnog dijela student dobiva:
+- poveznicu na aplikaciju
+- kratke upute za testiranje
+
+4. Student samostalno:
+- izraduje testni korisnicki racun
+- prolazi zadane korake u aplikaciji
+- vraca se u obrazac
+
+5. Student ispunjava:
+- jedno filter pitanje
+- 12 Likert cestica
+- 4 otvorena pitanja
+
+6. Nakon zavrsetka istrazivanja:
+- odgovore iz obrasca pohraniti odvojeno od operativnih identifikacijskih podataka, ako takvi postoje
+- testne korisnicke racune i podatke u sustavu obrisati najkasnije u roku od 3 tjedna nakon zavrsetka provedbe
+
+Napomene:
+- studentima treba jasno naglasiti da ne unose stvarne osjetljive ili identifikacijske podatke
+- pozeljno je da zadaci budu prikazani na jednom mjestu i istim redoslijedom za sve sudionike
+- studentski dio istrazivanja treba ostati kratak, jasan i izvediv u otprilike 15 minuta

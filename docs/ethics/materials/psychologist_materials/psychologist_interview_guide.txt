@@ -1,0 +1,28 @@
+POLUSTRUKTURIRANI VODIC ZA RAZGOVOR S PSIHOLOZIMA
+
+Napomena:
+Ovaj vodic sluzi kao okvir za razgovor nakon testiranja sustava. Pitanja se mogu postavljati redom, ali po potrebi je dopusteno postaviti podpitanja i zatraziti dodatno pojasnjenje.
+
+Glavna pitanja:
+
+1. Kakav je Vas opci strucni dojam sustava CareFree kao alata za podrsku studentima?
+
+2. Kako procjenjujete ulogu AI agenta u ovom sustavu: sto je u toj ulozi dobro postavljeno, a sto je problematicno?
+
+3. Kako Vam se cini prijelaz iz razgovora s AI agentom prema stvarnom psihologu?
+
+4. Koji elementi sustava po Vasem misljenju povecavaju, a koji smanjuju osjecaj sigurnosti i povjerenja kod korisnika?
+
+5. Sto biste kao strucnjak prvo preporucili doraditi prije sire primjene ovakvog sustava?
+
+Opcionalno dodatno pitanje:
+
+6. Vidite li prostor da AI agent ima korisnu pomocnu ulogu u inicijalnoj procjeni ili usmjeravanju korisnika, i pod kojim uvjetima?
+
+Primjeri mogucih podpitanja:
+
+- Sto Vas je navelo na takav dojam?
+- Mislite li da bi studenti taj dio dozivjeli kao koristan ili zbunjujuc?
+- Gdje vidite glavne rizike?
+- Gdje vidite najvecu prakticnu vrijednost sustava?
+- Sto bi trebalo jasnije komunicirati korisniku?

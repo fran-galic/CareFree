@@ -1,0 +1,24 @@
+DISCLAIMER I INFORMIRANI PRISTANAK ZA PSIHOLOGE
+
+Pozivamo Vas na sudjelovanje u istrazivanju u kojem se provodi strucna evaluacija sustava CareFree, web aplikacije namijenjene studentima kao pocetnom obliku digitalne podrske u podrucju mentalnog zdravlja.
+
+Svrha istrazivanja je ispitati:
+- strucnu procjenu prikladnosti sustava
+- percepciju sigurnosti, ozbiljnosti i povjerljivosti sustava
+- procjenu uloge AI agenta u inicijalnoj podrsci i usmjeravanju
+- procjenu potencijala sustava za smanjenje barijere pri prvom trazenju pomoci
+- preporuke za doradu sustava prije sire primjene
+
+Sudjelovanje je dobrovoljno i mozete odustati u bilo kojem trenutku, bez ikakvih posljedica. Takoder, ne morate odgovoriti na pitanje na koje ne zelite odgovoriti.
+
+Ocekivano trajanje sudjelovanja je priblizno 20 do 30 minuta.
+
+Tijekom evaluacije od Vas se ocekuje da pregledate studentsku i psiholosku perspektivu sustava te nakon toga ispunite kratki upitnik i sudjelujete u kratkom polustrukturiranom razgovoru.
+
+Prikupljeni podaci obradivat ce se povjerljivo. Rezultati ce biti prikazani anonimno i na skupnoj razini, a svi testni podaci nastali tijekom evaluacije bit ce obrisani najkasnije u roku od 3 tjedna nakon zavrsetka provedbe istrazivanja.
+
+Pristup podacima imat ce samo clanovi istrazivackog tima. Podaci se stite odgovarajucim tehnickim i organizacijskim mjerama, ukljucujuci enkripciju gdje je primjenjivo.
+
+CareFree i njegov AI agent nisu zamjena za hitnu medicinsku ili psiholosku pomoc, niti za strucnu dijagnostiku ili terapiju. AI agent je zamisljen kao alat za inicijalnu podrsku i usmjeravanje, a ne kao zamjena za rad psihologa.
+
+Nastavkom evaluacije potvrdujete da ste upoznati sa svrhom i nacinom provedbe istrazivanja te da dobrovoljno pristajete sudjelovati.

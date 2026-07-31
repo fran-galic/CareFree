@@ -1,0 +1,37 @@
+INTERNI OPERATIVNI TOK ZA PSIHOLOSKO TESTIRANJE
+
+Preporuceni redoslijed provedbe:
+
+1. Psihologu poslati ili prikazati:
+- uvodni opis istrazivanja
+- disclaimer i informirani pristanak
+- checkbox potvrde ili usmenu potvrdu pristanka
+
+2. Ukratko objasniti svrhu evaluacije:
+- evaluira se sustav za pocetnu digitalnu podrsku studentima
+- fokus je i na korisnickom iskustvu i na strucnoj prihvatljivosti
+- AI agent nije zamisljen kao zamjena za psihologa
+
+3. Omoguciti psihologu pregled sustava kroz:
+- studentsku perspektivu
+- AI razgovor
+- tok prema dogovoru za razgovor
+- psiholosku perspektivu sustava
+
+4. Tijekom pregleda ne voditi psihologa kroz svaki klik, nego dati standardizirane zadatke i pustiti ga da samostalno procijeni sustav.
+
+5. Nakon pregleda psiholog ispunjava:
+- 2 kratka kontekstualna pitanja
+- 12 Likert cestica
+
+6. Nakon upitnika provodi se:
+- polustrukturirani razgovor prema interview guide dokumentu
+
+7. Nakon zavrsetka istrazivanja:
+- odgovore pohraniti u zasticenom obliku
+- testne podatke i demo podatke nastale tijekom evaluacije obrisati najkasnije u roku od 3 tjedna nakon zavrsetka provedbe
+
+Napomene:
+- vazno je da svi psiholozi dobiju isti osnovni uvod i iste zadatke
+- razgovor treba ostati dovoljno otvoren za strucne komentare, ali dovoljno strukturiran da se odgovori mogu usporedivo analizirati
+- psiholoski dio istrazivanja treba ostati fokusiran i ne pretvarati se u predugu neformalnu raspravu

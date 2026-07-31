@@ -1,3 +1,5 @@
+import os
+
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from django.db import transaction
@@ -16,8 +18,8 @@ class Command(BaseCommand):
         parser.add_argument(
             "--password",
             type=str,
-            default="<redacted-admin-password>",
-            help="Password for the superuser (default: <redacted-admin-password>)",
+            default=None,
+            help="Password for the superuser. Defaults to SUPERUSER_PASSWORD env var.",
         )
         parser.add_argument(
             "--first-name",
@@ -37,7 +39,7 @@ class Command(BaseCommand):
         User = get_user_model()
         
         email = options.get("email")
-        password = options.get("password")
+        password = options.get("password") or os.environ.get("SUPERUSER_PASSWORD")
         first_name = options.get("first_name")
         last_name = options.get("last_name")
 
@@ -45,6 +47,12 @@ class Command(BaseCommand):
         if User.objects.filter(email=email).exists():
             self.stdout.write(
                 self.style.WARNING(f"Superuser with email '{email}' already exists. Skipping.")
+            )
+            return
+
+        if not password:
+            self.stdout.write(
+                self.style.ERROR("Missing superuser password. Pass --password or set SUPERUSER_PASSWORD.")
             )
             return
 
@@ -61,7 +69,6 @@ class Command(BaseCommand):
                 self.style.SUCCESS(
                     f"\n✓ Superuser created successfully!\n"
                     f"  Email: {email}\n"
-                    f"  Password: {password}\n"
                     f"  Name: {first_name} {last_name}\n"
                 )
             )

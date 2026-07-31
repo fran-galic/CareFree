@@ -1,0 +1,26 @@
+UPUTE ZA STUDENTE
+
+Molimo Vas da prije ispunjavanja upitnika odvojite nekoliko minuta za testiranje aplikacije CareFree.
+
+Tijekom testiranja:
+- koristite vlastiti testni korisnicki racun
+- ne unosite stvarne osjetljive ili identifikacijske podatke
+- slobodno koristite opcenite ili izmisljene scenarije
+
+Predlozeni zadaci:
+
+1. Izradite korisnicki racun i prijavite se u sustav.
+
+2. Otvorite AI razgovor s Julijom i razmijenite nekoliko poruka.
+Napomena:
+Mozete opisati neki opceniti, zamisljeni ili blago stresan studentski problem. Nije potrebno dijeliti stvarne privatne informacije.
+
+3. Istrazite kako sustav vodi razgovor i kako izgleda usmjeravanje prema psihologu.
+
+4. Otvorite prikaz psihologa i pregledajte barem jedan profil.
+
+5. Istrazite kako izgleda tok prema dogovoru za razgovor. Nije potrebno stvarno dovrsiti cijeli postupak ako to nije nuzno za testiranje.
+
+6. Ako zelite, pregledajte jos jednu dodatnu funkcionalnost, primjerice dnevnik ili kalendar, kako biste stekli cjelovitiji dojam sustava.
+
+Nakon sto zavrsite testiranje, vratite se u obrazac i ispunite upitnik.

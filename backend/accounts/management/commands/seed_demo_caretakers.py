@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+
 from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -200,13 +202,13 @@ class Command(BaseCommand):
         parser.add_argument("--count", type=int, default=0, help="How many demo caretakers to create. Default: all available demo profile images.")
         parser.add_argument(
             "--password",
-            default="<redacted-demo-psychologist-password>",
-            help="Password assigned to all generated demo users.",
+            default=None,
+            help="Password assigned to all generated demo psychologist users. Defaults to DEMO_CARETAKER_PASSWORD env var.",
         )
         parser.add_argument(
             "--student-password",
-            default="<redacted-demo-student-password>",
-            help="Password assigned to the generated demo student.",
+            default=None,
+            help="Password assigned to generated demo students. Defaults to DEMO_STUDENT_PASSWORD env var.",
         )
         parser.add_argument(
             "--student-count",
@@ -217,6 +219,14 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options):
+        caretaker_password = options["password"] or os.environ.get("DEMO_CARETAKER_PASSWORD")
+        student_password = options["student_password"] or os.environ.get("DEMO_STUDENT_PASSWORD")
+
+        if not caretaker_password:
+            raise CommandError("Pass --password or set DEMO_CARETAKER_PASSWORD before seeding demo psychologists.")
+        if not student_password:
+            raise CommandError("Pass --student-password or set DEMO_STUDENT_PASSWORD before seeding demo students.")
+
         base_dir = Path(__file__).resolve().parents[4]
         demo_dir = base_dir / "demo_profiles"
         if not demo_dir.exists():
@@ -285,7 +295,7 @@ class Command(BaseCommand):
                     "role": "caretaker",
                 },
             )
-            user.set_password(options["password"])
+            user.set_password(caretaker_password)
             user.save(update_fields=["password"])
 
             if was_created:
@@ -335,7 +345,7 @@ class Command(BaseCommand):
                 )
             )
 
-        demo_students = self._seed_demo_students(User, options["student_password"], options["student_count"])
+        demo_students = self._seed_demo_students(User, student_password, options["student_count"])
         generated_demo_emails = generated_emails + [student.user.email for student in demo_students]
         stale_demo_users = User.objects.filter(email__endswith="@demo.carefree.local").exclude(email__in=generated_demo_emails)
         stale_count = stale_demo_users.count()
@@ -349,14 +359,13 @@ class Command(BaseCommand):
         self._write_local_credentials_snapshot(
             seeded_caretakers=seeded_caretakers,
             demo_students=demo_students,
-            caretaker_password=options["password"],
-            student_password=options["student_password"],
+            caretaker_password=caretaker_password,
+            student_password=student_password,
         )
 
         self.stdout.write("")
         self.stdout.write(self.style.SUCCESS(f"Demo caretaker seeding complete. Created: {created}, updated: {updated}."))
-        self.stdout.write(f"Shared password for demo caretakers: {options['password']}")
-        self.stdout.write(f"Demo student password: {options['student_password']}")
+        self.stdout.write("Shared demo passwords were written to the local ignored credential snapshot.")
         self.stdout.write(f"Local credentials snapshot: {base_dir / 'generated' / 'LOCAL_DEMO_CREDENTIALS.md'}")
 
     def _image_sort_key(self, path: Path):
@@ -868,8 +877,7 @@ class Command(BaseCommand):
             "",
             "## Admin",
             "",
-            "- email: `admin@carefree.com`",
-            "- password: `<redacted-admin-password>`",
+            "- create separately with `create_superuser` if needed",
             "",
             "## Demo caretakers",
             "",

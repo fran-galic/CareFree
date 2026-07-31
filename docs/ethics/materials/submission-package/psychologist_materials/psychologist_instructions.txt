@@ -1,0 +1,26 @@
+UPUTE ZA PSIHOLOGE
+
+Molimo Vas da tijekom evaluacije pregledate CareFree kao sustav za pocetnu digitalnu podrsku studentima u podrucju mentalnog zdravlja.
+
+Tijekom evaluacije fokusirajte se na:
+- opci dojam sustava
+- ton i granice AI agenta
+- osjecaj sigurnosti i povjerenja koji sustav komunicira
+- prijelaz iz AI dijela prema psihologu
+- prikladnost informacija koje psiholog dobiva
+
+Predlozeni zadaci:
+
+1. Pregledajte pocetni dojam aplikacije iz studentske perspektive.
+
+2. Pregledajte AI razgovor i nacin na koji sustav komunicira sa studentom.
+
+3. Pregledajte kako izgleda usmjeravanje prema psihologu i tok prema dogovoru za razgovor.
+
+4. Pregledajte koje informacije psiholog dobiva o korisniku i zahtjevu.
+
+5. Pregledajte psiholosku perspektivu sustava, ukljucujuci zahtjeve, termine ili prikaz relevantnih podataka.
+
+6. Razmislite sto smatrate posebno dobro postavljenim, sto smatrate rizicnim i sto biste preporucili doraditi prije sire primjene sustava.
+
+Nakon pregleda sustava slijedi kratki upitnik i polustrukturirani razgovor.

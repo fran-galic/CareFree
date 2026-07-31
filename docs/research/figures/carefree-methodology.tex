@@ -1,0 +1,40 @@
+% Potrebni paketi:
+% \usepackage{tikz}
+% \usetikzlibrary{positioning}
+
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+  node distance=0.95cm and 0.7cm,
+  phasebox/.style={
+    draw=black!70,
+    rounded corners=3pt,
+    rectangle,
+    align=center,
+    fill=black!2,
+    minimum width=0.265\textwidth,
+    minimum height=2.4cm,
+    inner sep=6pt,
+    font=\small
+  },
+  flow/.style={->, thin, black},
+  feedback/.style={->, thin, dashed, black},
+  feedbacklabel/.style={font=\scriptsize, fill=white, inner sep=1pt}
+]
+  \node[phasebox] (f1) at (0,0) {\textbf{Faza 1}\\[2pt] Početni koncept\\ i analiza problema};
+  \node[phasebox, right=of f1] (f2) {\textbf{Faza 2}\\[2pt] Razvoj ranog prototipa\\ u okviru kolegija};
+  \node[phasebox, right=of f2] (f3) {\textbf{Faza 3}\\[2pt] Uključivanje\\ psihološke perspektive};
+
+  \node[phasebox, below=1.9cm of f1] (f4) {\textbf{Faza 4}\\[2pt] Interdisciplinarne iteracije\\ i nastavak implementacije};
+  \node[phasebox, right=of f4] (f5) {\textbf{Faza 5}\\[2pt] Etička provjera\\ i priprema evaluacije};
+  \node[phasebox, right=of f5] (f6) {\textbf{Faza 6}\\[2pt] Studentska i stručna\\ evaluacija te preporuke};
+
+  \draw[flow] (f1) -- (f2);
+  \draw[flow] (f2) -- (f3);
+  \draw[flow] (f3.south) -- ++(0,-0.65) -| (f4.north);
+  \draw[flow] (f4) -- (f5);
+  \draw[flow] (f5) -- (f6);
+
+  \draw[feedback] (f4.north) to[out=95,in=265] node[feedbacklabel, pos=0.45] {stručni feedback} (f3.south);
+  \draw[feedback] (f6.south) to[out=-90,in=-10] node[feedbacklabel, pos=0.52] {nalazi i preporuke} (f4.east);
+\end{tikzpicture}%
+}

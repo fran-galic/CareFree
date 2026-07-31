@@ -1,0 +1,67 @@
+\begin{tikzpicture}[
+  font=\small,
+  node distance=0.58cm,
+  centerNode/.style={
+    draw=CareFreeDarkBlue,
+    rounded corners=5pt,
+    fill=CareFreeLightBlue,
+    align=center,
+    text width=5.2cm,
+    minimum height=1.12cm,
+    inner sep=6pt
+  },
+  supportBox/.style={
+    draw=CareFreeDarkBlue,
+    rounded corners=5pt,
+    fill=CareFreeLightBlue,
+    align=left,
+    text width=11.3cm,
+    inner xsep=9pt,
+    inner ysep=8pt
+  },
+  limitBox/.style={
+    draw=CareFreeMidGray,
+    rounded corners=5pt,
+    fill=CareFreeLightGray,
+    align=left,
+    text width=11.3cm,
+    inner xsep=9pt,
+    inner ysep=8pt
+  },
+  flow/.style={
+    -{Latex[length=2.0mm,width=1.35mm]},
+    thin,
+    draw=CareFreeDarkBlue
+  },
+  secondaryFlow/.style={
+    flow,
+    draw=CareFreeMidGray
+  }
+]
+
+  \node[centerNode] (julija) {\textbf{Julija}\\[2pt] ograničena razgovorna komponenta};
+
+  \node[supportBox, below=0.72cm of julija] (supports) {
+    \textbf{\textcolor{CareFreeDarkBlue}{Što Julija podržava}}\\[4pt]
+    \textbullet\ početno izražavanje potrebe\\
+    \textbullet\ postavljanje nenametljivih pitanja\\
+    \textbullet\ strukturiranje korisničkog konteksta\\
+    \textbullet\ povezivanje s nekliničkim područjem pomoći\\
+    \textbullet\ preporuku odobrenih stručnjaka\\
+    \textbullet\ prikaz kriznih kontakata\\
+    \textbullet\ prijelaz prema ljudskoj pomoći
+  };
+
+  \node[limitBox, below=0.58cm of supports] (limits) {
+    \textbf{\textcolor{CareFreeDarkBlue}{Što Julija ne radi}}\\[4pt]
+    \textbullet\ ne postavlja dijagnozu\\
+    \textbullet\ ne provodi psihoterapiju\\
+    \textbullet\ ne određuje kliničku hitnost\\
+    \textbullet\ ne jamči prepoznavanje krizne situacije\\
+    \textbullet\ ne obavještava automatski hitne službe\\
+    \textbullet\ ne zamjenjuje ljudskog stručnjaka
+  };
+
+  \draw[flow] (julija.south) -- (supports.north);
+  \draw[flow] (julija.east) -- ++(4.25cm,0) |- (limits.east);
+\end{tikzpicture}

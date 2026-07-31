@@ -1,0 +1,164 @@
+\begin{tikzpicture}[
+  font=\small,
+  zoneFrame/.style={
+    draw=CareFreeMidGray,
+    rounded corners=7pt,
+    fill=CareFreeLightGray,
+    inner sep=0pt
+  },
+  zoneTitle/.style={
+    font=\small\bfseries,
+    text=CareFreeDarkBlue,
+    align=center
+  },
+  mainBox/.style={
+    draw=CareFreeDarkBlue,
+    rounded corners=6pt,
+    fill=CareFreeLightBlue,
+    align=center,
+    text width=2.95cm,
+    minimum width=3.20cm,
+    minimum height=1.12cm,
+    inner sep=5pt
+  },
+  roleBox/.style={
+    draw=CareFreeDarkBlue,
+    rounded corners=5pt,
+    fill=white,
+    align=center,
+    text width=2.05cm,
+    minimum width=2.20cm,
+    minimum height=0.76cm,
+    inner sep=4pt
+  },
+  clientBox/.style={
+    draw=CareFreeMidGray,
+    rounded corners=5pt,
+    fill=white,
+    align=center,
+    text width=2.75cm,
+    minimum width=3.00cm,
+    minimum height=0.78cm,
+    inner sep=4pt
+  },
+  serverBox/.style={
+    draw=CareFreeMidGray,
+    rounded corners=5pt,
+    fill=white,
+    align=center,
+    text width=2.65cm,
+    minimum width=2.95cm,
+    minimum height=0.82cm,
+    inner sep=4pt
+  },
+  dataBox/.style={
+    draw=CareFreeDarkBlue,
+    rounded corners=5pt,
+    fill=white,
+    align=center,
+    text width=2.95cm,
+    minimum width=3.18cm,
+    minimum height=0.84cm,
+    inner sep=4pt
+  },
+  serviceBox/.style={
+    draw=CareFreeMidGray,
+    rounded corners=5pt,
+    fill=white,
+    align=center,
+    text width=3.05cm,
+    minimum width=3.25cm,
+    minimum height=0.82cm,
+    inner sep=4pt
+  },
+  flow/.style={
+    -{Latex[length=2.0mm,width=1.35mm]},
+    thin,
+    draw=CareFreeDarkBlue
+  },
+  serviceFlow/.style={
+    flow,
+    draw=CareFreeMidGray
+  },
+  flowLabel/.style={
+    font=\footnotesize,
+    fill=white,
+    inner sep=1.8pt,
+    text=black,
+    align=center
+  }
+]
+
+  \begin{scope}[on background layer]
+    \node[zoneFrame, minimum width=2.55cm, minimum height=18.97cm] (usersFrame) at (-9.10,-1.92) {};
+    \node[zoneFrame, minimum width=3.45cm, minimum height=18.97cm] (clientFrame) at (-5.75,-1.92) {};
+    \node[zoneFrame, minimum width=3.45cm, minimum height=18.97cm] (serverFrame) at (-1.05,-1.92) {};
+    \node[zoneFrame, minimum width=3.65cm, minimum height=18.97cm] (dataFrame) at (4.05,-1.92) {};
+    \node[zoneFrame, minimum width=3.85cm, minimum height=18.97cm] (servicesFrame) at (8.45,-1.92) {};
+  \end{scope}
+
+  \node[zoneTitle] at (-9.10,7.29) {Korisnici};
+  \node[zoneTitle] at (-5.75,7.29) {Klijentski sloj};
+  \node[zoneTitle] at (-1.05,7.29) {Poslužiteljski sloj};
+  \node[zoneTitle] at (4.05,7.29) {Podatkovni sloj};
+  \node[zoneTitle] at (8.45,7.29) {Vanjske usluge};
+
+  \node[roleBox] (student) at (-9.10,3.35) {Student};
+  \node[roleBox] (expert) at (-9.10,1.60) {Stručnjak};
+  \node[roleBox] (admin) at (-9.10,-10.45) {Administrator};
+
+  \node[mainBox] (clientApp) at (-5.75,5.85)
+    {Klijentska aplikacija\\[-1pt]
+    {\footnotesize Next.js, React i TypeScript}\\[-1pt]
+    {\footnotesize Vercel}};
+  \node[clientBox] (studentUi) at (-5.75,3.35) {Studentsko sučelje};
+  \node[clientBox] (expertUi) at (-5.75,1.60) {Sučelje stručnjaka};
+  \node[clientBox] (julijaSearchUi) at (-5.75,-0.15) {Razgovor s Julijom\\ i pretraga stručnjaka};
+  \node[clientBox] (journalCalendarUi) at (-5.75,-1.90) {Dnevnik i kalendar};
+
+  \node[mainBox] (serverApp) at (-1.05,5.85)
+    {Poslužiteljski dio\\[-1pt]
+    {\footnotesize Django REST Framework}\\[-1pt]
+    {\footnotesize Railway}};
+  \node[serverBox] (accounts) at (-1.05,3.35) {Korisnički računi\\ i profili};
+  \node[serverBox] (profiles) at (-1.05,1.60) {Stručni profili\\ i odobravanje};
+  \node[serverBox] (search) at (-1.05,-0.15) {Pretraga\\ stručnjaka};
+  \node[serverBox] (julija) at (-1.05,-1.90) {Julija\\ i preporuke};
+  \node[serverBox] (journal) at (-1.05,-3.65) {Privatni dnevnik};
+  \node[serverBox] (auth) at (-1.05,-5.40) {Autentifikacija\\ i kontrola pristupa};
+  \node[serverBox] (appointments) at (-1.05,-7.15) {Dostupnost, zahtjevi\\ i termini};
+  \node[serverBox] (integrations) at (-1.05,-8.85) {Integracije\\ i obavijesti};
+  \node[serverBox, text width=2.70cm, minimum width=3.05cm] (djangoAdmin) at (-1.05,-10.45)
+    {Administracijsko sučelje\\ sustava Django};
+
+  \node[dataBox] (postgres) at (4.05,5.85) {PostgreSQL};
+  \node[dataBox] (fileStorage) at (4.05,1.60)
+    {Pohrana stručne dokumentacije\\ i medijskih datoteka};
+
+  \node[serviceBox] (openai) at (8.45,-1.90) {OpenAI};
+  \node[serviceBox] (googleLogin) at (8.45,-5.40) {Googleova prijava};
+  \node[serviceBox] (googleCalendar) at (8.45,-7.15) {Google Calendar\\ i Google Meet};
+  \node[serviceBox] (email) at (8.45,-8.85) {Usluga elektroničke\\ pošte};
+
+  \draw[flow] (student.east) -- (studentUi.west);
+  \draw[flow] (expert.east) -- (expertUi.west);
+  \draw[flow] (admin.east) -- (djangoAdmin.west)
+    node[pos=0.50, above=5pt, flowLabel] {administriranje};
+
+  \draw[flow] (clientApp.east) -- (serverApp.west)
+    node[pos=0.50, above=6pt, flowLabel] {HTTPS /\\ REST API};
+
+  \draw[serviceFlow] (serverApp.east) -- (postgres.west)
+    node[pos=0.50, above=6pt, flowLabel] {podaci\\ i statusi};
+  \draw[serviceFlow] (profiles.east) -- (fileStorage.west)
+    node[pos=0.50, above=6pt, flowLabel] {dokumenti};
+
+  \draw[serviceFlow] (julija.east) -- (openai.west)
+    node[pos=0.50, above=6pt, flowLabel] {razgovorni\\ kontekst};
+  \draw[serviceFlow] (auth.east) -- (googleLogin.west)
+    node[pos=0.50, above=6pt, flowLabel] {prijava};
+  \draw[serviceFlow] (appointments.east) -- (googleCalendar.west)
+    node[pos=0.50, above=6pt, flowLabel] {termin i poveznica};
+  \draw[serviceFlow] (integrations.east) -- (email.west)
+    node[pos=0.50, above=6pt, flowLabel] {obavijesti};
+\end{tikzpicture}

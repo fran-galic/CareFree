@@ -1,0 +1,100 @@
+INTERNA MAPA PITANJA I ISTRAZIVACKIH DIMENZIJA
+
+Svrha ovog dokumenta:
+
+Ovaj dokument sluzi iskljucivo istrazivackom timu za internu organizaciju analize rezultata studentskog upitnika.
+
+Dokument nije namijenjen prikazivanju studentima tijekom ispunjavanja obrasca.
+
+Razlog:
+- studentima nije potrebno prikazivati istrazivacke dimenzije
+- izbjegava se usmjeravanje odgovora i "pogadanje" sto istrazivaci zele potvrditi
+- upitnik ostaje jednostavniji, cistiji i prirodniji za ispunjavanje
+
+Ovu mapu koristite pri:
+- grupiranju pitanja po dimenzijama
+- izracunu prosjecnih vrijednosti po dimenziji
+- pisanju rezultata i rasprave
+
+
+MAPIRANJE PITANJA NA DIMENZIJE
+
+Pitanje 2:
+Sucelje aplikacije bilo mi je jasno i jednostavno za koristenje.
+Dimenzija:
+Uporabljivost i jasnoca sucelja
+
+Pitanje 3:
+Lako sam razumio/la kako se kretati kroz glavne dijelove aplikacije.
+Dimenzija:
+Uporabljivost i jasnoca sucelja
+
+Pitanje 4:
+Aplikacija na mene ostavlja dojam sigurnog i ozbiljnog sustava za ovakvu vrstu podrske.
+Dimenzija:
+Percepcija sigurnosti i povjerenja
+
+Pitanje 5:
+Tijekom koristenja imao/la sam osjecaj da je moja privatnost postovana.
+Dimenzija:
+Percepcija sigurnosti i povjerenja
+
+Pitanje 6:
+CareFree mi djeluje kao koristan prvi korak kada se osoba suocava sa psiholoskim poteskocama.
+Dimenzija:
+Percepcija korisnosti sustava
+
+Pitanje 7:
+Aplikacija jasno pokazuje kako korisnik moze prijeci od razgovora prema trazenju strucne pomoci.
+Dimenzija:
+Percepcija korisnosti sustava
+
+Pitanje 8:
+Komunikacija AI agenta bila mi je razumljiva i prikladna.
+Dimenzija:
+Percepcija AI agenta
+
+Pitanje 9:
+Odgovori AI agenta djelovali su relevantno u odnosu na ono sto sam upisao/la.
+Dimenzija:
+Percepcija AI agenta
+
+Pitanje 10:
+Tijekom razgovora s AI agentom osjecao/la sam se ugodno i sigurno.
+Dimenzija:
+Percepcija AI agenta
+
+Pitanje 11:
+Ovakav sustav mogao bi nekim studentima olaksati prvi korak prema trazenju psiholoske pomoci.
+Dimenzija:
+Potencijal sustava za smanjenje barijere i stigme
+
+Pitanje 12:
+CareFree djeluje kao manje neugodan nacin za pocetno trazenje pomoci nego izravan prvi kontakt sa strucnjakom.
+Dimenzija:
+Potencijal sustava za smanjenje barijere i stigme
+
+Pitanje 13:
+Vjerojatno bih razmotrio/la koristenje ovakvog sustava kada bih trebao/la psiholosku podrsku.
+Dimenzija:
+Potencijal sustava za smanjenje barijere i stigme
+
+
+PREPORUKA ZA ANALIZU
+
+Za svaku dimenziju moze se izracunati prosjecna vrijednost kao aritmeticka sredina odgovarajucih pitanja:
+
+- Uporabljivost i jasnoca sucelja:
+  pitanja 2 i 3
+
+- Percepcija sigurnosti i povjerenja:
+  pitanja 4 i 5
+
+- Percepcija korisnosti sustava:
+  pitanja 6 i 7
+
+- Percepcija AI agenta:
+  pitanja 8, 9 i 10
+
+- Potencijal sustava za smanjenje barijere i stigme:
+  pitanja 11, 12 i 13

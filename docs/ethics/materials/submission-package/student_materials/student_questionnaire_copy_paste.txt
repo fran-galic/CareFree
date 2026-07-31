@@ -1,0 +1,81 @@
+STUDENTSKI UPITNIK ZA GOOGLE FORM
+
+Naslov sekcije:
+Studentski upitnik nakon testiranja sustava CareFree
+
+Pitanje 1:
+Jeste li student?
+Tip:
+Multiple choice
+Opcije:
+- Da
+- Ne
+
+Uputa prije Likert dijela:
+Molimo oznacite koliko se slazete sa sljedecim tvrdnjama.
+
+Preporucena skala za sva pitanja od 2 do 13:
+1 - Uopce se ne slazem
+2 - Uglavnom se ne slazem
+3 - Niti se slazem niti se ne slazem
+4 - Uglavnom se slazem
+5 - U potpunosti se slazem
+
+Pitanje 2:
+Sucelje aplikacije bilo mi je jasno i jednostavno za koristenje.
+
+Pitanje 3:
+Lako sam razumio/la kako se kretati kroz glavne dijelove aplikacije.
+
+Pitanje 4:
+Aplikacija na mene ostavlja dojam sigurnog i ozbiljnog sustava za ovakvu vrstu podrske.
+
+Pitanje 5:
+Tijekom koristenja imao/la sam osjecaj da je moja privatnost postovana.
+
+Pitanje 6:
+CareFree mi djeluje kao koristan prvi korak kada se osoba suocava sa psiholoskim poteskocama.
+
+Pitanje 7:
+Aplikacija jasno pokazuje kako korisnik moze prijeci od razgovora prema trazenju strucne pomoci.
+
+Pitanje 8:
+Komunikacija AI agenta bila mi je razumljiva i prikladna.
+
+Pitanje 9:
+Odgovori AI agenta djelovali su relevantno u odnosu na ono sto sam upisao/la.
+
+Pitanje 10:
+Tijekom razgovora s AI agentom osjecao/la sam se ugodno i sigurno.
+
+Pitanje 11:
+Ovakav sustav mogao bi nekim studentima olaksati prvi korak prema trazenju psiholoske pomoci.
+
+Pitanje 12:
+CareFree djeluje kao manje neugodan nacin za pocetno trazenje pomoci nego izravan prvi kontakt sa strucnjakom.
+
+Pitanje 13:
+Vjerojatno bih razmotrio/la koristenje ovakvog sustava kada bih trebao/la psiholosku podrsku.
+
+Uputa prije otvorenih pitanja:
+Molimo Vas da kratko odgovorite na sljedeca pitanja.
+
+Pitanje 14:
+Koji je bio Vas opci dojam aplikacije nakon testiranja?
+Tip:
+Paragraph
+
+Pitanje 15:
+Kako ste dozivjeli razgovor s AI agentom Julijom?
+Tip:
+Paragraph
+
+Pitanje 16:
+Sto Vam je u aplikaciji ulijevalo povjerenje, a sto ga je eventualno smanjivalo?
+Tip:
+Paragraph
+
+Pitanje 17:
+Sto biste prvo poboljsali kako bi sustav bio korisniji studentima?
+Tip:
+Paragraph

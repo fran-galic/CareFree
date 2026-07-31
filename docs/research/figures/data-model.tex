@@ -1,0 +1,281 @@
+\usetikzlibrary{positioning,fit,backgrounds,calc}
+
+\begin{tikzpicture}[
+  font=\normalsize,
+  line cap=round,
+  line join=round,
+  zoneFrame/.style={
+    draw=CareFreeMidGray,
+    rounded corners=10pt,
+    fill=CareFreeLightGray,
+    inner xsep=0.95cm,
+    inner ysep=1.10cm
+  },
+  zoneTitle/.style={
+    font=\large\bfseries,
+    text=CareFreeDarkBlue,
+    fill=CareFreeLightGray,
+    inner sep=3pt,
+    align=left
+  },
+  entity/.style={
+    draw=CareFreeDarkBlue,
+    rounded corners=6pt,
+    fill=white,
+    align=left,
+    text width=6.05cm,
+    minimum width=6.40cm,
+    minimum height=2.35cm,
+    inner sep=9pt
+  },
+  primaryEntity/.style={
+    entity,
+    fill=CareFreeLightBlue
+  },
+  wideEntity/.style={
+    entity,
+    text width=7.05cm,
+    minimum width=7.40cm
+  },
+  extraWideEntity/.style={
+    entity,
+    text width=8.20cm,
+    minimum width=8.55cm
+  },
+  relation/.style={
+    semithick,
+    draw=CareFreeDarkBlue
+  },
+  optionalFlow/.style={
+    relation,
+    dashed,
+    draw=CareFreeMidGray
+  },
+  card/.style={
+    font=\small,
+    fill=white,
+    inner sep=2.4pt,
+    text=black
+  },
+  flowLabel/.style={
+    font=\small,
+    fill=white,
+    inner sep=3pt,
+    align=center,
+    text=black
+  },
+  legendBox/.style={
+    draw=CareFreeMidGray,
+    rounded corners=6pt,
+    fill=white,
+    minimum width=23.00cm,
+    minimum height=1.42cm,
+    inner sep=0pt
+  },
+  legendText/.style={
+    font=\small,
+    text=black,
+    align=left
+  }
+]
+
+  \coordinate (profilesNW) at (-22.80,35.70);
+  \coordinate (profilesSE) at (22.80,20.20);
+  \coordinate (appointmentsNW) at (-22.80,17.45);
+  \coordinate (appointmentsSE) at (22.80,0.80);
+  \coordinate (contentNW) at (-22.80,-2.40);
+  \coordinate (contentSE) at (22.80,-21.00);
+
+  \node[primaryEntity, wideEntity] (user) at (-5.20,32.15) {
+    \textbf{Korisnik}\\[-1pt]
+    {\small (User)}\\
+    e-adresa\\
+    uloga\\
+    osnovni podaci računa
+  };
+
+  \node[entity] (student) at (-13.40,26.40) {
+    \textbf{Student}\\[-1pt]
+    {\small (Student)}\\
+    ustanova studiranja\\
+    godina studija\\
+    postavka prikaza identiteta
+  };
+
+  \node[entity] (caretaker) at (-3.30,26.40) {
+    \textbf{Stručnjak}\\[-1pt]
+    {\small (Caretaker)}\\
+    profesionalni profil\\
+    status odobrenja\\
+    vidljivost kontakta
+  };
+
+  \node[entity] (category) at (7.55,29.40) {
+    \textbf{Područje pomoći}\\[-1pt]
+    {\small (HelpCategory)}\\
+    naziv\\
+    kod\\
+    nadređeno područje
+  };
+
+  \node[wideEntity] (documents) at (14.35,23.35) {
+    \textbf{Dokumentacija stručnjaka}\\[-1pt]
+    {\small (CaretakerCV, Diploma, Certificate)}\\
+    životopis\\
+    diploma\\
+    potvrde i certifikati
+  };
+
+  \node[entity] (availability) at (-14.05,5.95) {
+    \textbf{Termin dostupnosti}\\[-1pt]
+    {\small (AvailabilitySlot)}\\
+    stručnjak: 1 -- 0..*\\
+    početak\\
+    završetak\\
+    raspoloživost
+  };
+
+  \node[primaryEntity, extraWideEntity] (request) at (0.00,5.95) {
+    \textbf{Zahtjev za termin}\\[-1pt]
+    {\small (AppointmentRequest)}\\
+    student i stručnjak\\
+    razlog dolaska\\
+    status zahtjeva\\
+    sažetak i kategorija\\
+    dobrovoljno podijeljeni prijepis
+  };
+
+  \node[entity] (appointment) at (14.05,5.95) {
+    \textbf{Potvrđeni termin}\\[-1pt]
+    {\small (Appointment)}\\
+    vrijeme termina\\
+    stanje sinkronizacije\\
+    poveznica za mrežni razgovor
+  };
+
+  \node[primaryEntity, wideEntity] (session) at (-5.70,-7.25) {
+    \textbf{Razgovorna sesija}\\[-1pt]
+    {\small (AssistantSession)}\\
+    student: 1 -- 0..*\\
+    način rada\\
+    status\\
+    izdvojeno područje pomoći
+  };
+
+  \node[entity] (message) at (-13.40,-16.15) {
+    \textbf{Poruka razgovora}\\[-1pt]
+    {\small (AssistantMessage)}\\
+    pošiljatelj\\
+    sadržaj\\
+    redni broj poruke
+  };
+
+  \node[wideEntity] (summary) at (-2.30,-16.15) {
+    \textbf{Sažetak razgovora}\\[-1pt]
+    {\small (AssistantSessionSummary)}\\
+    sažetak\\
+    kategorije\\
+    snimka razgovora, ako postoji
+  };
+
+  \node[wideEntity] (journal) at (14.15,-12.40) {
+    \textbf{Dnevnički zapis}\\[-1pt]
+    {\small (JournalEntry)}\\
+    korisnik: 1 -- 0..*\\
+    raspoloženje\\
+    šifrirani sadržaj\\
+    vrijeme stvaranja
+  };
+
+  \begin{scope}[on background layer]
+    \node[zoneFrame, fit=(profilesNW)(profilesSE)] (profilesFrame) {};
+    \node[zoneFrame, fit=(appointmentsNW)(appointmentsSE)] (appointmentsFrame) {};
+    \node[zoneFrame, fit=(contentNW)(contentSE)] (contentFrame) {};
+  \end{scope}
+
+  \node[zoneTitle, anchor=west] at (-21.65,35.05) {Korisnici i stručni profili};
+  \node[zoneTitle, anchor=west] at (-21.65,16.75) {Dostupnost, zahtjevi i termini};
+  \node[zoneTitle, anchor=west] at (-21.65,-3.10) {Razgovor i privatni sadržaj};
+
+  \coordinate (userStudentLane) at (-10.10,29.55);
+  \coordinate (userCaretakerLane) at (-4.20,29.55);
+  \draw[relation] ([xshift=-1.30cm]user.south) |- (userStudentLane) -| (student.north);
+  \node[card] at (-9.75,29.88) {1};
+  \node[card] at (-12.92,28.05) {0..1};
+
+  \draw[relation] ([xshift=1.15cm]user.south) |- (userCaretakerLane) -| (caretaker.north);
+  \node[card] at (-4.58,29.88) {1};
+  \node[card] at (-2.86,28.05) {0..1};
+
+  \coordinate (caretakerCategoryLaneA) at (1.55,29.40);
+  \draw[relation] (caretaker.east) |- (caretakerCategoryLaneA) -- (category.west);
+  \node[card] at (0.20,26.82) {0..*};
+  \node[card] at (4.35,29.76) {0..*};
+
+  \coordinate (caretakerDocumentLaneA) at (2.65,23.35);
+  \draw[relation] ([yshift=-0.60cm]caretaker.east) -| (caretakerDocumentLaneA) -- (documents.west);
+  \node[card] at (0.28,25.08) {1};
+  \node[card] at (10.08,23.70) {0..*};
+
+  \coordinate (categorySelfTopA) at (7.55,32.00);
+  \coordinate (categorySelfTopB) at (11.65,32.00);
+  \coordinate (categorySelfSide) at (11.65,29.40);
+  \draw[relation] (category.north) -- (categorySelfTopA) -- (categorySelfTopB) -- (categorySelfSide) -- (category.east);
+  \node[card] at (8.45,32.35) {0..1};
+  \node[card] at (12.05,29.88) {0..*};
+
+  \coordinate (caretakerAvailabilityGapA) at (-4.40,18.75);
+  \coordinate (caretakerAvailabilityGapB) at (-14.05,18.75);
+  \draw[relation] ([xshift=-1.05cm]caretaker.south) |- (caretakerAvailabilityGapA) -- (caretakerAvailabilityGapB) -- (availability.north);
+  \node[card] at (-4.80,19.12) {1};
+  \node[card] at (-14.55,7.82) {0..*};
+
+  \coordinate (studentRequestGapA) at (-13.40,18.10);
+  \coordinate (studentRequestGapB) at (-3.30,18.10);
+  \draw[relation] (student.south) -- (studentRequestGapA) -- (studentRequestGapB) |- ([xshift=-2.75cm]request.north);
+  \node[card] at (-12.92,18.48) {1};
+  \node[card] at (-2.98,7.82) {0..*};
+
+  \coordinate (caretakerRequestGapA) at (2.45,17.55);
+  \draw[relation] ([xshift=1.05cm]caretaker.south) |- (caretakerRequestGapA) -- ([xshift=2.45cm]request.north);
+  \node[card] at (-2.00,17.92) {1};
+  \node[card] at (2.82,7.82) {0..*};
+
+  \draw[optionalFlow] (availability.east) -- (request.west);
+  \node[flowLabel] at (-7.02,6.32) {odabrano\\vrijeme};
+
+  \draw[relation] (request.east) -- (appointment.west);
+  \node[card] at (4.55,6.32) {1};
+  \node[card] at (10.50,6.32) {0..1};
+
+  \coordinate (studentSessionOuterA) at (-22.05,26.40);
+  \coordinate (studentSessionOuterB) at (-22.05,-7.25);
+  \draw[relation] (student.west) -- (studentSessionOuterA) -- (studentSessionOuterB) -- (session.west);
+  \node[card] at (-20.95,26.82) {1};
+  \node[card] at (-9.70,-6.88) {0..*};
+
+  \coordinate (userJournalOuterA) at (0.10,33.85);
+  \coordinate (userJournalOuterB) at (22.05,33.85);
+  \coordinate (userJournalOuterC) at (22.05,-12.40);
+  \draw[relation] (user.east) -| (userJournalOuterA) -- (userJournalOuterB) -- (userJournalOuterC) -- (journal.east);
+  \node[card] at (-0.05,32.55) {1};
+  \node[card] at (18.70,-12.02) {0..*};
+
+  \coordinate (sessionMessageLaneA) at (-8.05,-11.95);
+  \coordinate (sessionMessageLaneB) at (-13.40,-11.95);
+  \draw[relation] ([xshift=-1.55cm]session.south) |- (sessionMessageLaneA) -- (sessionMessageLaneB) -- (message.north);
+  \node[card] at (-7.72,-11.18) {1};
+  \node[card] at (-12.82,-14.28) {0..*};
+
+  \coordinate (sessionSummaryLaneA) at (-3.60,-11.95);
+  \coordinate (sessionSummaryLaneB) at (-2.30,-11.95);
+  \draw[relation] ([xshift=1.55cm]session.south) |- (sessionSummaryLaneA) -- (sessionSummaryLaneB) -- (summary.north);
+  \node[card] at (-3.28,-11.18) {1};
+  \node[card] at (-2.72,-14.28) {0..1};
+
+  \node[legendBox] (legend) at (0,-23.45) {};
+  \draw[relation] (-10.80,-23.45) -- (-8.70,-23.45);
+  \node[legendText, anchor=west] at (-8.25,-23.45) {puna veza = relacija u Django modelu};
+  \draw[optionalFlow] (3.05,-23.45) -- (5.15,-23.45);
+  \node[legendText, anchor=west] at (5.60,-23.45) {isprekidana veza = izvedeni tok bez izravnog stranog ključa};
+\end{tikzpicture}
